@@ -249,6 +249,8 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .dslot svg{width:14px;height:14px}
 .dslot span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .wcol .dslot{min-height:32px;margin-top:2px}
+.col .dslot{margin-top:2px}
+.col .da{border:1.5px dashed var(--line);border-radius:var(--r);padding:8px;margin-top:2px}
 .ph.desk .wcol.has .dslot{opacity:0}
 .ph.desk .wcol.has:hover .dslot{opacity:.32}
 .ph.desk .wcol .dslot:hover,.ph.desk .wcol .dslot:focus-visible{opacity:.75}
@@ -1131,7 +1133,7 @@ function board(){
   L.todo.sort(byTime);
   L.up.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:byTime(a,b));
   const N=[['todo','To Do','Today, overdue and undated. Rolls forward daily.'],['up','Upcoming','Dated after today. Workouts live in the Workouts tab.']];
-  return quickRow()+`<div class="cols">${N.map(([k,n,s])=>`<section class="col" data-drop="lane:${k}"><h3 class="col-h"><span>${n}</span><span>${L[k].length}</span></h3>${s?`<p class="col-s">${s}</p>`:''}${L[k].map(card).join('')||'<div class="empty">Drop here</div>'}</section>`).join('')}</div>`;
+  return quickRow()+`<div class="cols">${N.map(([k,n,s])=>`<section class="col" data-drop="lane:${k}"><h3 class="col-h"><span>${n}</span><span>${L[k].length}</span></h3>${s?`<p class="col-s">${s}</p>`:''}${L[k].map(card).join('')}${k==='todo'?addSlot(TODAY,'today'):addSlot(add(TODAY,1),'tomorrow')}</section>`).join('')}</div>`;
 }
 function foot(){
   if(S.plan)return `<footer class="ft"><button class="add" data-act="plan-done">Done planning</button><div class="ft-drop" data-drop="done">Drop here to finish</div></footer>`;
@@ -1386,7 +1388,14 @@ function render(){
   root.querySelectorAll('.wh').forEach(w=>{const sc=w.querySelector('.wh-s');sc.scrollTop=+w.dataset.i*ITEM});
   S.keep=true;S.anim=false;S.flash=null;save();
 }
-function openSheet(type,id){S.sheet={type,id};S.anim=true;S.confirmDel=null;render()}
+/* iOS: the keyboard scrolls the whole page and leaves it there. Keep the app pinned to the top
+   and sized to the space above the keyboard, so sheets always open from their first line. */
+function pinTop(){if(window.scrollY||document.documentElement.scrollTop||document.body.scrollTop){window.scrollTo(0,0);document.body.scrollTop=0}}
+function fitViewport(){const vv=window.visualViewport;if(!vv)return;root.style.height=innerWidth<=520?Math.round(vv.height)+'px':'';pinTop()}
+if(window.visualViewport){visualViewport.addEventListener('resize',fitViewport);visualViewport.addEventListener('scroll',pinTop)}
+document.addEventListener('focusout',()=>setTimeout(()=>{fitViewport();pinTop()},80));
+function focusTop(sel){const i=root.querySelector(sel);if(!i)return;try{i.focus({preventScroll:true})}catch(e){i.focus()}const sh=root.querySelector('.sheet');if(sh)sh.scrollTop=0;pinTop();setTimeout(()=>{const s2=root.querySelector('.sheet');if(s2)s2.scrollTop=0;pinTop()},350)}
+function openSheet(type,id){S.sheet={type,id};S.anim=true;S.confirmDel=null;render();const sh=root.querySelector('.sheet');if(sh)sh.scrollTop=0;pinTop()}
 function closeSheet(){if(VC.on)vStop();S.sheet=null;S.draft=null;render()}
 
 function finishTask(t,dropped){
@@ -1423,7 +1432,7 @@ function act(a,id,el){
     case 'v-full':return vSave(true);
     case 'v-note':return vSave(false,true);
     case 'note-mic':{const n=root.querySelector('#n-new'),keep=n?n.value:'';if(VC.on&&VC.target==='note'){vStop();return}VC.text='';vStart('note');render();const n2=root.querySelector('#n-new');if(n2){n2.value=keep}return}
-    case 'add-full':S.draft=draftFrom(null);openSheet('editor');{const i=root.querySelector('#q-t');if(i)i.focus()}return;
+    case 'add-full':S.draft=draftFrom(null);openSheet('editor');focusTop('#q-t');return;
     case 'add-work':openSheet('worknote');{const i=root.querySelector('#w-n');if(i)i.focus()}return;
     case 'add-today':S.quick={cat:'Other',added:0};openSheet('today');{const i=root.querySelector('#q-today');if(i)i.focus()}return;
     case 'save-work':{const i=root.querySelector('#w-n'),v=i&&i.value.trim();if(!v){if(i)i.focus();return}
@@ -1437,7 +1446,7 @@ function act(a,id,el){
     case 'da-save':{const i=root.querySelector('#da-in'),v=i&&i.value.trim();if(!v){if(i)i.focus();return}
       const nt=newTask({title:v,cat:'Other',date:S.dayAdd,tags:S.tagF?[S.tagF]:[],realm:S.realm==='work'?'work':'personal'});S.tasks.push(nt);S.flash=nt.id;
       render();const i2=root.querySelector('#da-in');if(i2)i2.focus();toast('Added to '+(S.dayAdd===TODAY?'today':short(S.dayAdd)));return}
-    case 'da-full':{const i=root.querySelector('#da-in'),v=i?i.value.trim():'';S.draft=Object.assign(draftFrom(null),{title:v,date:S.dayAdd});S.dayAdd=null;openSheet('editor');const q=root.querySelector('#q-t');if(q)q.focus();return}
+    case 'da-full':{const i=root.querySelector('#da-in'),v=i?i.value.trim():'';S.draft=Object.assign(draftFrom(null),{title:v,date:S.dayAdd});S.dayAdd=null;openSheet('editor');focusTop('#q-t');return}
     case 'close-day':return openSheet('closeday');
     case 'cd-tmrw':t.date=add(TODAY,1);t.time=null;t.status='todo';t.asked=false;return render();
     case 'cd-drop':finishTask(t,true);return render();
@@ -1689,6 +1698,6 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<!-- build c731b879 -->
+<!-- build 0514a966 -->
 </body>
 </html>
