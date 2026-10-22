@@ -749,7 +749,7 @@ function load(){
   try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&d.tasks){S=Object.assign({view:'board',realm:'all',sel:TODAY,sheet:null,anim:false,draft:null,confirmDel:null,flash:null,keep:false,people:[],notes:[],quick:null},d,{sheet:null,draft:null,sel:TODAY});S.settings=Object.assign(defSettings(),d.settings||{});S.budget=d.budget&&d.budget.buckets?d.budget:BSEED();S.ko=Object.assign({time:30,eff:6},d.ko||{});S.habits=Array.isArray(d.habits)?d.habits:seedHabits();S.habRange=d.habRange||'week';S.wo=Array.isArray(d.wo)?d.wo:seedWorkouts();S.tags=Array.isArray(d.tags)?d.tags:[];S.closes=d.closes||{};S.wins=d.wins||{};S.tagF=d.tagF||null;S.woSync=d.woSync||Date.now();S.habEdit=false;S.confirmHab=null;return}}}catch(e){}
   seed();
 }
-function save(){try{const {tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins}=S;localStorage.setItem(KEY,JSON.stringify({tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins}))}catch(e){}}
+function save(){try{const {tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins}=S;localStorage.setItem(KEY,JSON.stringify({tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins}))}catch(e){}try{syTrack()}catch(e){}}
 
 /* ---------- close the day ---------- */
 function closeStats(){
@@ -1367,6 +1367,11 @@ function sheet(){
   }else if(type==='settings'){
     const st=S.settings;
     h=`<div class="sh-top"><h2>Settings</h2><button class="x" data-act="close">Close</button></div>`+
+      `<div class="fld"><span class="lbl">Sync</span>`+(SY.url
+        ?`<span class="set-k" id="sy-st">${esc(syStatus())}</span><div class="btns"><button class="sec" data-act="sy-off">Disconnect</button><button class="pri" data-act="sy-now">Sync now</button></div>`
+        :`<label class="set-k" for="sy-url">Script URL</label><input id="sy-url" class="inp sm" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false">`+
+         `<label class="set-k" for="sy-key">Key</label><input id="sy-key" class="inp sm" placeholder="From the script’s setup log" autocomplete="off" autocapitalize="off" spellcheck="false">`+
+         `<button class="pri" data-act="sy-on">Connect</button><span class="set-k">${esc(syStatus())}</span>`)+`</div>`+
       `<div class="fld"><span class="lbl">Look</span><div class="seg3" role="group" aria-label="Look">${SKINS.map(([k,l])=>`<button class="${(st.skin||'field')===k?'on':''}" data-skin="${k}" aria-pressed="${(st.skin||'field')===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><span class="lbl">Language</span><div class="seg3" role="group" aria-label="Language">${[['en','English'],['es','Español']].map(([k,l])=>`<button class="${(st.lang||'en')===k?'on':''}" data-act="lang" data-v="${k}" aria-pressed="${(st.lang||'en')===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><span class="lbl">Appearance</span><div class="seg3" role="group" aria-label="Appearance">${[['system','System'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${st.theme===k?'on':''}" data-act="theme" data-v="${k}" aria-pressed="${st.theme===k}">${l}</button>`).join('')}</div></div>`+
@@ -1422,7 +1427,7 @@ const ES={'Board':'Tablero','Week':'Semana','Habits':'Hábitos','Workouts':'Entr
 'This week':'Esta semana','Next week':'Próxima semana','Edit habits':'Editar hábitos','Category':'Categoría','Repeat':'Repetir','People':'Personas','When':'Cuándo',
 'Save':'Guardar','Light':'Claro','Dark':'Oscuro','System':'Sistema','Tap to talk again':'Toca para hablar otra vez','Listening…':'Escuchando…',
 'Tap the mic on your keyboard and talk.':'Toca el micrófono del teclado y habla.','Add a habit, e.g. Floss':'Agrega un hábito, p. ej. Hilo dental',
-'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!'};
+'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado'};
 const ESW={Monday:'lunes',Tuesday:'martes',Wednesday:'miércoles',Thursday:'jueves',Friday:'viernes',Saturday:'sábado',Sunday:'domingo',
 Mon:'lun',Tue:'mar',Wed:'mié',Thu:'jue',Fri:'vie',Sat:'sáb',Sun:'dom',January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',
 August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre',Jan:'ene',Feb:'feb',Mar:'mar',Apr:'abr',Jun:'jun',Jul:'jul',Aug:'ago',
@@ -1444,6 +1449,69 @@ function translateUI(scope){
   L.forEach(n=>{const t=trText(n.nodeValue);if(t!==n.nodeValue)n.nodeValue=t});
   scope.querySelectorAll('[placeholder],[aria-label]').forEach(e=>{['placeholder','aria-label'].forEach(a=>{const v=e.getAttribute(a);if(v&&ES[v])e.setAttribute(a,ES[v])})});
 }
+/* ---------- sync: Google Sheet + Apps Script (see apps-script/Code.gs). Works offline; pushes changes, pulls others, picks up Siri/Inbox items ---------- */
+const SYK=KEY+'-sync';
+const SY0=()=>({url:'',key:'',lastPull:0,snap:{},out:{},ready:false,lastOk:0,err:''});
+let SY=(()=>{try{return Object.assign(SY0(),JSON.parse(localStorage.getItem(SYK)||'{}'))}catch(e){return SY0()}})();
+function sySave(){try{localStorage.setItem(SYK,JSON.stringify(SY))}catch(e){}}
+const SYC=['tasks','notes','habits','people'];
+function h32(x){let h=5381;for(let i=0;i<x.length;i++)h=((h<<5)+h+x.charCodeAt(i))|0;return h}
+const metaDoc=()=>({tags:S.tags||[],settings:S.settings,ko:S.ko,closes:S.closes||{},wins:S.wins||{}});
+function syEntities(){const E={};SYC.forEach(c=>(S[c]||[]).forEach(x=>{if(x&&x.id)E[c+':'+x.id]={c,id:x.id,d:x}}));E['meta:meta']={c:'meta',id:'meta',d:metaDoc()};return E}
+let syTrackOn=true;
+function syTrack(){
+  if(!SY.url||!SY.ready||!syTrackOn||!S)return;
+  const E=syEntities(),now=Date.now();let dirty=false;
+  for(const k in E){const h=h32(JSON.stringify(E[k].d));if(SY.snap[k]!==h){SY.snap[k]=h;SY.out[k]={c:E[k].c,id:E[k].id,u:now};dirty=true}}
+  for(const k in SY.snap){if(!E[k]){delete SY.snap[k];const i=k.indexOf(':');SY.out[k]={c:k.slice(0,i),id:k.slice(i+1),u:now,del:1};dirty=true}}
+  if(dirty){sySave();sySoon()}
+}
+function syApply(r){
+  const k=r.c+':'+r.id;
+  if(r.c==='meta'){if(r.del||!r.d)return false;const d=r.d;S.tags=d.tags||[];S.ko=d.ko||S.ko;S.closes=d.closes||{};S.wins=d.wins||{};S.settings=Object.assign(defSettings(),d.settings||{});SY.snap[k]=h32(JSON.stringify(metaDoc()));return true}
+  const L=S[r.c];if(!Array.isArray(L))return false;const i=L.findIndex(x=>x.id===r.id);
+  if(r.del){delete SY.snap[k];if(i>=0){L.splice(i,1);return true}return false}
+  if(i>=0)L[i]=r.d;else L.push(r.d);SY.snap[k]=h32(JSON.stringify(r.d));return true;
+}
+function syInbox(text){
+  const ro=vRoute(text);
+  if(ro.kind==='note'){if(!ro.body)return false;S.notes.push({id:mk('n'),text:ro.body.charAt(0).toUpperCase()+ro.body.slice(1),at:Date.now(),work:!!ro.work});return true}
+  const v=parseVoice(ro.body);if(!v.title)return false;
+  S.tasks.push(newTask({title:v.title,cat:'Other',date:v.date||TODAY,time:v.time,dur:v.dur,tags:[]}));return true;
+}
+let syBusy=false,syTimer=null;
+function sySoon(ms){clearTimeout(syTimer);syTimer=setTimeout(syncNow,ms==null?2500:ms)}
+async function syncNow(manual){
+  if(!SY.url||!SY.key||syBusy)return;
+  if(navigator.onLine===false){SY.err='Offline. Will sync when you’re back online.';sySave();if(manual)render();return}
+  syBusy=true;const E=syEntities();
+  const rows=SY.ready?Object.values(SY.out).map(o=>o.del?o:Object.assign({},o,{d:(E[o.c+':'+o.id]||{}).d})).filter(o=>o.del||o.d):[];
+  try{
+    const res=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'sync',token:SY.key,since:SY.lastPull,rows})});
+    const j=await res.json();if(!j.ok)throw new Error(j.error==='bad key'?'The key doesn’t match your script.':(j.error||'Sync failed'));
+    rows.forEach(o=>{const k=o.c+':'+o.id;if(SY.out[k]&&SY.out[k].u===o.u)delete SY.out[k]});
+    let changed=false,inb=0;syTrackOn=false;
+    (j.rows||[]).forEach(r=>{const mine=SY.out[r.c+':'+r.id];if(mine&&mine.u>r.u)return;if(syApply(r))changed=true});
+    syTrackOn=true;
+    const first=!SY.ready;SY.ready=true;SY.lastPull=j.now;SY.lastOk=Date.now();SY.err='';
+    (j.inbox||[]).forEach(x=>{if(syInbox(x.text))inb++});
+    sySave();
+    if(changed||inb||first||manual){S.keep=true;render()}
+    if(inb)toast(inb===1?'1 added from Siri':inb+' added from Siri');
+    else if(manual)toast(first?'Connected. Your board is synced.':'Synced');
+    if(first||Object.keys(SY.out).length)sySoon(300);
+  }catch(e){SY.err=String(e&&e.message||e).replace(/^TypeError: /,'')||'Sync failed';if(/fetch|network|load failed/i.test(SY.err))SY.err='Couldn’t reach your script. Check the URL, or you may be offline.';sySave();if(manual){render();toast('Sync didn’t work: '+SY.err)}}
+  finally{syBusy=false}
+}
+function syStatus(){
+  if(!SY.url)return 'Not connected. Your board lives only on this device.';
+  if(SY.err)return SY.err;
+  const n=Object.keys(SY.out).length;
+  return (SY.lastOk?'Synced '+hm(SY.lastOk):'Connecting…')+(n?' · '+n+' change'+(n===1?'':'s')+' waiting':'');
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sySoon(200)});
+window.addEventListener('online',()=>sySoon(200));
+setInterval(()=>{if(document.visibilityState==='visible')syncNow()},120000);
 function render(){
   const scr=root.querySelector('#scr'),st=scr?scr.scrollTop:0;
   const sh=root.querySelector('.sheet'),shs=sh?sh.scrollTop:0;
@@ -1582,6 +1650,12 @@ function act(a,id,el){
     case 'byear':{const B=S.budget;B.open=B.open===el.dataset.v?null:el.dataset.v;return render()}
     case 'theme':S.settings.theme=el.dataset.v;return render();
     case 'lang':S.settings.lang=el.dataset.v;return render();
+    case 'sy-on':{const u=(root.querySelector('#sy-url')||{}).value||'',k=(root.querySelector('#sy-key')||{}).value||'';
+      if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u.trim())){toast('Paste the web app URL from Apps Script (ends in /exec)');return}
+      if(!k.trim()){toast('Paste the key from the script’s setup log');return}
+      Object.assign(SY,SY0(),{url:u.trim(),key:k.trim()});sySave();render();syncNow(true);return}
+    case 'sy-now':return syncNow(true);
+    case 'sy-off':Object.assign(SY,SY0());sySave();toast('Disconnected. Everything stays on this device.');return render();
     case 'fetch-plan':{
       const plan=[['Swim 2,000 m, drills + 6×200','2,000 m',45,6],['Bike 1:15 with 4×8 min sweet spot','1:15',75,7],['Run 7 mi, 4 at half-marathon pace','7 mi',60,8],null,['Swim 1,800 m easy','1,800 m',45,3],['Brick: 2:00 bike + 30 min run','2:30',150,8],['Long run 11 mi Z2','11 mi',105,7]];
       let n=0;plan.forEach((p,i)=>{if(!p)return;const d=add(TODAY,i+1);if(S.tasks.some(x=>x.title===p[0]&&x.date===d))return;S.tasks.push(newTask({title:p[0],cat:'Workout',date:d,plan:p[1],dur:p[2],effort:p[3]}));n++});
@@ -1791,6 +1865,7 @@ S.desk=window.innerWidth>=1000;
 if(mq&&mq.addEventListener)mq.addEventListener('change',()=>{if(S.settings.theme==='system')render()});
 try{new MutationObserver(()=>{if(S.settings.theme==='system')render()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})}catch(e){}
 render();
+if(SY.url)sySoon(600);
 setTimeout(()=>{const t=S.tasks.find(x=>!x.done&&x.cat!=='Workout'&&rolled(x)>=3&&!x.asked);if(t&&!S.sheet)openSheet('roll',t.id)},900);
 </script>
 <script>
@@ -1800,6 +1875,6 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<!-- build 85f7dc99 -->
+<!-- build c00ac123 -->
 </body>
 </html>

@@ -5,10 +5,10 @@ Personal week-first board: To Do / Upcoming, Week view, habits, workouts, Plan d
 **Install:** open https://devaughnwoodyard.github.io/life-board/ in Safari → Share → **Add to Home Screen**. Open it once while online; after that it works with no connection.
 
 ## Data
-Everything is stored on the device (localStorage). Nothing is sent anywhere yet. Deleting the home-screen app deletes its data.
+Stored on the device and works offline. Optional sync to your own Google Sheet via Apps Script: see `apps-script/SETUP.md`. Also enables a Siri Shortcut for quick adds.
 
 ## Not wired yet
-Google Sheets sync, workout plan import, Garmin/Strava actuals and Google Calendar reminders.
+Workout plan import, Garmin/Strava actuals, Google Calendar reminders, and Claude file processing.
 
 ## Files
 - `index.html`: the whole app
