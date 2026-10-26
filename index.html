@@ -188,7 +188,14 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 @keyframes flash{from{background:var(--soft)}to{background:var(--paper)}}
 
 /* board */
-.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;margin-top:22px;align-items:start}
+.cols{display:grid;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:calc((100% - 12px)/2);column-gap:12px;margin:12px -18px 0;padding:0 18px 4px;align-items:start;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 18px;scrollbar-width:none;overscroll-behavior-x:contain}
+.cols::-webkit-scrollbar{display:none}
+.col{scroll-snap-align:start}
+.ph.desk .cols{margin:12px -30px 0;padding:0 30px 4px;scroll-padding:0 30px}
+.lane-nav{display:flex;gap:6px;margin-top:18px}
+.lane-nav button{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--soft);font-size:13px;font-weight:600;color:var(--ink);min-height:32px}
+.lane-nav button b{font-size:12px;color:var(--muted);font-weight:700}
+.lane-nav button:last-child::after{content:'›';font-size:16px;line-height:1;color:var(--muted)}
 .col{min-height:420px;display:flex;flex-direction:column;gap:6px;padding-bottom:10px}
 .col-h{margin:0 0 2px;display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;border-bottom:2px solid var(--line);padding-bottom:6px}
 .col-s{margin:-2px 0 2px;font-size:10px;color:var(--muted)}
@@ -740,14 +747,16 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .ph[data-skin="ios-c"] .nav button{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;position:relative}
 .ph[data-skin="ios-c"] .nav button.on{color:var(--ink);text-decoration:none}
 .ph[data-skin="ios-c"] .nav button.on::after{content:'';position:absolute;left:50%;bottom:2px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--act)}
-.ph[data-skin="ios-c"] .cols{grid-template-columns:1fr;row-gap:30px}
+.ph[data-skin="ios-c"] .cols{row-gap:30px}
 .ph[data-skin="ios-c"] .col{min-height:0;gap:0}
 .ph[data-skin="ios-c"] :is(.col-h,.day-h){border:0;font-size:20px;font-weight:800;text-transform:none;letter-spacing:-.3px;color:var(--ink);padding:0 0 6px;align-items:center}
 .ph[data-skin="ios-c"] .col-h span:first-child{display:flex;align-items:center;gap:8px}
 .ph[data-skin="ios-c"] .col-h span:first-child::before{content:'';width:20px;height:20px;background:var(--accent);-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27m12%203%202.7%205.6%206.1.9-4.4%204.3%201%206.1L12%2017l-5.4%202.9%201-6.1L3.2%209.5l6.1-.9z%27%20fill%3D%27black%27/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27m12%203%202.7%205.6%206.1.9-4.4%204.3%201%206.1L12%2017l-5.4%202.9%201-6.1L3.2%209.5l6.1-.9z%27%20fill%3D%27black%27/%3E%3C/svg%3E") center/contain no-repeat}
+.ph[data-skin="ios-c"]{--ico-later:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%3E%3Ccircle%20cx%3D%2712%27%20cy%3D%2712%27%20r%3D%279%27/%3E%3Cpath%20d%3D%27M12%207v5l3%202%27/%3E%3C/svg%3E")}
+.ph[data-skin="ios-c"] .col-later .col-h span:first-child::before{background:var(--muted);-webkit-mask-image:var(--ico-later);mask-image:var(--ico-later)}
 .ph[data-skin="ios-c"] .col:nth-child(2) .col-h span:first-child::before{background:#e5484d;-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%273%27/%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%273%27/%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27/%3E%3C/svg%3E")}
 .ph[data-skin="ios-c"] .col-h span:last-child{font-size:14px;color:var(--muted);font-weight:600}
-.ph[data-skin="ios-c"] .col-s{display:none}
+.ph[data-skin="ios-c"] .col-s{display:block;font-size:12px;margin:-2px 0 8px;color:var(--muted)}
 .ph[data-skin="ios-c"] :is(.scr,.hd){background:var(--bg)}
 .ph[data-skin="ios-c"] .col .card{flex-direction:row;align-items:flex-start;gap:10px;border:0;border-radius:0;background:var(--paper);box-shadow:none;padding:12px 14px 12px 12px;border-bottom:1px solid var(--hair)}
 .ph[data-skin="ios-c"] :is(.col-s+.card,.col-h+.card,.day-h+.task,.day-h+.da+.task){border-top-left-radius:12px;border-top-right-radius:12px}
@@ -1239,7 +1248,7 @@ const rolled=t=>(!t.done&&t.src!=='gcal'&&t.date&&t.date<TODAY)?diff(t.date,TODA
 const eff=t=>(t.date&&t.date<TODAY)?TODAY:t.date;
 const byTime=(a,b)=>rolled(b)-rolled(a)||((a.time||'99')<(b.time||'99')?-1:(a.time||'99')>(b.time||'99')?1:0);
 const dayTasks=d=>openTasks().filter(t=>eff(t)===d).sort(byTime);
-const laneOf=t=>(t.date&&t.date>TODAY)?'up':'todo';
+const laneOf=t=>!t.date||t.date<=TODAY?'todo':t.date===add(TODAY,1)?'tom':'later';
 const DURS=[null,15,30,45,60,75,90,105,120,135,150,165,180,195,210,225,240];
 const durFmt=m=>m==null?'Not sure':m<60?m+' min':(Math.floor(m/60)+' hr'+(m%60?' '+(m%60):'')+(m>=120&&!(m%60)?'s':''));
 const durShort=m=>m<60?m+'m':Math.floor(m/60)+'h'+(m%60?(m%60):'');
@@ -1323,7 +1332,7 @@ function header(){
   const d=P(TODAY),n=openTasks().length,dn=S.tasks.filter(t=>t.done&&inR(t)).length,showRealm=S.view==='board'||S.view==='week';
   return `<header class="hd"><div class="hd-top"><button class="cog" data-act="settings" aria-label="Settings">${COG}</button><span class="hd-date"><b>${DOWL[d.getDay()]}, ${MONL[d.getMonth()].slice(0,3)} ${d.getDate()}</b><span>${n} open${S.tagF?` in #${esc(S.tagF)}`:''} · <button class="hd-done" data-act="finished">${dn} done</button></span></span>`+
     (showRealm?`<span class="realm" role="group" aria-label="Show">${[['all','All'],['personal','Personal'],['work','Work']].map(([k,l])=>`<button data-realm="${k}" class="${S.realm===k?'on':''}" aria-pressed="${S.realm===k}">${l}</button>`).join('')}</span>`:'')+`</div>`+
-    `<nav class="nav" aria-label="Views"><span>${[['board','Board'],['week','Week'],['habits','Habits'],['workouts','Workouts'],['es','Spanish']].map(([v,l])=>`<button data-view="${v}" class="${S.view===v?'on':''}">${l}</button>`).join('')}</span></nav></header>`;
+    `<nav class="nav" aria-label="Views"><span>${[['board','Board'],['habits','Habits'],['workouts','Workouts'],['es','Spanish']].map(([v,l])=>`<button data-view="${v}" class="${S.view===v?'on':''}">${l}</button>`).join('')}</span></nav></header>`;
 }
 const addSlot=(d,lab)=>S.dayAdd===d?dayAddForm(d,lab):`<button class="dslot" data-act="day-add" data-v="${d}" aria-label="Add a task to ${lab}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>Add to ${lab}</span></button>`;
 function dayAddForm(d,lab){
@@ -1363,12 +1372,14 @@ function week(){
   return h+`<h2 class="wk-h"><span>No date</span><small>${nd.length} task${nd.length===1?'':'s'}</small></h2><section class="day" data-drop="d:none">${list(nd)}</section>`;
 }
 function board(){
-  const L={todo:[],up:[]};
-  openTasks().forEach(t=>{const l=laneOf(t);if(l==='up'&&t.cat==='Workout')return;L[l].push(t)});
-  L.todo.sort(byTime);
-  L.up.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:byTime(a,b));
-  const N=[['todo','To Do','Today, overdue and undated. Rolls forward daily.'],['up','Upcoming','Dated after today. Workouts live in the Workouts tab.']];
-  return quickRow()+`<div class="cols">${N.map(([k,n,s])=>`<section class="col" data-drop="lane:${k}"><h3 class="col-h"><span>${n}</span><span>${L[k].length}</span></h3>${s?`<p class="col-s">${s}</p>`:''}${L[k].map(card).join('')}${k==='todo'?addSlot(TODAY,'today'):addSlot(add(TODAY,1),'tomorrow')}</section>`).join('')}</div>`;
+  const L={todo:[],tom:[],later:[]};
+  openTasks().forEach(t=>{const l=laneOf(t);if(l!=='todo'&&t.cat==='Workout')return;if(l==='later'&&t.src==='gcal')return;L[l].push(t)});
+  L.todo.sort(byTime);L.tom.sort(byTime);
+  L.later.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:byTime(a,b));
+  const d2=add(TODAY,2);
+  const N=[['todo','Today','Overdue and undated tasks roll here each day.',TODAY,'today'],['tom','Tomorrow',DOWL[P(add(TODAY,1)).getDay()],add(TODAY,1),'tomorrow'],['later','Later','After tomorrow. Workouts live in their tab.',d2,'later']];
+  return quickRow()+`<div class="lane-nav" role="group" aria-label="Columns">${N.map(([k,n],i)=>`<button data-act="lane-go" data-v="${i}">${n}<b>${L[k].length}</b></button>`).join('')}</div>`+
+    `<div class="cols" id="cols">${N.map(([k,n,s,d,lab])=>`<section class="col col-${k}" data-drop="lane:${k}"><h3 class="col-h"><span>${n}</span><span>${L[k].length}</span></h3>${s?`<p class="col-s">${s}</p>`:''}${L[k].map(card).join('')}${addSlot(d,lab)}</section>`).join('')}</div>`;
 }
 function foot(){
   if(S.plan)return `<footer class="ft"><button class="add" data-act="plan-done">Done planning</button><div class="ft-drop" data-drop="done">Drop here to finish</div></footer>`;
@@ -1745,7 +1756,7 @@ const ES={'Board':'Tablero','Week':'Semana','Habits':'Hábitos','Workouts':'Entr
 'This week':'Esta semana','Next week':'Próxima semana','Edit habits':'Editar hábitos','Category':'Categoría','Repeat':'Repetir','People':'Personas','When':'Cuándo',
 'Save':'Guardar','Light':'Claro','Dark':'Oscuro','System':'Sistema','Tap to talk again':'Toca para hablar otra vez','Listening…':'Escuchando…',
 'Tap the mic on your keyboard and talk.':'Toca el micrófono del teclado y habla.','Add a habit, e.g. Floss':'Agrega un hábito, p. ej. Hilo dental',
-'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Full page':'Pantalla completa','Minimize':'Minimizar','Search notes and files':'Buscar notas y archivos','Open in Drive':'Abrir en Drive','Preview':'Vista previa','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Google Calendar':'Google Calendar','Show my calendar on the board':'Mostrar mi calendario en el tablero','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
+'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Overdue and undated tasks roll here each day.':'Lo atrasado y sin fecha pasa aquí cada día.','After tomorrow. Workouts live in their tab.':'Después de mañana. Los entrenos están en su pestaña.','Full page':'Pantalla completa','Minimize':'Minimizar','Search notes and files':'Buscar notas y archivos','Open in Drive':'Abrir en Drive','Preview':'Vista previa','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Google Calendar':'Google Calendar','Show my calendar on the board':'Mostrar mi calendario en el tablero','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
 const ESW={Monday:'lunes',Tuesday:'martes',Wednesday:'miércoles',Thursday:'jueves',Friday:'viernes',Saturday:'sábado',Sunday:'domingo',
 Mon:'lun',Tue:'mar',Wed:'mié',Thu:'jue',Fri:'vie',Sat:'sáb',Sun:'dom',January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',
 August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre',Jan:'ene',Feb:'feb',Mar:'mar',Apr:'abr',Jun:'jun',Jul:'jul',Aug:'ago',
@@ -1853,8 +1864,8 @@ window.addEventListener('online',()=>{sySoon(200);fileUploadAll()});
 setInterval(()=>{if(document.visibilityState==='visible')syncNow()},120000);
 function render(){
   const scr=root.querySelector('#scr'),st=scr?scr.scrollTop:0;
-  const sh=root.querySelector('.sheet'),shs=sh?sh.scrollTop:0;
-  if(!['week','board','habits','workouts','es'].includes(S.view))S.view='board';
+  const sh=root.querySelector('.sheet'),shs=sh?sh.scrollTop:0;const cx=root.querySelector('#cols'),cxs=cx?cx.scrollLeft:0;
+  if(!['board','habits','workouts','es'].includes(S.view))S.view='board';
   const body=S.plan?planView():S.view==='week'?week():S.view==='habits'?habitsView():S.view==='workouts'?workoutsView():S.view==='es'?esView():board();
   const main=`${header()}<div class="scr" id="scr">${body}</div>${foot()}`;
   root.classList.toggle('desk',!!S.desk);
@@ -1863,6 +1874,7 @@ function render(){
     ?`<div class="ph desk${S.notesFull?' notes-full':''}" data-theme="${themeNow()}" data-skin="${S.settings.skin||'ios-c'}"><div class="dk"><div class="dk-main">${main}</div><aside class="dk-side" aria-label="Notes">${notesSheet(true)}</aside></div>${sheet()}</div>`
     :`<div class="ph" data-theme="${themeNow()}" data-skin="${S.settings.skin||'ios-c'}">${main}${sheet()}</div>`;
   document.querySelectorAll('.skin').forEach(b=>b.classList.toggle('on',b.dataset.skin===(S.settings.skin||'ios-c')));
+  {const c2=root.querySelector('#cols');if(c2&&S.keep)c2.scrollLeft=cxs}
   if(S.keep){const s2=root.querySelector('#scr');if(s2)s2.scrollTop=st;const h2=root.querySelector('.sheet');if(h2&&!S.anim)h2.scrollTop=shs}
   root.querySelectorAll('.wh').forEach(w=>{const sc=w.querySelector('.wh-s');sc.scrollTop=+w.dataset.i*ITEM});
   translateUI(root);document.documentElement.lang=isES()?'es':'en';
@@ -2016,6 +2028,7 @@ function act(a,id,el){
     case 'save':if(commitDraft()){S.sheet=null;S.draft=null;render()}return;
     case 'close':return closeSheet();
     case 'notes':return openSheet('notes');
+    case 'lane-go':{const c=root.querySelectorAll('#cols>.col')[+el.dataset.v],box=root.querySelector('#cols');if(c&&box)box.scrollTo({left:c.offsetLeft-box.offsetLeft-parseFloat(getComputedStyle(box).paddingLeft),behavior:'smooth'});return}
     case 'notes-full':S.notesFull=!S.notesFull;S.keep=true;render();{const b=root.querySelector('.n-full');if(b)b.focus({preventScroll:true})}return;
     case 'more-weeks':S.weeks=(S.weeks||3)+2;return render();
     case 'finished':return openSheet('finished');
@@ -2192,7 +2205,8 @@ function applyDrop(id,k){
   const l=k.slice(5);
   t.status='todo';
   if(l==='todo'&&t.date&&t.date>TODAY)t.date=TODAY;
-  if(l==='up'&&(!t.date||t.date<=TODAY))t.date=add(TODAY,1);
+  if(l==='tom')t.date=add(TODAY,1);
+  if(l==='later'&&(!t.date||t.date<=add(TODAY,1)))t.date=add(TODAY,2);
 }
 function endDrag(){
   cancelAnimationFrame(raf);const d=drag;drag=null;if(!d)return;
@@ -2240,6 +2254,6 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<!-- build 39086ea6 -->
+<!-- build b9d77d20 -->
 </body>
 </html>

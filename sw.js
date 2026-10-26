@@ -1,7 +1,7 @@
-// Life Board service worker — build 39086ea6
+// Life Board service worker — build b9d77d20
 // App shell: network-first for the page (so updates land when online), cache fallback offline.
 // Fonts: stale-while-revalidate.
-const CACHE = 'lifeboard-39086ea6';
+const CACHE = 'lifeboard-b9d77d20';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
