@@ -60,6 +60,24 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .ph[data-skin="field"] .scr{background:var(--bg)}
 .ph[data-skin="field"] :is(.card,.task,.pu,.ko-btn,.un,.bnote){background:var(--paper)}
 
+/* ===== look: Notes (Apple Notes warmth: paper white, amber ink, hairlines, system type) ===== */
+.ph[data-skin="notes"]{--bg:#f5f3ee;--paper:#fffefb;--ink:#1d1c1a;--muted:#857f74;--line:#d5cfc3;--hair:#e8e3d9;--soft:#eeeae1;--accent:#b4462e;--act:#a8720f;--act-ink:#fffdf8;--dis:#c9c3b6;--dis-b:#eeeae1;--r:12px;
+  --f:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',system-ui,sans-serif;--fh:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',system-ui,sans-serif}
+.ph[data-skin="notes"][data-theme="dark"]{--bg:#1a1917;--paper:#252320;--ink:#f3efe7;--muted:#9f998d;--line:#3d3a34;--hair:#302d29;--soft:#2c2925;--accent:#e2735a;--act:#e2aa3d;--act-ink:#1a1917;--dis:#4a463f;--dis-b:#2c2925;color-scheme:dark}
+.ph[data-skin="notes"] .scr{background:var(--bg)}
+.ph[data-skin="notes"] .hd{background:var(--bg)}
+.ph[data-skin="notes"] :is(.wk-h,.hd-date b,.pl-bar h2,.es-q){font-weight:700;letter-spacing:-.5px}
+.ph[data-skin="notes"] .hd-top{border-bottom:1px solid var(--hair)}
+.ph[data-skin="notes"] .card{box-shadow:0 1px 0 var(--hair),0 2px 8px rgba(60,45,20,.05)}
+.ph[data-skin="notes"] .pd-btn,.ph[data-skin="notes"] .pd-alt{border-radius:0}
+.ph[data-skin="notes"] .pd-wrap{border-radius:12px;overflow:hidden}
+.ph[data-skin="notes"] .dslot{border-color:var(--act);color:var(--act);opacity:.4}
+.ph[data-skin="notes"] :is(.inp,.inp.sm){border-bottom:1px solid var(--line)}
+.ph[data-skin="notes"] :is(.inp,.inp.sm):focus{border-bottom-color:var(--act)}
+.ph[data-skin="notes"] :is(.notes,.es-row,.es-log,.day-h){border-color:var(--hair)}
+.ph[data-skin="notes"] .es-live{border-color:var(--act);border-width:1.5px}
+.ph[data-skin="notes"] .nt{background:var(--paper);border:1px solid var(--hair);border-radius:12px;padding:12px 14px}
+
 /* ===== look: Planner (paper, dot grid, Mincho headings) ===== */
 .ph[data-skin="planner"]{--paper:#fbfbf8;--bg:#fbfbf8;--ink:#2a2a28;--muted:#6f6f68;--line:#2a2a28;--hair:#d6d6cf;--soft:#efefe8;--accent:#c8102e;--act:#2a2a28;--act-ink:#fbfbf8;--dis:#c9c9c2;--dis-b:#ececE6;
   --f:'Zen Kaku Gothic New','Hiragino Sans',system-ui,sans-serif;--fh:'Shippori Mincho','Hiragino Mincho ProN',Georgia,serif}
@@ -77,33 +95,33 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .ph[data-skin="ios"]{--paper:#ffffff;--bg:#f2f2f7;--ink:#000000;--muted:#6c6c70;--line:#c6c6c8;--hair:#e3e3e8;--soft:#ebebf0;--accent:#ff3b30;--act:#007aff;--act-ink:#ffffff;--dis:#c7c7cc;--dis-b:#ececf0;--r:12px;
   --f:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',system-ui,sans-serif;--fh:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',system-ui,sans-serif}
 .ph[data-skin="ios"][data-theme="dark"]{--paper:#1c1c1e;--bg:#000000;--ink:#ffffff;--muted:#98989f;--line:#38383a;--hair:#2c2c2e;--soft:#2c2c2e;--accent:#ff453a;--act:#0a84ff;--act-ink:#ffffff;--dis:#48484a;--dis-b:#2c2c2e}
-.ph[data-skin="ios"] :is(.card,.pu,.ko-btn,.qi,.pd-btn,.add,.pad-btn,.pri,.sec,.chip,.tg-c,.sel,.tin,.ta,.un,.bnote,.more,.sc-b,.ko-n,.seg2,.seg3,.realm,.eff,.bsync button,.ft-drop,.pb){border-radius:var(--r)}
-.ph[data-skin="ios"] :is(.chip,.tg-c,.realm button,.seg2 button,.seg3 button){border-radius:9px}
-.ph[data-skin="ios"] .sheet{border-top:0;border-radius:14px 14px 0 0}
-.ph[data-skin="ios"].desk .sheet{border-left:0;border-radius:14px 0 0 14px}
-.ph[data-skin="ios"] :is(.card,.task,.pu,.ko-btn,.un,.bnote,.sec,.pad-btn,.more,.bsync button){border-color:var(--hair)}
-.ph[data-skin="ios"] .card{border-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.ph[data-skin="ios"] .ko-btn{border:0;background:var(--paper)}
-.ph[data-skin="ios"] .chip{border-color:transparent;background:var(--soft)}
-.ph[data-skin="ios"] .chip.on{background:var(--act);color:var(--act-ink)}
-.ph[data-skin="ios"] .task{background:var(--paper);padding-left:12px;padding-right:12px;border-bottom-color:var(--hair)}
-.ph[data-skin="ios"] .day-h,.ph[data-skin="ios"] .col-h,.ph[data-skin="ios"] .hc-top,.ph[data-skin="ios"] .stk-h{border-bottom:0;color:var(--muted);text-transform:uppercase;font-weight:600}
-.ph[data-skin="ios"] .nav{border-top:0}
-.ph[data-skin="ios"] .nav button.on{text-decoration:none;color:var(--act)}
-.ph[data-skin="ios"] .realm,.ph[data-skin="ios"] .seg2,.ph[data-skin="ios"] .seg3{border-color:transparent;background:var(--soft);padding:2px}
-.ph[data-skin="ios"] .realm button.on,.ph[data-skin="ios"] .seg2 button.on,.ph[data-skin="ios"] .seg3 button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.ph[data-skin="ios"] .chk::before{border-radius:50%;border-color:var(--line)}
-.ph[data-skin="ios"] :is(.task.completing,.card.completing,.pend) .chk::before{background:var(--act);border-color:var(--act)}
-.ph[data-skin="ios"] .pend::after{background:var(--act)}
-.ph[data-skin="ios"] .un{border:1.5px dashed var(--line);background:transparent}
-.ph[data-skin="ios"] .ft{background:var(--paper);border-top-color:var(--hair)}
-.ph[data-skin="ios"] .hb-tick{border-radius:50%;border-color:var(--line)}
-.ph[data-skin="ios"] .hb-c{border-radius:5px;border-color:var(--line)}
-.ph[data-skin="ios"] :is(.hb-tick.on,.hb-c.on){background:var(--act);border-color:var(--act)}
-.ph[data-skin="ios"] .hc-b i,.ph[data-skin="ios"] .hr-bar i,.ph[data-skin="ios"] .ko-meter i{background:var(--act)}
-.ph[data-skin="ios"] .props,.ph[data-skin="ios"] .ed-head,.ph[data-skin="ios"] .hs,.ph[data-skin="ios"] .blist,.ph[data-skin="ios"] .hb-list,.ph[data-skin="ios"] .qe{border-top-color:var(--hair)}
-.ph[data-skin="ios"] .hd-date b,.ph[data-skin="ios"] .wk-h,.ph[data-skin="ios"] .pl-bar h2{letter-spacing:-.4px}
-.ph[data-skin="ios"] .x,.ph[data-skin="ios"] .lnk,.ph[data-skin="ios"] .hd-done{color:var(--act);text-decoration:none}
+.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.card,.pu,.ko-btn,.qi,.pd-btn,.add,.pad-btn,.pri,.sec,.chip,.tg-c,.sel,.tin,.ta,.un,.bnote,.more,.sc-b,.ko-n,.seg2,.seg3,.realm,.eff,.bsync button,.ft-drop,.pb){border-radius:var(--r)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.chip,.tg-c,.realm button,.seg2 button,.seg3 button){border-radius:9px}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .sheet{border-top:0;border-radius:14px 14px 0 0}
+.ph:is([data-skin="ios"],[data-skin="notes"]).desk .sheet{border-left:0;border-radius:14px 0 0 14px}
+.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.card,.task,.pu,.ko-btn,.un,.bnote,.sec,.pad-btn,.more,.bsync button){border-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .card{border-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .ko-btn{border:0;background:var(--paper)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .chip{border-color:transparent;background:var(--soft)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .chip.on{background:var(--act);color:var(--act-ink)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .task{background:var(--paper);padding-left:12px;padding-right:12px;border-bottom-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .day-h,.ph:is([data-skin="ios"],[data-skin="notes"]) .col-h,.ph:is([data-skin="ios"],[data-skin="notes"]) .hc-top,.ph:is([data-skin="ios"],[data-skin="notes"]) .stk-h{border-bottom:0;color:var(--muted);text-transform:uppercase;font-weight:600}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .nav{border-top:0}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .nav button.on{text-decoration:none;color:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .realm,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg2,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg3{border-color:transparent;background:var(--soft);padding:2px}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .realm button.on,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg2 button.on,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg3 button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .chk::before{border-radius:50%;border-color:var(--line)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.task.completing,.card.completing,.pend) .chk::before{background:var(--act);border-color:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .pend::after{background:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .un{border:1.5px dashed var(--line);background:transparent}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .ft{background:var(--paper);border-top-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .hb-tick{border-radius:50%;border-color:var(--line)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .hb-c{border-radius:5px;border-color:var(--line)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.hb-tick.on,.hb-c.on){background:var(--act);border-color:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .hc-b i,.ph:is([data-skin="ios"],[data-skin="notes"]) .hr-bar i,.ph:is([data-skin="ios"],[data-skin="notes"]) .ko-meter i{background:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .props,.ph:is([data-skin="ios"],[data-skin="notes"]) .ed-head,.ph:is([data-skin="ios"],[data-skin="notes"]) .hs,.ph:is([data-skin="ios"],[data-skin="notes"]) .blist,.ph:is([data-skin="ios"],[data-skin="notes"]) .hb-list,.ph:is([data-skin="ios"],[data-skin="notes"]) .qe{border-top-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .hd-date b,.ph:is([data-skin="ios"],[data-skin="notes"]) .wk-h,.ph:is([data-skin="ios"],[data-skin="notes"]) .pl-bar h2{letter-spacing:-.4px}
+.ph:is([data-skin="ios"],[data-skin="notes"]) .x,.ph:is([data-skin="ios"],[data-skin="notes"]) .lnk,.ph:is([data-skin="ios"],[data-skin="notes"]) .hd-done{color:var(--act);text-decoration:none}
 
 /* ===== look: Editorial (serif headings + titles, deep blue actions) ===== */
 .ph[data-skin="editorial"]{--paper:#ffffff;--bg:#ffffff;--ink:#16181d;--muted:#5f636b;--line:#16181d;--hair:#e2e4e8;--soft:#f2f3f6;--accent:#b3261e;--act:#1f3a8a;--act-ink:#ffffff;
@@ -568,6 +586,32 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .nt-k{font-weight:700;color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#111111;color:#ffffff;font:600 13.5px var(--c-font);padding:11px 16px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none;max-width:86vw;text-align:center}
 .toast.show{opacity:1}
+.es{display:flex;flex-direction:column;gap:18px;padding-top:16px}
+.es-card{border:1.5px solid var(--line);border-radius:var(--r);background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:10px}
+.es-live{border-color:var(--ink)}
+.es-top{display:flex;justify-content:space-between;gap:8px}
+.es-bar{height:4px;background:var(--soft);border-radius:2px;overflow:hidden}.es-bar i{display:block;height:100%;background:var(--act);transition:width .3s}
+.es-q{margin:8px 0 0;font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-.4px;font-family:var(--fh)}
+.es-big{margin:0;font-size:30px;font-weight:800;letter-spacing:-.5px;font-family:var(--fh)}
+.es-opts{display:grid;gap:8px;margin-top:4px}
+.es-o{text-align:left;border:1.5px solid var(--line);border-radius:var(--r);background:var(--paper);color:var(--ink);font:inherit;font-size:15.5px;padding:13px 14px;min-height:48px;cursor:pointer}
+.es-o:hover:not([disabled]){border-color:var(--ink)}
+.es-o.right{border-color:#2f7a4f;background:color-mix(in srgb,#2f7a4f 12%,var(--paper));font-weight:600}
+.es-o.wrong{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--paper))}
+.es-o.dim{opacity:.45}
+.es-fb{display:flex;flex-direction:column;gap:2px;font-size:14px}.es-fb.ok b{color:#2f7a4f}.es-fb.no b{color:var(--accent)}.es-note{color:var(--muted);font-style:italic}
+.es-go{align-self:stretch}
+.es-dots{display:inline-flex;gap:4px;flex-shrink:0}.es-dots i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line)}.es-dots i.on{background:var(--act);border-color:var(--act)}
+.es-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.es-stats div{border:1px solid var(--hair);border-radius:var(--r);padding:10px 12px;display:flex;flex-direction:column;background:var(--paper)}
+.es-stats b{font-size:22px;font-weight:800}.es-stats span{font-size:12px;color:var(--muted)}
+.es-add{display:flex;flex-direction:column;gap:8px}
+.es-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--hair)}
+.es-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.es-t span{font-size:15.5px;font-weight:600}.es-t small{font-size:13px;color:var(--muted)}
+.es-tab{background:none;border:0;font:inherit;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:0 14px 0 0;cursor:pointer}.es-tab.on{color:var(--ink)}
+.es-log{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--hair);font-size:14px}
+.es-log .ok{color:#2f7a4f;font-weight:700}.es-log .no{color:var(--accent);font-weight:700}.es-log small{color:var(--muted);font-size:12.5px;text-align:right}
+.es-st{margin:0}
+.n-es{display:flex;flex-direction:column;gap:8px}
 .win{position:absolute;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg) 70%,transparent);animation:winin .25s ease-out}
 .win.out{opacity:0;transition:opacity .25s}
 .win-c{position:relative;z-index:2;background:var(--paper);border:2px solid var(--ink);border-radius:var(--r);padding:26px 24px 20px;width:min(300px,82%);display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 18px 50px rgba(0,0,0,.25)}
@@ -667,7 +711,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 <body>
 <div class="wrap">
   <div class="ttl">Life Board <span>· round 5</span></div>
-  <div class="bar"><div class="modes" role="group" aria-label="Preview size"><button class="mode" data-mode="phone">Phone</button><button class="mode" data-mode="desk">Desktop</button></div><div class="modes" role="group" aria-label="Look"><button class="mode skin" data-skin="field">Field</button><button class="mode skin" data-skin="swiss">Swiss</button><button class="mode skin" data-skin="planner">Planner</button><button class="mode skin" data-skin="ios">Native</button><button class="mode skin" data-skin="editorial">Editorial</button></div></div>
+  <div class="bar"><div class="modes" role="group" aria-label="Preview size"><button class="mode" data-mode="phone">Phone</button><button class="mode" data-mode="desk">Desktop</button></div><div class="modes" role="group" aria-label="Look"><button class="mode skin" data-skin="notes">Notes</button><button class="mode skin" data-skin="field">Field</button><button class="mode skin" data-skin="swiss">Swiss</button><button class="mode skin" data-skin="planner">Planner</button><button class="mode skin" data-skin="ios">Native</button><button class="mode skin" data-skin="editorial">Editorial</button></div></div>
   <div class="phone" id="root"></div>
   <p class="hint">Tap a box to finish. Press and hold a task (or click and drag) to move it; drop it on the bottom bar to finish. Tap a task to edit its date, time, people and note. Your changes are kept in this browser. <button class="rst" id="reset">Reset sample data</button></p>
 </div>
@@ -690,8 +734,8 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const CATS=['Errands','Home','Car','Health','Travel','Workout','Work','Money','Other'];
 const SWATCH=['#e30613','#f28c28','#d9a400','#2e9e5b','#1a9aa0','#1c4fa0','#7a3fc2','#d6408b','#8a8a8a'];
 const DEFCOL={Errands:'#f28c28',Home:'#2e9e5b',Car:'#1a9aa0',Health:'#d6408b',Travel:'#d9a400',Workout:'#e30613',Work:'#1c4fa0',Money:'#7a3fc2',Other:null};
-const SKINS=[['field','Field'],['swiss','Swiss'],['planner','Planner'],['ios','Native'],['editorial','Editorial']];
-const defSettings=()=>({skin:'field',theme:'system',colorOn:false,catColors:Object.assign({},DEFCOL),sheet:'70.3 plan · Oct–Race tab',lastFetch:null,fetchCount:0,calOn:true,lastSync:null,syncCount:0});
+const SKINS=[['notes','Notes'],['field','Field'],['swiss','Swiss'],['planner','Planner'],['ios','Native'],['editorial','Editorial']];
+const defSettings=()=>({skinV:2,noteEs:false,skin:'notes',theme:'system',colorOn:false,catColors:Object.assign({},DEFCOL),sheet:'70.3 plan · Oct–Race tab',lastFetch:null,fetchCount:0,calOn:true,lastSync:null,syncCount:0});
 const COG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 const hm=ms=>{const d=new Date(ms);return (iso(d)===TODAY?'today ':short(iso(d))+' ')+fmtTime(pad(d.getHours())+':'+pad(d.getMinutes()))};
 const mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
@@ -714,8 +758,9 @@ const fmtTime=t=>{if(!t)return '';const[h,m]=t.split(':').map(Number);const ap=h
 let S=null;
 const mk=p=>(p||'t')+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 
-function seed(){seedDemo();Object.assign(S,{tasks:[],notes:[],people:[],tags:[],closes:{},wo:[],habits:[]})}
-function seedDemo(){
+function seed(){seedDemo();Object.assign(S,{tasks:[],notes:[],people:[],tags:[],closes:{},wo:[],habits:[],es:esFix({})})}
+function seedDemo(){seedCore();S.es=esFix({phrases:ES_DEMO()})}
+function seedCore(){
   const t=TODAY;
   const T=o=>Object.assign({id:mk(),realm:o.cat==='Work'?'work':'personal',status:'todo',done:false,doneAt:null,repeat:null,remind:false,time:null,people:[],note:'',plan:null,actual:null,asked:false,dropped:false},o);
   const people=[{id:'p1',name:'Mom'},{id:'p2',name:'Manager'},{id:'p3',name:'Coach'}];
@@ -746,10 +791,10 @@ function seedDemo(){
     ]};
 }
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&d.tasks){S=Object.assign({view:'board',realm:'all',sel:TODAY,sheet:null,anim:false,draft:null,confirmDel:null,flash:null,keep:false,people:[],notes:[],quick:null},d,{sheet:null,draft:null,sel:TODAY});S.settings=Object.assign(defSettings(),d.settings||{});S.budget=d.budget&&d.budget.buckets?d.budget:BSEED();S.ko=Object.assign({time:30,eff:6},d.ko||{});S.habits=Array.isArray(d.habits)?d.habits:seedHabits();S.habRange=d.habRange||'week';S.wo=Array.isArray(d.wo)?d.wo:seedWorkouts();S.tags=Array.isArray(d.tags)?d.tags:[];S.closes=d.closes||{};S.wins=d.wins||{};S.tagF=d.tagF||null;S.woSync=d.woSync||Date.now();S.habEdit=false;S.confirmHab=null;return}}}catch(e){}
+  try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&d.tasks){S=Object.assign({view:'board',realm:'all',sel:TODAY,sheet:null,anim:false,draft:null,confirmDel:null,flash:null,keep:false,people:[],notes:[],quick:null},d,{sheet:null,draft:null,sel:TODAY});S.settings=Object.assign(defSettings(),d.settings||{});S.budget=d.budget&&d.budget.buckets?d.budget:BSEED();S.ko=Object.assign({time:30,eff:6},d.ko||{});S.habits=Array.isArray(d.habits)?d.habits:seedHabits();S.habRange=d.habRange||'week';S.wo=Array.isArray(d.wo)?d.wo:seedWorkouts();S.tags=Array.isArray(d.tags)?d.tags:[];S.closes=d.closes||{};S.wins=d.wins||{};S.es=esFix(d.es);if(!(d.settings&&d.settings.skinV)){S.settings.skin='notes';S.settings.skinV=2}S.tagF=d.tagF||null;S.woSync=d.woSync||Date.now();S.habEdit=false;S.confirmHab=null;return}}}catch(e){}
   seed();
 }
-function save(){try{const {tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins}=S;localStorage.setItem(KEY,JSON.stringify({tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins}))}catch(e){}try{syTrack()}catch(e){}}
+function save(){try{const {tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins,es}=S;localStorage.setItem(KEY,JSON.stringify({tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins,es}))}catch(e){}try{syTrack()}catch(e){}}
 
 /* ---------- close the day ---------- */
 function closeStats(){
@@ -776,6 +821,107 @@ function closeDayView(){
   h+=`<label class="lbl" for="cd-note">One line on today (optional)</label><input id="cd-note" class="inp sm" placeholder="Saved to Notes" autocomplete="off" enterkeyhint="done">`+
     `<button class="pri" data-act="cd-done">Close the day</button>`;
   return h;
+}
+
+/* ---------- Spanish: phrases from your "Spanish for Life Tool" sheet, daily 10-phrase quiz, 5 correct days retires a phrase ---------- */
+const ES_GOAL=5,ES_QUIZ=10;
+const esNorm=x=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+const mdOf=d=>{const x=P(d);return (x.getMonth()+1)+'/'+x.getDate()};
+function esFix(e){e=Object.assign({phrases:[],log:[],quiz:null,ops:[],lastOk:0,err:''},e||{});e.phrases.forEach(p=>{p.k=p.k||esNorm(p.es);p.passes=(p.passes||[]).filter(Boolean)});return e}
+function ES_DEMO(){const t=mdOf(TODAY),y=mdOf(add(TODAY,-1)),z=mdOf(add(TODAY,-3));return [
+  ['No dudes de ti mismo','Don\u2019t doubt yourself','',z,[y]],['burbuja','bubble','',z,[y]],['¿Qué lo que?','What\u2019s up?','Dominican greeting',z,[z,y]],
+  ['Estoy en eso','I\u2019m on it','',z,[]],['Ahorita','In a bit (could be hours)','DR: “ahorita” is flexible',z,[z]],['Me da igual','I don\u2019t mind','',z,[]],
+  ['Vamos a ver','We\u2019ll see','',y,[]],['Tengo hambre','I\u2019m hungry','',y,[y]],['Hace mucho calor','It\u2019s really hot','',y,[]],['Una vaina','A thing / stuff','DR slang',y,[]],
+  ['Dale','Go for it / OK','',t,[]],['Nos vemos mañana','See you tomorrow','',t,[]],['Ya mismo','Right away','',t,[z,y,z,y,z]]
+].map(([es,en,note,added,passes])=>({k:esNorm(es),es,en,note,added,passes:passes.filter((v,i,a)=>a.indexOf(v)===i).slice(0,5)}))}
+const esActive=()=>S.es.phrases.filter(p=>p.en&&p.passes.length<ES_GOAL);
+const esMastered=()=>S.es.phrases.filter(p=>p.passes.length>=ES_GOAL);
+const esFind=k=>S.es.phrases.find(p=>p.k===k);
+const ES_FILL=['See you later','I\u2019m tired','Let\u2019s go','How much is it?','I don\u2019t know','Of course','Take care','Good morning','It\u2019s late','Be careful'];
+function esLastSeen(k){for(let i=S.es.log.length-1;i>=0;i--)if(S.es.log[i].k===k)return S.es.log[i].ts;return 0}
+function esOptions(p){
+  const pool=[...new Set(S.es.phrases.filter(x=>x.k!==p.k&&x.en&&x.en!==p.en).map(x=>x.en))].sort(()=>Math.random()-.5);
+  const fill=ES_FILL.filter(x=>x!==p.en&&!pool.includes(x)).sort(()=>Math.random()-.5);
+  const opts=[p.en,...pool.slice(0,3)];while(opts.length<4)opts.push(fill.shift());
+  return opts.sort(()=>Math.random()-.5);
+}
+function esStart(){
+  const md=mdOf(TODAY),run=(S.es.quiz&&S.es.quiz.date===TODAY?S.es.quiz.run:0)+1;
+  const pick=esActive().map(p=>({p,r:Math.random()})).sort((a,b)=>(a.p.passes.includes(md)-b.p.passes.includes(md))||(a.p.passes.length-b.p.passes.length)||(esLastSeen(a.p.k)-esLastSeen(b.p.k))||(a.r-b.r)).slice(0,ES_QUIZ).map(x=>x.p.k);
+  S.es.quiz={date:TODAY,run,queue:pick,total:pick.length,right:0,miss:0,newPass:0,mastered:[],cur:null,done:!pick.length};
+  esNext();
+}
+function esNext(){const q=S.es.quiz;if(!q)return;const k=q.queue[0];if(!k){q.cur=null;q.done=true;return}const p=esFind(k);if(!p){q.queue.shift();return esNext()}const o=esOptions(p);q.cur={k,opts:o,ans:o.indexOf(p.en),picked:null}}
+function esPick(i){
+  const q=S.es.quiz,c=q&&q.cur;if(!c||c.picked!=null)return;c.picked=i;
+  const p=esFind(c.k),ok=i===c.ans,md=mdOf(TODAY);
+  S.es.log.push({ts:Date.now(),k:p.k,es:p.es,picked:c.opts[i],ok,run:q.run});if(S.es.log.length>400)S.es.log.splice(0,S.es.log.length-400);
+  S.es.ops.push({t:'log',ts:Date.now(),es:p.es,picked:c.opts[i],ok,run:q.run});
+  q.queue.shift();
+  if(ok){q.right++;if(!p.passes.includes(md)&&p.passes.length<ES_GOAL){p.passes.push(md);q.newPass++;S.es.ops.push({t:'pass',es:p.es,date:md});if(p.passes.length>=ES_GOAL)q.mastered.push(p.es)}}
+  else{q.miss++;q.queue.push(p.k)}   // wrong answers come back later in the same quiz
+  esSoon();
+}
+function esAdd(es,en,note){
+  es=String(es||'').trim();en=String(en||'').trim();note=String(note||'').trim();if(!es)return false;
+  const k=esNorm(es),ex=esFind(k);if(ex){if(en&&!ex.en)ex.en=en;return 'dup'}
+  const added=mdOf(TODAY);S.es.phrases.push({k,es,en,note,added,passes:[]});S.es.ops.push({t:'add',es,en,note,added});esSoon();return true;
+}
+let esT=null,esBusy=false;
+function esSoon(ms){clearTimeout(esT);esT=setTimeout(esSync,ms==null?2000:ms)}
+async function esSync(manual){
+  if(!SY.url||!SY.key||esBusy)return;if(navigator.onLine===false)return;
+  esBusy=true;const ops=S.es.ops.slice();
+  try{
+    const res=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'es',token:SY.key,ops})});
+    const j=await res.json();if(!j.ok)throw new Error(j.error||'Sheet sync failed');
+    S.es.ops=S.es.ops.slice(ops.length);
+    const local={};S.es.phrases.forEach(p=>local[p.k]=p);
+    const rows=(j.rows||[]).map(r=>({k:esNorm(r.es),es:r.es,en:r.en,note:r.note,added:r.added,passes:(r.passes||[]).filter(Boolean)}));
+    S.es.ops.forEach(o=>{const k=esNorm(o.es),r=rows.find(x=>x.k===k);if(o.t==='add'&&!r)rows.push(local[k]);if(o.t==='pass'&&r&&!r.passes.includes(o.date))r.passes.push(o.date)});
+    S.es.phrases=rows.filter(Boolean);S.es.lastOk=Date.now();S.es.err='';
+    if(S.view==='es'||manual){S.keep=true;render()}else save();
+    if(manual)toast('Spanish sheet synced');
+  }catch(e){S.es.err=String(e&&e.message||e);if(manual){render();toast('Sheet sync didn’t work: '+S.es.err)}}
+  finally{esBusy=false}
+}
+function esDots(p){return `<span class="es-dots" aria-label="${p.passes.length} of ${ES_GOAL} correct days">${Array.from({length:ES_GOAL},(_,i)=>`<i class="${i<p.passes.length?'on':''}"></i>`).join('')}</span>`}
+function esQuizCard(){
+  const q=S.es.quiz,act=esActive().length;
+  if(q&&q.date===TODAY&&!q.done&&q.cur){
+    const p=esFind(q.cur.k),c=q.cur,answered=c.picked!=null,ok=answered&&c.picked===c.ans;
+    const n=q.total-q.queue.length+(answered?0:1);
+    return `<section class="es-card es-live"><div class="es-top"><span class="lbl">Quiz ${q.run>1?'· redo '+(q.run-1):''}</span><span class="lbl">${Math.min(q.right+ (answered&&ok?0:0),q.total)} of ${q.total} right${q.miss?` · ${q.miss} to retry`:''}</span></div>`+
+      `<div class="es-bar" aria-hidden="true"><i style="width:${q.total?Math.round(q.right/q.total*100):0}%"></i></div>`+
+      `<p class="es-q" lang="es">${esc(p.es)}</p>${esDots(p)}`+
+      `<div class="es-opts" role="group" aria-label="Pick the meaning">${c.opts.map((o,i)=>`<button class="es-o${answered?(i===c.ans?' right':i===c.picked?' wrong':' dim'):''}" data-act="es-pick" data-v="${i}"${answered?' disabled':''}>${esc(o)}</button>`).join('')}</div>`+
+      (answered?`<div class="es-fb ${ok?'ok':'no'}"><b>${ok?'Correct':'Not quite'}</b><span>${ok?(p.passes.length>=ES_GOAL?'5 of 5. Retired from your list.':p.passes.length+' of '+ES_GOAL+' correct days'):'It comes back later in this quiz.'}</span>${p.note?`<span class="es-note">${esc(p.note)}</span>`:''}</div><button class="pri es-go" data-act="es-next">${q.queue.length?'Next':'Finish'}</button>`:'')+
+      `</section>`;
+  }
+  if(q&&q.date===TODAY&&q.done&&q.total){
+    return `<section class="es-card"><span class="lbl">Today’s quiz${q.run>1?' · redo '+(q.run-1):''}</span><p class="es-big">${q.total}/${q.total}</p>`+
+      `<p class="sh-p">${q.miss?q.miss+' miss'+(q.miss===1?'':'es')+', all answered right in the end.':'No misses.'} ${q.newPass} phrase${q.newPass===1?'':'s'} moved closer to retiring${q.mastered.length?'; retired: '+q.mastered.map(esc).join(', '):''}.</p>`+
+      `<button class="sec" data-act="es-start">Redo today’s quiz</button></section>`;
+  }
+  return `<section class="es-card"><span class="lbl">Today’s quiz</span><p class="es-big">${Math.min(ES_QUIZ,act)} phrase${Math.min(ES_QUIZ,act)===1?'':'s'}</p>`+
+    `<p class="sh-p">${act?'Pick the meaning. Misses come back until you get them. Five correct days retires a phrase.':'Nothing to quiz yet. Add a phrase below or in your sheet.'}</p>`+
+    (act?`<button class="pri" data-act="es-start">Start</button>`:'')+`</section>`;
+}
+function esView(){
+  const act=esActive(),mas=esMastered(),md=mdOf(TODAY),tab=S.esTab||'learn';
+  const rightToday=S.es.phrases.filter(p=>p.passes.includes(md)).length;
+  const list=(tab==='learn'?S.es.phrases.filter(p=>p.passes.length<ES_GOAL):mas).slice().sort((a,b)=>b.passes.length-a.passes.length||a.es.localeCompare(b.es));
+  const recent=S.es.log.slice(-8).reverse();
+  const st=!SY.url?'Not connected. Connect Sync in Settings to use your “Spanish for Life Tool” sheet.':S.es.err?S.es.err:S.es.lastOk?'From your sheet · synced '+hm(S.es.lastOk)+(S.es.ops.length?' · '+S.es.ops.length+' waiting':''):'Connecting to your sheet…';
+  return `<div class="es">`+esQuizCard()+
+    `<div class="es-stats"><div><b>${act.length}</b><span>Learning</span></div><div><b>${mas.length}</b><span>Retired</span></div><div><b>${rightToday}</b><span>Right today</span></div></div>`+
+    `<section class="es-add"><h3 class="day-h"><span>Add a phrase</span></h3>`+
+      `<input id="es-es" class="inp sm" placeholder="Español" lang="es" autocomplete="off" autocapitalize="sentences"><input id="es-en" class="inp sm" placeholder="English meaning" autocomplete="off"><input id="es-note" class="inp sm" placeholder="Nota (optional)" autocomplete="off">`+
+      `<button class="pri" data-act="es-add">Add phrase</button></section>`+
+    `<section><h3 class="day-h"><span><button class="es-tab${tab==='learn'?' on':''}" data-act="es-tab" data-v="learn">Learning ${act.length}</button><button class="es-tab${tab==='done'?' on':''}" data-act="es-tab" data-v="done">Retired ${mas.length}</button></span></h3>`+
+      (list.map(p=>`<div class="es-row"><div class="es-t"><span lang="es">${esc(p.es)}</span><small>${esc(p.en||'Add the meaning in your sheet')}${p.note?' · '+esc(p.note):''}</small></div>${esDots(p)}</div>`).join('')||`<p class="sh-p">${tab==='learn'?'No phrases yet.':'Nothing retired yet. Five correct days does it.'}</p>`)+`</section>`+
+    (recent.length?`<section><h3 class="day-h"><span>Quiz log</span><span>${S.es.log.length}</span></h3>${recent.map(l=>`<div class="es-log"><span class="${l.ok?'ok':'no'}">${l.ok?'✓':'✗'}</span><span lang="es">${esc(l.es)}</span><small>${esc(l.picked)}</small></div>`).join('')}</section>`:'')+
+    `<p class="set-k es-st">${esc(st)}${SY.url?` <button class="lnk" data-act="es-sync">Sync now</button>`:''}</p></div>`;
 }
 
 /* ---------- plan day: hour timeline ---------- */
@@ -1101,7 +1247,7 @@ function header(){
   const d=P(TODAY),n=openTasks().length,dn=S.tasks.filter(t=>t.done&&inR(t)).length,showRealm=S.view==='board'||S.view==='week';
   return `<header class="hd"><div class="hd-top"><button class="cog" data-act="settings" aria-label="Settings">${COG}</button><span class="hd-date"><b>${DOWL[d.getDay()]}, ${MONL[d.getMonth()].slice(0,3)} ${d.getDate()}</b><span>${n} open${S.tagF?` in #${esc(S.tagF)}`:''} · <button class="hd-done" data-act="finished">${dn} done</button></span></span>`+
     (showRealm?`<span class="realm" role="group" aria-label="Show">${[['all','All'],['personal','Personal'],['work','Work']].map(([k,l])=>`<button data-realm="${k}" class="${S.realm===k?'on':''}" aria-pressed="${S.realm===k}">${l}</button>`).join('')}</span>`:'')+`</div>`+
-    `<nav class="nav" aria-label="Views"><span>${[['board','Board'],['week','Week'],['habits','Habits'],['workouts','Workouts']].map(([v,l])=>`<button data-view="${v}" class="${S.view===v?'on':''}">${l}</button>`).join('')}</span></nav></header>`;
+    `<nav class="nav" aria-label="Views"><span>${[['board','Board'],['week','Week'],['habits','Habits'],['workouts','Workouts'],['es','Spanish']].map(([v,l])=>`<button data-view="${v}" class="${S.view===v?'on':''}">${l}</button>`).join('')}</span></nav></header>`;
 }
 const addSlot=(d,lab)=>S.dayAdd===d?dayAddForm(d,lab):`<button class="dslot" data-act="day-add" data-v="${d}" aria-label="Add a task to ${lab}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg><span>Add to ${lab}</span></button>`;
 function dayAddForm(d,lab){
@@ -1233,8 +1379,11 @@ function notesSheet(inline){
   const ago=ms=>{const d=new Date(ms),ds=iso(d),t=d.getHours()+':'+pad(d.getMinutes());return (ds===TODAY?'Today':short(ds))+' '+t};
   const L=notesShown();
   return `<div class="sh-top"><h2>${S.realm==='work'?'Work notes':S.realm==='personal'?'Personal notes':'Notes'}</h2>${inline?`<span class="lbl">${L.length}</span>`:'<button class="x" data-act="close">Close</button>'}</div>`+
-    `<textarea id="n-new" class="ta" rows="3" placeholder="Dump it here. Saved the moment you tap Save."></textarea>`+
-    `<div class="btns" style="align-items:center">${SR?`<button class="n-mic${VC.target==='note'&&VC.on?' on':''}" data-act="note-mic" aria-label="Dictate a note">${MICICON}${VC.target==='note'&&VC.on?'Listening…':'Speak'}</button>`:''}<label class="tg" for="n-work"><input type="checkbox" id="n-work"${S.realm==='work'?' checked':''}>Work note</label><button class="pri" data-act="note-add">Save note</button></div>`+
+    `<div class="seg2 n-mode" role="group" aria-label="Note type"><button class="${S.settings.noteEs?'':'on'}" data-act="note-mode" data-v="0" aria-pressed="${!S.settings.noteEs}">Note</button><button class="${S.settings.noteEs?'on':''}" data-act="note-mode" data-v="1" aria-pressed="${!!S.settings.noteEs}">Spanish phrase</button></div>`+
+    (S.settings.noteEs
+      ?`<div class="n-es"><input id="ne-es" class="inp sm" placeholder="Español" lang="es" autocomplete="off" autocapitalize="sentences"><input id="ne-en" class="inp sm" placeholder="English meaning" autocomplete="off"><input id="ne-note" class="inp sm" placeholder="Nota (optional)" autocomplete="off"><button class="pri" data-act="ne-add">Add to Spanish list</button><span class="set-k">${esActive().length} learning · goes to your “Spanish for Life Tool” sheet and today’s quiz pool</span></div>`
+      :`<textarea id="n-new" class="ta" rows="3" placeholder="Dump it here. Saved the moment you tap Save."></textarea>`)+
+    (S.settings.noteEs?'':`<div class="btns" style="align-items:center">${SR?`<button class="n-mic${VC.target==='note'&&VC.on?' on':''}" data-act="note-mic" aria-label="Dictate a note">${MICICON}${VC.target==='note'&&VC.on?'Listening…':'Speak'}</button>`:''}<label class="tg" for="n-work"><input type="checkbox" id="n-work"${S.realm==='work'?' checked':''}>Work note</label><button class="pri" data-act="note-add">Save note</button></div>`)+
     `<div class="notes">${L.slice().sort((a,b)=>b.at-a.at).map(n=>`<div class="nt"><textarea class="nt-t" data-note="${n.id}" rows="${Math.min(6,Math.max(1,Math.ceil(n.text.length/38)))}" aria-label="Note">${esc(n.text)}</textarea><div class="nt-m"><span>${n.work?'<b class="nt-k">Work</b> · ':''}${ago(n.at)}</span><button data-act="note-task" data-id="${n.id}">Make task</button><button data-act="note-del" data-id="${n.id}">Delete</button></div></div>`).join('')||'<p class="sh-p" style="padding-top:12px">No notes yet.</p>'}</div>`;
 }
 /* ---------- voice: Web Speech API where the browser has it, keyboard dictation everywhere else ---------- */
@@ -1280,6 +1429,7 @@ function parseVoice(raw){
 function vPrev(raw){
   const ro=vRoute(raw);if(!raw)return '';
   if(ro.kind==='note')return `<span><b>${ro.work?'Work note':'Note'}</b>${esc(ro.body||'—')}</span>`;
+  if(ro.kind==='es'){const [es,en]=String(ro.body||'').split(/\s+(?:means|significa|equals|=)\s+/i);return `<span><b>Spanish</b>${esc(es||'—')}</span><span><b>Means</b>${esc(en||'say “means …”')}</span>`}
   const v=parseVoice(ro.body);
   return `<span><b>Task</b>${esc(v.title||'—')}</span><span><b>Day</b>${v.date?(v.date===TODAY?'Today':v.date===add(TODAY,1)?'Tomorrow':short(v.date)):'Today'}</span>`+
     (v.time?`<span><b>Time</b>${fmtTime(v.time)}</span>`:'')+(v.dur?`<span><b>Length</b>${durFmt(v.dur)}</span>`:'');
@@ -1303,18 +1453,20 @@ function vStart(target){
   try{r.start()}catch(e){VC.on=false;VC.err='Couldn’t listen. Use the mic on your keyboard.'}
 }
 function vRoute(raw){
-  const m=String(raw||'').trim().match(/^(work note|note|task|to ?do|nota de trabajo|nota|tarea|pendiente)\b[\s:,.\-]*(.*)$/i);
+  const m=String(raw||'').trim().match(/^(work note|note|task|to ?do|nota de trabajo|nota|tarea|pendiente|spanish|frase|espa[ñn]ol)\b[\s:,.\-]*(.*)$/i);
   if(!m)return {kind:null,body:String(raw||'').trim()};
-  const k=m[1].toLowerCase();const isNote=/^(note|work note|nota|nota de trabajo)$/.test(k);return {kind:isNote?'note':'task',work:k==='work note'||k==='nota de trabajo',body:m[2].trim()};
+  const k=m[1].toLowerCase();if(/^(spanish|frase|espa[ñn]ol)$/.test(k))return {kind:'es',body:m[2].trim()};const isNote=/^(note|work note|nota|nota de trabajo)$/.test(k);return {kind:isNote?'note':'task',work:k==='work note'||k==='nota de trabajo',body:m[2].trim()};
 }
 function vNote(body,work){
   if(!body)return false;const txt=body.charAt(0).toUpperCase()+body.slice(1);
   const n={id:mk('n'),text:txt,at:Date.now(),work:work||S.realm==='work'};S.notes.push(n);VC.text='';closeSheet();
   toast('Note saved'+(n.work?' · Work':''),()=>{S.notes=S.notes.filter(x=>x!==n);render()});return true;
 }
+function esVoice(body){const [es,en]=String(body||'').split(/\s+(?:means|significa|equals|=)\s+/i);return esAdd(es,en||'','')}
 function vSave(full,asNote){
   const i=root.querySelector('#v-in');if(i)VC.text=i.value;
   const ro=vRoute(VC.text);
+  if(ro.kind==='es'){vStop();const ok=esVoice(ro.body);VC.text='';closeSheet();toast(ok==='dup'?'Already on your Spanish list':ok?'Added to your Spanish list':'Say: Spanish <phrase> means <English>');return}
   if(asNote||ro.kind==='note'){vStop();if(!vNote(ro.body,ro.work)&&i)i.focus();return}
   const v=parseVoice(ro.body);if(!v.title){if(i)i.focus();return}
   vStop();
@@ -1372,7 +1524,7 @@ function sheet(){
         :`<label class="set-k" for="sy-url">Script URL</label><input id="sy-url" class="inp sm" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false">`+
          `<label class="set-k" for="sy-key">Key</label><input id="sy-key" class="inp sm" placeholder="From the script’s setup log" autocomplete="off" autocapitalize="off" spellcheck="false">`+
          `<button class="pri" data-act="sy-on">Connect</button><span class="set-k">${esc(syStatus())}</span>`)+`</div>`+
-      `<div class="fld"><span class="lbl">Look</span><div class="seg3" role="group" aria-label="Look">${SKINS.map(([k,l])=>`<button class="${(st.skin||'field')===k?'on':''}" data-skin="${k}" aria-pressed="${(st.skin||'field')===k}">${l}</button>`).join('')}</div></div>`+
+      `<div class="fld"><span class="lbl">Look</span><div class="seg3" role="group" aria-label="Look">${SKINS.map(([k,l])=>`<button class="${(st.skin||'notes')===k?'on':''}" data-skin="${k}" aria-pressed="${(st.skin||'notes')===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><span class="lbl">Language</span><div class="seg3" role="group" aria-label="Language">${[['en','English'],['es','Español']].map(([k,l])=>`<button class="${(st.lang||'en')===k?'on':''}" data-act="lang" data-v="${k}" aria-pressed="${(st.lang||'en')===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><span class="lbl">Appearance</span><div class="seg3" role="group" aria-label="Appearance">${[['system','System'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${st.theme===k?'on':''}" data-act="theme" data-v="${k}" aria-pressed="${st.theme===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><div class="sh-top"><span class="lbl">Category colors</span><label class="tg" for="s-color"><input type="checkbox" id="s-color"${st.colorOn?' checked':''}>Color items</label></div>`+
@@ -1427,11 +1579,11 @@ const ES={'Board':'Tablero','Week':'Semana','Habits':'Hábitos','Workouts':'Entr
 'This week':'Esta semana','Next week':'Próxima semana','Edit habits':'Editar hábitos','Category':'Categoría','Repeat':'Repetir','People':'Personas','When':'Cuándo',
 'Save':'Guardar','Light':'Claro','Dark':'Oscuro','System':'Sistema','Tap to talk again':'Toca para hablar otra vez','Listening…':'Escuchando…',
 'Tap the mic on your keyboard and talk.':'Toca el micrófono del teclado y habla.','Add a habit, e.g. Floss':'Agrega un hábito, p. ej. Hilo dental',
-'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado'};
+'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
 const ESW={Monday:'lunes',Tuesday:'martes',Wednesday:'miércoles',Thursday:'jueves',Friday:'viernes',Saturday:'sábado',Sunday:'domingo',
 Mon:'lun',Tue:'mar',Wed:'mié',Thu:'jue',Fri:'vie',Sat:'sáb',Sun:'dom',January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',
 August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre',Jan:'ene',Feb:'feb',Mar:'mar',Apr:'abr',Jun:'jun',Jul:'jul',Aug:'ago',
-Sep:'sep',Oct:'oct',Nov:'nov',Dec:'dic',Today:'Hoy',Tomorrow:'Mañana',today:'hoy',tomorrow:'mañana',open:'abiertas',done:'hechas',of:'de',tasks:'tareas',task:'tarea',
+Sep:'sep',Oct:'oct',Nov:'nov',Dec:'dic',Today:'Hoy',Tomorrow:'Mañana',today:'hoy',tomorrow:'mañana',right:'bien',retry:'repetir',redo:'repetición',open:'abiertas',done:'hechas',of:'de',tasks:'tareas',task:'tarea',
 planned:'planificadas',effort:'esfuerzo',min:'min',reminder:'recordatorio',rolled:'atrasada',Rolled:'Atrasada',with:'con',due:'vence',Other:'Otro',Errands:'Mandados',
 Home:'Casa',Car:'Carro',Health:'Salud',Travel:'Viaje',Workout:'Entreno',Money:'Dinero',week:'semana',Week:'Semana',no:'sin'};
 const ESX='.tt,.pu-t,.nt,.bnote,textarea,input,.v-prev,.tn,.note-t,[contenteditable]';
@@ -1475,6 +1627,7 @@ function syApply(r){
 }
 function syInbox(text){
   const ro=vRoute(text);
+  if(ro.kind==='es')return !!esVoice(ro.body);
   if(ro.kind==='note'){if(!ro.body)return false;S.notes.push({id:mk('n'),text:ro.body.charAt(0).toUpperCase()+ro.body.slice(1),at:Date.now(),work:!!ro.work});return true}
   const v=parseVoice(ro.body);if(!v.title)return false;
   S.tasks.push(newTask({title:v.title,cat:'Other',date:v.date||TODAY,time:v.time,dur:v.dur,tags:[]}));return true;
@@ -1500,6 +1653,7 @@ async function syncNow(manual){
     if(inb)toast(inb===1?'1 added from Siri':inb+' added from Siri');
     else if(manual)toast(first?'Connected. Your board is synced.':'Synced');
     if(first||Object.keys(SY.out).length)sySoon(300);
+    esSync();
   }catch(e){SY.err=String(e&&e.message||e).replace(/^TypeError: /,'')||'Sync failed';if(/fetch|network|load failed/i.test(SY.err))SY.err='Couldn’t reach your script. Check the URL, or you may be offline.';sySave();if(manual){render();toast('Sync didn’t work: '+SY.err)}}
   finally{syBusy=false}
 }
@@ -1515,15 +1669,15 @@ setInterval(()=>{if(document.visibilityState==='visible')syncNow()},120000);
 function render(){
   const scr=root.querySelector('#scr'),st=scr?scr.scrollTop:0;
   const sh=root.querySelector('.sheet'),shs=sh?sh.scrollTop:0;
-  if(!['week','board','habits','workouts'].includes(S.view))S.view='board';
-  const body=S.plan?planView():S.view==='week'?week():S.view==='habits'?habitsView():S.view==='workouts'?workoutsView():board();
+  if(!['week','board','habits','workouts','es'].includes(S.view))S.view='board';
+  const body=S.plan?planView():S.view==='week'?week():S.view==='habits'?habitsView():S.view==='workouts'?workoutsView():S.view==='es'?esView():board();
   const main=`${header()}<div class="scr" id="scr">${body}</div>${foot()}`;
   root.classList.toggle('desk',!!S.desk);
   document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('on',(b.dataset.mode==='desk')===!!S.desk));
   root.innerHTML=S.desk
-    ?`<div class="ph desk" data-theme="${themeNow()}" data-skin="${S.settings.skin||'field'}"><div class="dk"><div class="dk-main">${main}</div><aside class="dk-side" aria-label="Notes">${notesSheet(true)}</aside></div>${sheet()}</div>`
-    :`<div class="ph" data-theme="${themeNow()}" data-skin="${S.settings.skin||'field'}">${main}${sheet()}</div>`;
-  document.querySelectorAll('.skin').forEach(b=>b.classList.toggle('on',b.dataset.skin===(S.settings.skin||'field')));
+    ?`<div class="ph desk" data-theme="${themeNow()}" data-skin="${S.settings.skin||'notes'}"><div class="dk"><div class="dk-main">${main}</div><aside class="dk-side" aria-label="Notes">${notesSheet(true)}</aside></div>${sheet()}</div>`
+    :`<div class="ph" data-theme="${themeNow()}" data-skin="${S.settings.skin||'notes'}">${main}${sheet()}</div>`;
+  document.querySelectorAll('.skin').forEach(b=>b.classList.toggle('on',b.dataset.skin===(S.settings.skin||'notes')));
   if(S.keep){const s2=root.querySelector('#scr');if(s2)s2.scrollTop=st;const h2=root.querySelector('.sheet');if(h2&&!S.anim)h2.scrollTop=shs}
   root.querySelectorAll('.wh').forEach(w=>{const sc=w.querySelector('.wh-s');sc.scrollTop=+w.dataset.i*ITEM});
   translateUI(root);document.documentElement.lang=isES()?'es':'en';
@@ -1650,6 +1804,16 @@ function act(a,id,el){
     case 'byear':{const B=S.budget;B.open=B.open===el.dataset.v?null:el.dataset.v;return render()}
     case 'theme':S.settings.theme=el.dataset.v;return render();
     case 'lang':S.settings.lang=el.dataset.v;return render();
+    case 'note-mode':S.settings.noteEs=el.dataset.v==='1';S.keep=true;render();{const f=root.querySelector(S.settings.noteEs?'#ne-es':'#n-new');if(f)f.focus({preventScroll:true})}return;
+    case 'ne-add':case 'es-add':{const pre=a==='ne-add'?'#ne-':'#es-';const g=x=>(root.querySelector(pre+x)||{}).value||'';
+      if(!g('es').trim()){const f=root.querySelector(pre+'es');if(f)f.focus();return}
+      if(!g('en').trim()){toast('Add the English meaning so it can be quizzed');const f=root.querySelector(pre+'en');if(f)f.focus();return}
+      const r=esAdd(g('es'),g('en'),g('note'));S.keep=true;render();toast(r==='dup'?'Already on your list':'Added to your Spanish list');const f=root.querySelector(pre+'es');if(f)f.focus({preventScroll:true});return}
+    case 'es-start':esStart();S.keep=true;render();return;
+    case 'es-pick':esPick(+el.dataset.v);S.keep=true;render();return;
+    case 'es-next':{esNext();const q=S.es.quiz;S.keep=true;render();if(q&&q.done&&q.total)toast(q.mastered.length?'Quiz done. Retired: '+q.mastered.join(', '):'Quiz done. '+q.newPass+' phrase'+(q.newPass===1?'':'s')+' closer to retiring');return}
+    case 'es-tab':S.esTab=el.dataset.v;S.keep=true;return render();
+    case 'es-sync':return esSync(true);
     case 'sy-on':{const u=(root.querySelector('#sy-url')||{}).value||'',k=(root.querySelector('#sy-key')||{}).value||'';
       if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(u.trim())){toast('Paste the web app URL from Apps Script (ends in /exec)');return}
       if(!k.trim()){toast('Paste the key from the script’s setup log');return}
@@ -1786,6 +1950,8 @@ root.addEventListener('keydown',e=>{
   if(e.target.id==='pe-t'){e.preventDefault();act('plan-add')}
   if(e.target.id==='da-in'){e.preventDefault();act('da-save')}
   if(e.target.id==='v-in'){e.preventDefault();act('v-save')}
+  if(/^ne-(es|en|note)$/.test(e.target.id)){e.preventDefault();act('ne-add')}
+  if(/^es-(es|en|note)$/.test(e.target.id)){e.preventDefault();act('es-add')}
   if(e.target.id==='cd-note'){e.preventDefault();act('cd-done')}
   if(e.target.id==='q-tag'){e.preventDefault();act('tag-save')}
   if(e.target.id==='w-n'&&(e.metaKey||e.ctrlKey)){e.preventDefault();act('save-work')}
@@ -1875,6 +2041,6 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<!-- build c00ac123 -->
+<!-- build eafd4dd0 -->
 </body>
 </html>

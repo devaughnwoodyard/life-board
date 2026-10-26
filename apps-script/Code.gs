@@ -9,6 +9,9 @@
  * Sheet "Inbox" collects quick adds (Siri Shortcut, etc.); the app picks them up on its next sync.
  */
 var DATA = 'Data', INBOX = 'Inbox';
+// Your "Spanish for Life Tool" sheet (first tab). Columns: Frase en Espanol, Frase en Ingles, Nota,
+// Fecha Agregada, Prueba 1..5 Pass. A pass date goes in the first empty Prueba column; 5 = retired.
+var ES_SHEET_ID = '1Yrd1kUdiQ3Dv3QEuZVcWlzETm9X-WaFRORSllLkuXAk', ES_LOG = 'Quiz Log';
 
 function setup() {
   var ss = SpreadsheetApp.getActive();
@@ -19,6 +22,7 @@ function setup() {
   var p = PropertiesService.getScriptProperties();
   var k = p.getProperty('TOKEN');
   if (!k) { k = Utilities.getUuid().replace(/-/g, ''); p.setProperty('TOKEN', k); }
+  try { esBook_().getName(); } catch (x) { Logger.log('Could not open the Spanish sheet: ' + x); }
   Logger.log('Your Life Board key: ' + k);
   return k;
 }
@@ -38,6 +42,7 @@ function handle_(b) {
   try {
     if (b.action === 'add') return out_(add_(b.text, b.source || 'shortcut'));
     if (b.action === 'sync') return out_(sync_(b));
+    if (b.action === 'es') return out_(es_(b));
     if (b.action === 'ping') return out_({ ok: true });
     return out_({ ok: false, error: 'unknown action' });
   } finally { lock.releaseLock(); }
@@ -91,4 +96,49 @@ function sync_(b) {
     if (!iv[r][4]) { inbox.push({ id: iv[r][0], text: iv[r][2] }); ib.getRange(r + 1, 5).setValue(new Date()); }
   }
   return { ok: true, now: now, rows: back, inbox: inbox };
+}
+
+// ---------- Spanish ----------
+function esBook_() { return SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('ES_SHEET_ID') || ES_SHEET_ID); }
+function esNorm_(x) {
+  return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+}
+// {action:'es', token, ops:[{t:'add',es,en,note,added} | {t:'pass',es,date} | {t:'log',ts,es,picked,ok,run}]}
+// -> {ok, rows:[{es,en,note,added,passes:[]}]}
+function es_(b) {
+  var book = esBook_(), sh = book.getSheets()[0];
+  var vals = sh.getDataRange().getDisplayValues(), idx = {}, r, j;
+  for (r = 1; r < vals.length; r++) { var k0 = esNorm_(vals[r][0]); if (k0 && idx[k0] === undefined) idx[k0] = r; }
+  var logs = [];
+  (b.ops || []).forEach(function (o) {
+    var k = esNorm_(o.es);
+    if (!k) return;
+    if (o.t === 'add' && idx[k] === undefined) {
+      var row = [o.es, o.en || '', o.note || '', "'" + (o.added || '')];
+      sh.appendRow(row);
+      idx[k] = sh.getLastRow() - 1;
+      vals[idx[k]] = row.concat(['', '', '', '', '']);
+      vals[idx[k]][3] = o.added || '';
+    } else if (o.t === 'pass' && idx[k] !== undefined) {
+      var rr = idx[k], cells = vals[rr] || [], free = -1, have = false;
+      for (j = 4; j <= 8; j++) { var v = String(cells[j] || '').trim(); if (v === o.date) have = true; if (!v && free < 0) free = j; }
+      if (!have && free >= 0) { sh.getRange(rr + 1, free + 1).setValue("'" + o.date); cells[free] = o.date; vals[rr] = cells; }
+    } else if (o.t === 'log') {
+      logs.push([new Date(o.ts || Date.now()), o.es, o.picked || '', o.ok ? 'Yes' : 'No', o.run || 1]);
+    }
+  });
+  if (logs.length) {
+    var lg = book.getSheetByName(ES_LOG) || book.insertSheet(ES_LOG);
+    if (lg.getLastRow() === 0) lg.appendRow(['When', 'Frase en Espanol', 'Answered', 'Correct', 'Quiz run']);
+    lg.getRange(lg.getLastRow() + 1, 1, logs.length, 5).setValues(logs);
+  }
+  var out = [], dv = sh.getDataRange().getDisplayValues();
+  for (r = 1; r < dv.length; r++) {
+    if (!String(dv[r][0]).trim()) continue;
+    var passes = [];
+    for (j = 4; j <= 8; j++) if (String(dv[r][j] || '').trim()) passes.push(String(dv[r][j]).trim());
+    out.push({ es: String(dv[r][0]).trim(), en: String(dv[r][1]).trim(), note: String(dv[r][2] || '').replace(/^N\/A$/i, '').trim(), added: String(dv[r][3] || '').trim(), passes: passes });
+  }
+  return { ok: true, rows: out };
 }

@@ -14,11 +14,10 @@ def must(a, b):
     assert app.count(a) == 1, a[:60]
     app = app.replace(a, b)
 # real app: Field look following the phone's light/dark, empty start, own storage key
-must("defSettings=()=>({skin:'swiss',theme:'dark',", "defSettings=()=>({skin:'field',theme:'system',")
-app = app.replace("(st.skin||'swiss')", "(st.skin||'field')").replace("S.settings.skin||'swiss'", "S.settings.skin||'field'")
+must("skin:'notes',theme:'dark',", "skin:'notes',theme:'system',")
 must("  let h=`<div class=\"bsync\"><span>Garmin synced <b>${hm(S.woSync)}</b>", "  if(!S.wo.length)return `<div class=\"bsync\"><span>Not connected yet. Your plan from Google Sheets and actuals from Garmin show up here once sync is set up.</span></div>`;\n  let h=`<div class=\"bsync\"><span>Garmin synced <b>${hm(S.woSync)}</b>")
 must("const KEY='lifeboard-swiss-v1';", "const KEY='lifeboard-v1';")
-must("function seed(){", "function seed(){seedDemo();Object.assign(S,{tasks:[],notes:[],people:[],tags:[],closes:{},wo:[],habits:[]})}\nfunction seedDemo(){")
+must("function seed(){", "function seed(){seedDemo();Object.assign(S,{tasks:[],notes:[],people:[],tags:[],closes:{},wo:[],habits:[],es:esFix({})})}\nfunction seedDemo(){")
 
 # split the artifact page into its parts
 title_m = re.search(r"<title>.*?</title>\s*", app, re.S)
