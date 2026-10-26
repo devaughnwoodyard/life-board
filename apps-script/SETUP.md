@@ -19,6 +19,9 @@ The script also reads and writes your **Spanish for Life Tool** sheet (first tab
 ## Google Calendar
 On each sync the script also reads your visible Google calendars (today + 14 days; holidays, birthdays and events you declined are skipped) and the app shows them as tiles with a **Google Calendar** pill. Calendars with "work", "Outlook" or "Office" in the name land under Work. Turn it off in **Settings → Google Calendar**. After pasting the new code, run **setup** again and approve calendar access, then deploy a **new version**.
 
+## Note attachments
+Files you drop or attach in Notes (.md, .docx, .xlsx, .txt, .csv, .pdf) are saved to **My Drive → Life Board Notes → Work / Personal**, and the note links to them. The app keeps a readable preview so you can search them offline. After pasting the new code, run **setup** again and approve Drive access, then deploy a **new version**.
+
 ## 3. Connect each device
 In the app: **cog → Sync** → paste the URL and key → **Connect**. Do your phone first (it has your data), then the work browser and anything else.
 

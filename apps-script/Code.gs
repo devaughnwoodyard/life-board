@@ -42,6 +42,7 @@ function handle_(b) {
   try {
     if (b.action === 'add') return out_(add_(b.text, b.source || 'shortcut'));
     if (b.action === 'sync') return out_(sync_(b));
+    if (b.action === 'file') return out_(file_(b));
     if (b.action === 'es') return out_(es_(b));
     if (b.action === 'ping') return out_({ ok: true });
     return out_({ ok: false, error: 'unknown action' });
@@ -173,4 +174,15 @@ function cal_(days) {
     });
   });
   return out;
+}
+
+// ---------- Note attachments -> Google Drive ----------
+// Files dropped into Notes are saved under My Drive / Life Board Notes / Work or Personal.
+function folder_(name, parent) { var it = parent.getFoldersByName(name); return it.hasNext() ? it.next() : parent.createFolder(name); }
+function file_(b) {
+  if (!b.b64 || !b.name) return { ok: false, error: 'no file' };
+  var root = folder_('Life Board Notes', DriveApp.getRootFolder()), sub = folder_(b.work ? 'Work' : 'Personal', root);
+  var blob = Utilities.newBlob(Utilities.base64Decode(b.b64), b.mime || 'application/octet-stream', String(b.name).slice(0, 200));
+  var f = sub.createFile(blob);
+  return { ok: true, id: f.getId(), url: f.getUrl(), folder: 'Life Board Notes/' + sub.getName() };
 }

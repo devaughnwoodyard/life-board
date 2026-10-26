@@ -640,6 +640,24 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 
 /* notes */
 .notes{display:flex;flex-direction:column;border-top:2px solid var(--ink)}
+.n-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-align:center;border:1.5px dashed var(--line);border-radius:var(--r);padding:14px 12px;color:var(--muted);cursor:pointer;transition:background .15s,border-color .15s}
+.n-drop span{font-size:13.5px;color:var(--ink)}.n-drop small{font-size:11.5px}.n-drop svg{width:20px;height:20px;color:var(--muted)}
+.n-drop:hover,.file-over .n-drop{border-color:var(--act);background:color-mix(in srgb,var(--act) 7%,transparent)}
+.file-over .ph::after{content:'Drop to add to Notes';position:absolute;inset:8px;z-index:80;border:2px dashed var(--act);border-radius:16px;background:color-mix(in srgb,var(--paper) 82%,transparent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--act);pointer-events:none}
+.n-q{margin-top:2px}
+.sheet>*,.dk-side>*{flex-shrink:0}
+#n-new{min-height:84px}
+.ph.desk[data-skin="ios-c"] .ft{right:calc(340px + 24px)}
+.ph.desk[data-skin="ios-c"] .ft>.add{min-width:0;width:60px;flex:none}
+.ph.desk .dk-main{position:relative}
+.nf{display:flex;align-items:center;gap:10px}
+.nf-i{flex:none;width:42px;height:46px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:var(--soft);color:var(--ink)}
+.nf-i b{font-size:9px;letter-spacing:.04em}.nf-docx{background:#e8f0fe;color:#1a56c4}.nf-xlsx{background:#e6f4ea;color:#137333}.nf-md,.nf-markdown{background:#f1f0fb;color:#4b3fb5}.nf-pdf{background:#fde8e7;color:#b3261e}
+.ph[data-theme="dark"] .nf-i{background:var(--soft);color:var(--ink)}
+.nf-b{display:flex;flex-direction:column;min-width:0;gap:1px}.nf-n{font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nf-m{font-size:12px;color:var(--muted)}.nf-l{color:var(--act);font-weight:600;text-decoration:none}.nf-s{color:var(--muted)}
+.nf-pv summary{font-size:12.5px;color:var(--muted);cursor:pointer;padding:2px 0}
+.nf-pv pre{margin:6px 0 0;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);border-radius:8px;padding:10px;color:var(--ink)}
 .nt{border-bottom:1px solid var(--hair);padding:10px 0;display:flex;flex-direction:column;gap:6px}
 .nt-t{font-size:15px;line-height:1.45;border:0;padding:0;background:transparent;color:var(--ink);outline:none;resize:none;width:100%;field-sizing:content;min-height:1.45em}
 .nt-m{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--muted)}
@@ -1396,6 +1414,91 @@ function paintDate(){
 }
 
 /* ---------- other sheets ---------- */
+/* ---------- note attachments: drop or pick .md .docx .xlsx .txt .csv .pdf → readable preview here, original saved to Google Drive ---------- */
+const FILE_OK=/\.(md|markdown|txt|docx|xlsx|csv|pdf|html?)$/i,FILE_MAX=20*1024*1024;
+const FILE_ACCEPT='.md,.markdown,.txt,.docx,.xlsx,.csv,.pdf,.html,.htm';
+const MIMES={md:'text/markdown',markdown:'text/markdown',txt:'text/plain',csv:'text/csv',html:'text/html',htm:'text/html',pdf:'application/pdf',
+  docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'};
+const extOf=n=>(String(n).match(/\.([a-z0-9]+)$/i)||[,''])[1].toLowerCase();
+const kb=b=>b<1024?b+' B':b<1048576?Math.round(b/1024)+' KB':(b/1048576).toFixed(1)+' MB';
+const xmlText=x=>x.replace(/<[^>]+>/g,'').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&');
+async function unzipText(buf,name){
+  const u8=new Uint8Array(buf),dv=new DataView(buf),td=new TextDecoder();let e=-1;
+  for(let i=u8.length-22;i>=Math.max(0,u8.length-66000);i--){if(dv.getUint32(i,true)===0x06054b50){e=i;break}}
+  if(e<0)return null;
+  let p=dv.getUint32(e+16,true);const cnt=dv.getUint16(e+10,true);
+  for(let k=0;k<cnt;k++){
+    if(dv.getUint32(p,true)!==0x02014b50)return null;
+    const method=dv.getUint16(p+10,true),csize=dv.getUint32(p+20,true),nlen=dv.getUint16(p+28,true),xlen=dv.getUint16(p+30,true),clen=dv.getUint16(p+32,true),off=dv.getUint32(p+42,true);
+    if(td.decode(u8.subarray(p+46,p+46+nlen))===name){
+      const st=off+30+dv.getUint16(off+26,true)+dv.getUint16(off+28,true),data=u8.subarray(st,st+csize);
+      if(method===0)return td.decode(data);
+      if(method===8&&'DecompressionStream' in window)return await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+      return null;
+    }
+    p+=46+nlen+xlen+clen;
+  }
+  return null;
+}
+async function fileText(name,buf){
+  const ext=extOf(name);
+  try{
+    if(/^(md|markdown|txt|csv)$/.test(ext))return new TextDecoder().decode(buf);
+    if(/^html?$/.test(ext))return xmlText(new TextDecoder().decode(buf).replace(/<(script|style)[\s\S]*?<\/\1>/gi,'').replace(/<\/(p|div|h\d|li|tr)>/gi,'\n')).replace(/\n{3,}/g,'\n\n').trim();
+    if(ext==='docx'){const x=await unzipText(buf,'word/document.xml');if(!x)return '';
+      return xmlText(x.replace(/<w:tab\/>/g,'\t').replace(/<w:br\/>/g,'\n').replace(/<\/w:p>/g,'\n')).replace(/\n{3,}/g,'\n\n').trim()}
+    if(ext==='xlsx'){
+      const ss=await unzipText(buf,'xl/sharedStrings.xml'),sh=await unzipText(buf,'xl/worksheets/sheet1.xml');if(!sh)return '';
+      const strs=ss?[...ss.matchAll(/<si>([\s\S]*?)<\/si>/g)].map(m=>xmlText(m[1])):[];
+      return [...sh.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)].slice(0,40).map(r=>[...r[1].matchAll(/<c ([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)].map(c=>{
+        const t=(c[1].match(/t="(\w+)"/)||[])[1],v=((c[2]||'').match(/<v>([\s\S]*?)<\/v>/)||[])[1];
+        if(t==='s')return strs[+v]||'';if(t==='inlineStr')return xmlText(c[2]||'');return v!=null?xmlText(v):'';
+      }).join(' | ')).join('\n').trim();
+    }
+  }catch(e){}
+  return '';
+}
+const IDB={db:null,open(){return this.db||(this.db=new Promise((ok,no)=>{try{const r=indexedDB.open('lifeboard-files',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}catch(e){no(e)}}))},
+  async run(mode,fn){const db=await this.open();return new Promise((ok,no)=>{const tx=db.transaction('f',mode),st=tx.objectStore('f'),rq=fn(st);tx.oncomplete=()=>ok(rq&&rq.result);tx.onerror=()=>no(tx.error)})},
+  put(k,v){return this.run('readwrite',s=>s.put(v,k))},get(k){return this.run('readonly',s=>s.get(k))},del(k){return this.run('readwrite',s=>s.delete(k))}};
+async function notesAddFiles(list,work){
+  const files=[...list];let n=0,skip=[];
+  for(const f of files){
+    if(!FILE_OK.test(f.name)){skip.push(f.name);continue}
+    if(f.size>FILE_MAX){skip.push(f.name+' (over 20 MB)');continue}
+    const buf=await f.arrayBuffer(),pv=(await fileText(f.name,buf)).slice(0,6000);
+    const note={id:mk('n'),text:'',at:Date.now(),work:!!work,file:{name:f.name,size:f.size,ext:extOf(f.name),preview:pv,status:'pending'}};
+    try{await IDB.put(note.id,new Blob([buf],{type:f.type||MIMES[note.file.ext]||'application/octet-stream'}))}catch(e){note.file.status='device'}
+    S.notes.push(note);n++;
+  }
+  S.keep=true;render();
+  if(n)toast(n===1?(SY.url?'File added. Saving to Google Drive…':'File added to Notes'):n+' files added'+(SY.url?'. Saving to Google Drive…':''));
+  if(skip.length)setTimeout(()=>toast('Skipped: '+skip.join(', ')+'. Use .md .docx .xlsx .txt .csv .pdf'),n?2400:0);
+  fileUploadAll();
+}
+const blobB64=b=>new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]||'');r.onerror=()=>no(r.error);r.readAsDataURL(b)});
+let fuBusy=false;
+async function fileUploadAll(){
+  if(!SY.url||!SY.key||fuBusy||navigator.onLine===false)return;fuBusy=true;
+  try{
+    for(const n of S.notes.filter(n=>n.file&&n.file.status==='pending')){
+      let blob=null;try{blob=await IDB.get(n.id)}catch(e){}
+      if(!blob){n.file.status='device';continue}
+      const res=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'file',token:SY.key,name:n.file.name,mime:blob.type||MIMES[n.file.ext]||'application/octet-stream',b64:await blobB64(blob),work:!!n.work})});
+      const j=await res.json();if(!j.ok)throw new Error(j.error==='unknown action'?'Update your Apps Script to the newest Code.gs':j.error||'Upload failed');
+      Object.assign(n.file,{status:'saved',url:j.url,driveId:j.id,folder:j.folder});try{await IDB.del(n.id)}catch(e){}
+      S.keep=true;render();toast('Saved to Google Drive: '+n.file.name);
+    }
+  }catch(e){toast('Couldn’t save to Drive yet: '+String(e.message||e).replace(/^TypeError: /,''))}
+  finally{fuBusy=false}
+}
+const DOCICON='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>';
+function noteFile(n){
+  const f=n.file;if(!f)return '';
+  const st=f.status==='saved'?`<a class="nf-l" href="${esc(f.url)}" target="_blank" rel="noopener">Open in Drive</a>`:f.status==='pending'?(SY.url?'<span class="nf-s">Saving to Drive…</span>':'<span class="nf-s">On this device · connect Sync to save to Drive</span>'):'<span class="nf-s">On this device</span>';
+  return `<div class="nf"><span class="nf-i nf-${esc(f.ext)}">${DOCICON}<b>${esc(f.ext.toUpperCase())}</b></span><div class="nf-b"><span class="nf-n">${esc(f.name)}</span><span class="nf-m">${kb(f.size)} · ${st}</span></div></div>`+
+    (f.preview?`<details class="nf-pv"><summary>Preview</summary><pre>${esc(f.preview)}${f.preview.length>=6000?'\n…':''}</pre></details>`:'');
+}
 function notesSheet(inline){
   const ago=ms=>{const d=new Date(ms),ds=iso(d),t=d.getHours()+':'+pad(d.getMinutes());return (ds===TODAY?'Today':short(ds))+' '+t};
   const L=notesShown();
@@ -1403,9 +1506,11 @@ function notesSheet(inline){
     `<div class="seg2 n-mode" role="group" aria-label="Note type"><button class="${S.settings.noteEs?'':'on'}" data-act="note-mode" data-v="0" aria-pressed="${!S.settings.noteEs}">Note</button><button class="${S.settings.noteEs?'on':''}" data-act="note-mode" data-v="1" aria-pressed="${!!S.settings.noteEs}">Spanish phrase</button></div>`+
     (S.settings.noteEs
       ?`<div class="n-es"><input id="ne-es" class="inp sm" placeholder="Español" lang="es" autocomplete="off" autocapitalize="sentences"><input id="ne-en" class="inp sm" placeholder="English meaning" autocomplete="off"><input id="ne-note" class="inp sm" placeholder="Nota (optional)" autocomplete="off"><button class="pri" data-act="ne-add">Add to Spanish list</button><span class="set-k">${esActive().length} learning · goes to your “Spanish for Life Tool” sheet and today’s quiz pool</span></div>`
-      :`<textarea id="n-new" class="ta" rows="3" placeholder="Dump it here. Saved the moment you tap Save."></textarea>`)+
+      :`<textarea id="n-new" class="ta" rows="3" placeholder="Dump it here. Saved the moment you tap Save."></textarea>`+
+       `<label class="n-drop" for="n-file" data-drop-files>${DOCICON}<span><b>Drop files here</b> or tap to attach</span><small>.md · .docx · .xlsx · .txt · .csv · .pdf${SY.url?' · saved to Google Drive':''}</small></label><input type="file" id="n-file" multiple accept="${FILE_ACCEPT}" hidden>`)+
     (S.settings.noteEs?'':`<div class="btns" style="align-items:center">${SR?`<button class="n-mic${VC.target==='note'&&VC.on?' on':''}" data-act="note-mic" aria-label="Dictate a note">${MICICON}${VC.target==='note'&&VC.on?'Listening…':'Speak'}</button>`:''}<label class="tg" for="n-work"><input type="checkbox" id="n-work"${S.realm==='work'?' checked':''}>Work note</label><button class="pri" data-act="note-add">Save note</button></div>`)+
-    `<div class="notes">${L.slice().sort((a,b)=>b.at-a.at).map(n=>`<div class="nt"><textarea class="nt-t" data-note="${n.id}" rows="${Math.min(6,Math.max(1,Math.ceil(n.text.length/38)))}" aria-label="Note">${esc(n.text)}</textarea><div class="nt-m"><span>${n.work?'<b class="nt-k">Work</b> · ':''}${ago(n.at)}</span><button data-act="note-task" data-id="${n.id}">Make task</button><button data-act="note-del" data-id="${n.id}">Delete</button></div></div>`).join('')||'<p class="sh-p" style="padding-top:12px">No notes yet.</p>'}</div>`;
+    (L.length>1||S.nq?`<input id="n-q" class="inp sm n-q" type="search" placeholder="Search notes and files" value="${esc(S.nq||'')}" autocomplete="off">`:'')+
+    `<div class="notes">${L.filter(n=>{const q=(S.nq||'').trim().toLowerCase();return !q||(n.text+' '+(n.file?n.file.name+' '+n.file.preview:'')).toLowerCase().includes(q)}).slice().sort((a,b)=>b.at-a.at).map(n=>`<div class="nt${n.file?' has-f':''}">${noteFile(n)}<textarea class="nt-t" data-note="${n.id}" rows="${Math.min(6,Math.max(1,Math.ceil(n.text.length/38)))}" aria-label="Note" placeholder="${n.file?'Add a note about this file':''}">${esc(n.text)}</textarea><div class="nt-m"><span>${n.work?'<b class="nt-k">Work</b> · ':''}${ago(n.at)}</span><button data-act="note-task" data-id="${n.id}">Make task</button><button data-act="note-del" data-id="${n.id}">Delete</button></div></div>`).join('')||'<p class="sh-p" style="padding-top:12px">No notes yet.</p>'}</div>`;
 }
 /* ---------- voice: Web Speech API where the browser has it, keyboard dictation everywhere else ---------- */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition||null;
@@ -1600,7 +1705,7 @@ const ES={'Board':'Tablero','Week':'Semana','Habits':'Hábitos','Workouts':'Entr
 'This week':'Esta semana','Next week':'Próxima semana','Edit habits':'Editar hábitos','Category':'Categoría','Repeat':'Repetir','People':'Personas','When':'Cuándo',
 'Save':'Guardar','Light':'Claro','Dark':'Oscuro','System':'Sistema','Tap to talk again':'Toca para hablar otra vez','Listening…':'Escuchando…',
 'Tap the mic on your keyboard and talk.':'Toca el micrófono del teclado y habla.','Add a habit, e.g. Floss':'Agrega un hábito, p. ej. Hilo dental',
-'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Google Calendar':'Google Calendar','Show my calendar on the board':'Mostrar mi calendario en el tablero','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
+'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Search notes and files':'Buscar notas y archivos','Open in Drive':'Abrir en Drive','Preview':'Vista previa','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Google Calendar':'Google Calendar','Show my calendar on the board':'Mostrar mi calendario en el tablero','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
 const ESW={Monday:'lunes',Tuesday:'martes',Wednesday:'miércoles',Thursday:'jueves',Friday:'viernes',Saturday:'sábado',Sunday:'domingo',
 Mon:'lun',Tue:'mar',Wed:'mié',Thu:'jue',Fri:'vie',Sat:'sáb',Sun:'dom',January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',
 August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre',Jan:'ene',Feb:'feb',Mar:'mar',Apr:'abr',Jun:'jun',Jul:'jul',Aug:'ago',
@@ -1693,7 +1798,7 @@ async function syncNow(manual){
     if(inb)toast(inb===1?'1 added from Siri':inb+' added from Siri');
     else if(manual)toast(first?'Connected. Your board is synced.':'Synced');
     if(first||Object.keys(SY.out).length)sySoon(300);
-    esSync();
+    esSync();fileUploadAll();
   }catch(e){SY.err=String(e&&e.message||e).replace(/^TypeError: /,'')||'Sync failed';if(/fetch|network|load failed/i.test(SY.err))SY.err='Couldn’t reach your script. Check the URL, or you may be offline.';sySave();if(manual){render();toast('Sync didn’t work: '+SY.err)}}
   finally{syBusy=false}
 }
@@ -1704,7 +1809,7 @@ function syStatus(){
   return (SY.lastOk?'Synced '+hm(SY.lastOk):'Connecting…')+(n?' · '+n+' change'+(n===1?'':'s')+' waiting':'');
 }
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sySoon(200)});
-window.addEventListener('online',()=>sySoon(200));
+window.addEventListener('online',()=>{sySoon(200);fileUploadAll()});
 setInterval(()=>{if(document.visibilityState==='visible')syncNow()},120000);
 function render(){
   const scr=root.querySelector('#scr'),st=scr?scr.scrollTop:0;
@@ -1894,7 +1999,7 @@ function act(a,id,el){
     case 'restore':t.done=false;t.doneAt=null;t.dropped=false;t.status='todo';t.date=TODAY;t.asked=true;return render();
     case 'note-add':{const i=root.querySelector('#n-new'),v=i&&i.value.trim(),w=root.querySelector('#n-work');if(!v){if(i)i.focus();return}S.notes.push({id:mk('n'),text:v,at:Date.now(),work:!!(w&&w.checked)});render();const i2=root.querySelector('#n-new');if(i2)i2.focus();return}
     case 'note-del':S.notes=S.notes.filter(n=>n.id!==id);return render();
-    case 'note-task':{const n=S.notes.find(x=>x.id===id);if(!n)return;const lines=n.text.split('\n');
+    case 'note-task':{const n=S.notes.find(x=>x.id===id);if(!n)return;if(!n.text.trim()&&n.file)n.text='Follow up: '+n.file.name.replace(/\.[^.]+$/,'');const lines=n.text.split('\n');
       S.draft=Object.assign(draftFrom(null),{title:lines[0].slice(0,80),note:lines.length>1||lines[0].length>80?n.text:'',fromNote:n.id,date:null,cat:n.work?'Work':'Other'});
       return openSheet('editor')}
   }
@@ -1926,7 +2031,18 @@ root.addEventListener('click',e=>{
   if((el=tg.closest('[data-swatch]'))){S.settings.catColors[el.dataset.swatch]=el.dataset.v||null;render();return}
   if((el=tg.closest('[data-act]'))){act(el.dataset.act,el.dataset.id,el);return}
 },true);
+root.addEventListener('change',e=>{if(e.target.id==='n-file'&&e.target.files&&e.target.files.length){const w=root.querySelector('#n-work');notesAddFiles(e.target.files,w?w.checked:S.realm==='work');e.target.value=''}});
+const hasFiles=e=>e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files');
+let dragDepth=0;
+document.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth++;root.classList.add('file-over')});
+document.addEventListener('dragleave',e=>{if(!hasFiles(e))return;dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)root.classList.remove('file-over')});
+document.addEventListener('dragover',e=>{if(hasFiles(e)){e.preventDefault();e.dataTransfer.dropEffect='copy'}});
+document.addEventListener('drop',e=>{if(!hasFiles(e))return;e.preventDefault();dragDepth=0;root.classList.remove('file-over');
+  if(!root.contains(e.target))return;const w=root.querySelector('#n-work');
+  if(!S.desk&&!(S.sheet&&S.sheet.type==='notes'))openSheet('notes');
+  notesAddFiles(e.dataTransfer.files,w?w.checked:S.realm==='work')});
 root.addEventListener('input',e=>{
+  if(e.target.id==='n-q'){S.nq=e.target.value;const pos=e.target.selectionStart;S.keep=true;render();const q=root.querySelector('#n-q');if(q){q.focus();try{q.setSelectionRange(pos,pos)}catch(x){}}return}
   if(e.target.id==='v-in'){VC.text=e.target.value;const pv=root.querySelector('#v-prev');if(pv)pv.innerHTML=vPrev(VC.text);return}
   if(e.target.id==='wo-r'){const v=+e.target.value,b=root.querySelector('#sc-big');if(b)b.textContent=v+'%';e.target.setAttribute('aria-valuetext',v+'%');}
   const id=e.target.id,d=S.draft;
