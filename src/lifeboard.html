@@ -645,6 +645,18 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .n-drop:hover,.file-over .n-drop{border-color:var(--act);background:color-mix(in srgb,var(--act) 7%,transparent)}
 .file-over .ph::after{content:'Drop to add to Notes';position:absolute;inset:8px;z-index:80;border:2px dashed var(--act);border-radius:16px;background:color-mix(in srgb,var(--paper) 82%,transparent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px;color:var(--act);pointer-events:none}
 .n-q{margin-top:2px}
+.n-tools{display:flex;align-items:center;gap:12px}
+.n-full{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--act);padding:6px 10px;border-radius:999px;background:color-mix(in srgb,var(--act) 10%,transparent);min-height:32px}
+.n-full:hover{background:color-mix(in srgb,var(--act) 18%,transparent)}
+.sheet.full{top:0!important;max-height:none;border-radius:0!important;border-top:0;padding-top:calc(20px + env(safe-area-inset-top,0px));animation:none}
+.sheet.full .notes .nt-t{font-size:16px}
+.ph.desk.notes-full .dk{grid-template-columns:0 minmax(0,1fr)}
+.ph.desk.notes-full .dk-main{visibility:hidden;overflow:hidden;border:0}
+.ph.desk.notes-full .ft{display:none!important}
+.ph.desk.notes-full .dk-side{padding:30px max(30px,calc((100% - 860px)/2))}
+.ph.desk.notes-full .dk-side .notes{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:0 28px;border-top-width:1px}
+.ph.desk.notes-full .dk-side .nf-pv pre{max-height:420px}
+.ph.desk.notes-full .dk-side #n-new{min-height:140px}
 .sheet>*,.dk-side>*{flex-shrink:0}
 #n-new{min-height:84px}
 .ph.desk[data-skin="ios-c"] .ft{right:calc(340px + 24px)}
@@ -1492,6 +1504,8 @@ async function fileUploadAll(){
   }catch(e){toast('Couldn’t save to Drive yet: '+String(e.message||e).replace(/^TypeError: /,''))}
   finally{fuBusy=false}
 }
+const EXPICON='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/></svg>';
+const MINICON='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7"/></svg>';
 const DOCICON='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></svg>';
 function noteFile(n){
   const f=n.file;if(!f)return '';
@@ -1502,7 +1516,8 @@ function noteFile(n){
 function notesSheet(inline){
   const ago=ms=>{const d=new Date(ms),ds=iso(d),t=d.getHours()+':'+pad(d.getMinutes());return (ds===TODAY?'Today':short(ds))+' '+t};
   const L=notesShown();
-  return `<div class="sh-top"><h2>${S.realm==='work'?'Work notes':S.realm==='personal'?'Personal notes':'Notes'}</h2>${inline?`<span class="lbl">${L.length}</span>`:'<button class="x" data-act="close">Close</button>'}</div>`+
+  const fullBtn=`<button class="n-full" data-act="notes-full" aria-pressed="${!!S.notesFull}" aria-label="${S.notesFull?'Minimize notes':'Expand notes to full page'}" title="${S.notesFull?'Minimize':'Full page'}">${S.notesFull?MINICON:EXPICON}<span>${S.notesFull?'Minimize':'Full page'}</span></button>`;
+  return `<div class="sh-top"><h2>${S.realm==='work'?'Work notes':S.realm==='personal'?'Personal notes':'Notes'}</h2><span class="n-tools">${inline?`<span class="lbl">${L.length}</span>`:''}${fullBtn}${inline?'':'<button class="x" data-act="close">Close</button>'}</span></div>`+
     `<div class="seg2 n-mode" role="group" aria-label="Note type"><button class="${S.settings.noteEs?'':'on'}" data-act="note-mode" data-v="0" aria-pressed="${!S.settings.noteEs}">Note</button><button class="${S.settings.noteEs?'on':''}" data-act="note-mode" data-v="1" aria-pressed="${!!S.settings.noteEs}">Spanish phrase</button></div>`+
     (S.settings.noteEs
       ?`<div class="n-es"><input id="ne-es" class="inp sm" placeholder="Español" lang="es" autocomplete="off" autocapitalize="sentences"><input id="ne-en" class="inp sm" placeholder="English meaning" autocomplete="off"><input id="ne-note" class="inp sm" placeholder="Nota (optional)" autocomplete="off"><button class="pri" data-act="ne-add">Add to Spanish list</button><span class="set-k">${esActive().length} learning · goes to your “Spanish for Life Tool” sheet and today’s quiz pool</span></div>`
@@ -1672,7 +1687,7 @@ function sheet(){
     h=`<div class="sh-top"><h2>Done</h2><button class="x" data-act="close">Close</button></div><p class="sh-p">${done.length} finished. Restore puts a task back in To Do.</p>`+
       Object.keys(g).map(k=>`<div class="arch"><span class="lbl">${k===TODAY?'Today':DOWL[P(k).getDay()]+' '+P(k).getDate()}</span><div class="dl">${g[k].map(x=>`<div class="dl-r"><span class="${x.dropped?'drp':''}">${esc(x.title)}</span><button class="lnk" data-act="restore" data-id="${x.id}">Restore</button></div>`).join('')}</div></div>`).join('');
   }
-  return `<div class="scrim" data-act="close"></div><div class="sheet${tall?' tall':''}${menu?' menu':''}${S.anim?' anim':''}" role="dialog" aria-modal="true">${h}</div>`;
+  return `<div class="scrim" data-act="close"></div><div class="sheet${tall?' tall':''}${menu?' menu':''}${type==='notes'&&S.notesFull?' full':''}${S.anim?' anim':''}" role="dialog" aria-modal="true">${h}</div>`;
 }
 
 /* ---------- render ---------- */
@@ -1705,7 +1720,7 @@ const ES={'Board':'Tablero','Week':'Semana','Habits':'Hábitos','Workouts':'Entr
 'This week':'Esta semana','Next week':'Próxima semana','Edit habits':'Editar hábitos','Category':'Categoría','Repeat':'Repetir','People':'Personas','When':'Cuándo',
 'Save':'Guardar','Light':'Claro','Dark':'Oscuro','System':'Sistema','Tap to talk again':'Toca para hablar otra vez','Listening…':'Escuchando…',
 'Tap the mic on your keyboard and talk.':'Toca el micrófono del teclado y habla.','Add a habit, e.g. Floss':'Agrega un hábito, p. ej. Hilo dental',
-'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Search notes and files':'Buscar notas y archivos','Open in Drive':'Abrir en Drive','Preview':'Vista previa','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Google Calendar':'Google Calendar','Show my calendar on the board':'Mostrar mi calendario en el tablero','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
+'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Full page':'Pantalla completa','Minimize':'Minimizar','Search notes and files':'Buscar notas y archivos','Open in Drive':'Abrir en Drive','Preview':'Vista previa','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Google Calendar':'Google Calendar','Show my calendar on the board':'Mostrar mi calendario en el tablero','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
 const ESW={Monday:'lunes',Tuesday:'martes',Wednesday:'miércoles',Thursday:'jueves',Friday:'viernes',Saturday:'sábado',Sunday:'domingo',
 Mon:'lun',Tue:'mar',Wed:'mié',Thu:'jue',Fri:'vie',Sat:'sáb',Sun:'dom',January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',
 August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre',Jan:'ene',Feb:'feb',Mar:'mar',Apr:'abr',Jun:'jun',Jul:'jul',Aug:'ago',
@@ -1820,7 +1835,7 @@ function render(){
   root.classList.toggle('desk',!!S.desk);
   document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('on',(b.dataset.mode==='desk')===!!S.desk));
   root.innerHTML=S.desk
-    ?`<div class="ph desk" data-theme="${themeNow()}" data-skin="${S.settings.skin||'ios-c'}"><div class="dk"><div class="dk-main">${main}</div><aside class="dk-side" aria-label="Notes">${notesSheet(true)}</aside></div>${sheet()}</div>`
+    ?`<div class="ph desk${S.notesFull?' notes-full':''}" data-theme="${themeNow()}" data-skin="${S.settings.skin||'ios-c'}"><div class="dk"><div class="dk-main">${main}</div><aside class="dk-side" aria-label="Notes">${notesSheet(true)}</aside></div>${sheet()}</div>`
     :`<div class="ph" data-theme="${themeNow()}" data-skin="${S.settings.skin||'ios-c'}">${main}${sheet()}</div>`;
   document.querySelectorAll('.skin').forEach(b=>b.classList.toggle('on',b.dataset.skin===(S.settings.skin||'ios-c')));
   if(S.keep){const s2=root.querySelector('#scr');if(s2)s2.scrollTop=st;const h2=root.querySelector('.sheet');if(h2&&!S.anim)h2.scrollTop=shs}
@@ -1836,7 +1851,7 @@ if(window.visualViewport){visualViewport.addEventListener('resize',fitViewport);
 document.addEventListener('focusout',()=>setTimeout(()=>{fitViewport();pinTop()},80));
 function focusTop(sel){const i=root.querySelector(sel);if(!i)return;try{i.focus({preventScroll:true})}catch(e){i.focus()}const sh=root.querySelector('.sheet');if(sh)sh.scrollTop=0;pinTop();setTimeout(()=>{const s2=root.querySelector('.sheet');if(s2)s2.scrollTop=0;pinTop()},350)}
 function openSheet(type,id){S.sheet={type,id};S.anim=true;S.confirmDel=null;render();const sh=root.querySelector('.sheet');if(sh)sh.scrollTop=0;pinTop()}
-function closeSheet(){if(VC.on)vStop();S.sheet=null;S.draft=null;render()}
+function closeSheet(){if(VC.on)vStop();if(S.sheet&&S.sheet.type==='notes')S.notesFull=false;S.sheet=null;S.draft=null;render()}
 
 function finishTask(t,dropped){
   t.done=true;t.doneAt=TODAY;t.dropped=!!dropped;
@@ -1976,6 +1991,7 @@ function act(a,id,el){
     case 'save':if(commitDraft()){S.sheet=null;S.draft=null;render()}return;
     case 'close':return closeSheet();
     case 'notes':return openSheet('notes');
+    case 'notes-full':S.notesFull=!S.notesFull;S.keep=true;render();{const b=root.querySelector('.n-full');if(b)b.focus({preventScroll:true})}return;
     case 'more-weeks':S.weeks=(S.weeks||3)+2;return render();
     case 'finished':return openSheet('finished');
     case 'roll':return openSheet('roll',id);
@@ -2095,6 +2111,7 @@ root.addEventListener('scroll',e=>{
 },true);
 root.addEventListener('focusin',e=>{if(e.target.classList&&e.target.classList.contains('bamt'))setTimeout(()=>{try{e.target.select()}catch(_){}},0)});
 root.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&S.notesFull){S.notesFull=false;S.keep=true;render();return}
   if(e.key==='Escape'&&e.target.id==='da-in'){S.dayAdd=null;render();return}
   if(e.target.classList&&e.target.classList.contains('wh-s')&&(e.key==='ArrowDown'||e.key==='ArrowUp')){e.preventDefault();e.target.scrollBy({top:e.key==='ArrowDown'?ITEM:-ITEM,behavior:'smooth'});return}
   if(e.key!=='Enter')return;
