@@ -16,6 +16,9 @@
 ## Spanish quiz
 The script also reads and writes your **Spanish for Life Tool** sheet (first tab): new phrases are added as rows, each correct day goes in the first empty **Prueba** column (5 filled = retired), and every answer is logged to a **Quiz Log** tab it creates. If you already deployed before this was added, paste the new code, run **setup** once more and approve the extra access (it now opens a second spreadsheet), then **Deploy → Manage deployments → New version**.
 
+## Google Calendar
+On each sync the script also reads your visible Google calendars (today + 14 days; holidays, birthdays and events you declined are skipped) and the app shows them as tiles with a **Google Calendar** pill. Calendars with "work", "Outlook" or "Office" in the name land under Work. Turn it off in **Settings → Google Calendar**. After pasting the new code, run **setup** again and approve calendar access, then deploy a **new version**.
+
 ## 3. Connect each device
 In the app: **cog → Sync** → paste the URL and key → **Connect**. Do your phone first (it has your data), then the work browser and anything else.
 

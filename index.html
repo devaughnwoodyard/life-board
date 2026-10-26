@@ -95,33 +95,33 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .ph[data-skin="ios"]{--paper:#ffffff;--bg:#f2f2f7;--ink:#000000;--muted:#6c6c70;--line:#c6c6c8;--hair:#e3e3e8;--soft:#ebebf0;--accent:#ff3b30;--act:#007aff;--act-ink:#ffffff;--dis:#c7c7cc;--dis-b:#ececf0;--r:12px;
   --f:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',system-ui,sans-serif;--fh:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',system-ui,sans-serif}
 .ph[data-skin="ios"][data-theme="dark"]{--paper:#1c1c1e;--bg:#000000;--ink:#ffffff;--muted:#98989f;--line:#38383a;--hair:#2c2c2e;--soft:#2c2c2e;--accent:#ff453a;--act:#0a84ff;--act-ink:#ffffff;--dis:#48484a;--dis-b:#2c2c2e}
-.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.card,.pu,.ko-btn,.qi,.pd-btn,.add,.pad-btn,.pri,.sec,.chip,.tg-c,.sel,.tin,.ta,.un,.bnote,.more,.sc-b,.ko-n,.seg2,.seg3,.realm,.eff,.bsync button,.ft-drop,.pb){border-radius:var(--r)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.chip,.tg-c,.realm button,.seg2 button,.seg3 button){border-radius:9px}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .sheet{border-top:0;border-radius:14px 14px 0 0}
-.ph:is([data-skin="ios"],[data-skin="notes"]).desk .sheet{border-left:0;border-radius:14px 0 0 14px}
-.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.card,.task,.pu,.ko-btn,.un,.bnote,.sec,.pad-btn,.more,.bsync button){border-color:var(--hair)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .card{border-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .ko-btn{border:0;background:var(--paper)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .chip{border-color:transparent;background:var(--soft)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .chip.on{background:var(--act);color:var(--act-ink)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .task{background:var(--paper);padding-left:12px;padding-right:12px;border-bottom-color:var(--hair)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .day-h,.ph:is([data-skin="ios"],[data-skin="notes"]) .col-h,.ph:is([data-skin="ios"],[data-skin="notes"]) .hc-top,.ph:is([data-skin="ios"],[data-skin="notes"]) .stk-h{border-bottom:0;color:var(--muted);text-transform:uppercase;font-weight:600}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .nav{border-top:0}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .nav button.on{text-decoration:none;color:var(--act)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .realm,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg2,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg3{border-color:transparent;background:var(--soft);padding:2px}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .realm button.on,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg2 button.on,.ph:is([data-skin="ios"],[data-skin="notes"]) .seg3 button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .chk::before{border-radius:50%;border-color:var(--line)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.task.completing,.card.completing,.pend) .chk::before{background:var(--act);border-color:var(--act)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .pend::after{background:var(--act)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .un{border:1.5px dashed var(--line);background:transparent}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .ft{background:var(--paper);border-top-color:var(--hair)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .hb-tick{border-radius:50%;border-color:var(--line)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .hb-c{border-radius:5px;border-color:var(--line)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) :is(.hb-tick.on,.hb-c.on){background:var(--act);border-color:var(--act)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .hc-b i,.ph:is([data-skin="ios"],[data-skin="notes"]) .hr-bar i,.ph:is([data-skin="ios"],[data-skin="notes"]) .ko-meter i{background:var(--act)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .props,.ph:is([data-skin="ios"],[data-skin="notes"]) .ed-head,.ph:is([data-skin="ios"],[data-skin="notes"]) .hs,.ph:is([data-skin="ios"],[data-skin="notes"]) .blist,.ph:is([data-skin="ios"],[data-skin="notes"]) .hb-list,.ph:is([data-skin="ios"],[data-skin="notes"]) .qe{border-top-color:var(--hair)}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .hd-date b,.ph:is([data-skin="ios"],[data-skin="notes"]) .wk-h,.ph:is([data-skin="ios"],[data-skin="notes"]) .pl-bar h2{letter-spacing:-.4px}
-.ph:is([data-skin="ios"],[data-skin="notes"]) .x,.ph:is([data-skin="ios"],[data-skin="notes"]) .lnk,.ph:is([data-skin="ios"],[data-skin="notes"]) .hd-done{color:var(--act);text-decoration:none}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) :is(.card,.pu,.ko-btn,.qi,.pd-btn,.add,.pad-btn,.pri,.sec,.chip,.tg-c,.sel,.tin,.ta,.un,.bnote,.more,.sc-b,.ko-n,.seg2,.seg3,.realm,.eff,.bsync button,.ft-drop,.pb){border-radius:var(--r)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) :is(.chip,.tg-c,.realm button,.seg2 button,.seg3 button){border-radius:9px}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .sheet{border-top:0;border-radius:14px 14px 0 0}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]).desk .sheet{border-left:0;border-radius:14px 0 0 14px}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) :is(.card,.task,.pu,.ko-btn,.un,.bnote,.sec,.pad-btn,.more,.bsync button){border-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .card{border-color:transparent;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .ko-btn{border:0;background:var(--paper)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .chip{border-color:transparent;background:var(--soft)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .chip.on{background:var(--act);color:var(--act-ink)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .task{background:var(--paper);padding-left:12px;padding-right:12px;border-bottom-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .day-h,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .col-h,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hc-top,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .stk-h{border-bottom:0;color:var(--muted);text-transform:uppercase;font-weight:600}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .nav{border-top:0}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .nav button.on{text-decoration:none;color:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .realm,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .seg2,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .seg3{border-color:transparent;background:var(--soft);padding:2px}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .realm button.on,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .seg2 button.on,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .seg3 button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .chk::before{border-radius:50%;border-color:var(--line)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) :is(.task.completing,.card.completing,.pend) .chk::before{background:var(--act);border-color:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .pend::after{background:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .un{border:1.5px dashed var(--line);background:transparent}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .ft{background:var(--paper);border-top-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hb-tick{border-radius:50%;border-color:var(--line)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hb-c{border-radius:5px;border-color:var(--line)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) :is(.hb-tick.on,.hb-c.on){background:var(--act);border-color:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hc-b i,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hr-bar i,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .ko-meter i{background:var(--act)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .props,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .ed-head,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hs,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .blist,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hb-list,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .qe{border-top-color:var(--hair)}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hd-date b,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .wk-h,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .pl-bar h2{letter-spacing:-.4px}
+.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .x,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .lnk,.ph:is([data-skin="ios"],[data-skin="notes"],[data-skin="ios-c"]) .hd-done{color:var(--act);text-decoration:none}
 
 /* ===== look: Editorial (serif headings + titles, deep blue actions) ===== */
 .ph[data-skin="editorial"]{--paper:#ffffff;--bg:#ffffff;--ink:#16181d;--muted:#5f636b;--line:#16181d;--hair:#e2e4e8;--soft:#f2f3f6;--accent:#b3261e;--act:#1f3a8a;--act-ink:#ffffff;
@@ -586,6 +586,9 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 .nt-k{font-weight:700;color:var(--ink)}
 .toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#111111;color:#ffffff;font:600 13.5px var(--c-font);padding:11px 16px;z-index:100;opacity:0;transition:opacity .2s;pointer-events:none;max-width:86vw;text-align:center}
 .toast.show{opacity:1}
+.gc-pill{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;margin:3px 0 2px;padding:2px 8px 2px 6px;border-radius:999px;font-size:11px;font-weight:600;line-height:1.5;letter-spacing:.01em;color:#1a5fb4;background:color-mix(in srgb,#1a73e8 11%,var(--paper));border:1px solid color-mix(in srgb,#1a73e8 28%,transparent);white-space:nowrap}
+.ph[data-theme="dark"] .gc-pill{color:#8ab4f8;background:color-mix(in srgb,#8ab4f8 14%,var(--paper));border-color:color-mix(in srgb,#8ab4f8 30%,transparent)}
+.tb>.gc-pill+.tm{display:block}
 .es{display:flex;flex-direction:column;gap:18px;padding-top:16px}
 .es-card{border:1.5px solid var(--line);border-radius:var(--r);background:var(--paper);padding:16px;display:flex;flex-direction:column;gap:10px}
 .es-live{border-color:var(--ink)}
@@ -698,6 +701,47 @@ body{background:var(--c-bg);color:var(--c-fg);font-family:var(--c-font)}
 @keyframes side{from{transform:translateX(100%)}to{transform:none}}
 
 @media (prefers-reduced-motion:reduce){.ph *{animation:none!important;transition:none!important}}
+
+/* ===================== Native (C + grouped borders): Things-style headers and + button, iOS inset grouped lists ===================== */
+.ph[data-skin="ios-c"]{--paper:#ffffff;--bg:#f2f2f7;--ink:#1c1c28;--muted:#8b8b99;--line:#c9c9d6;--hair:#ececf3;--soft:#f1f1f7;--accent:#f5a623;--act:#3d6ef5;--act-ink:#ffffff;--dis:#c8c8da;--dis-b:#f1f1f7;--r:8px;--f:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;--fh:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif}
+.ph[data-skin="ios-c"][data-theme="dark"]{--paper:#1c1d24;--bg:#0f1014;--ink:#eef0f6;--muted:#8d91a3;--line:#3a3d4a;--hair:#2a2d37;--soft:#252832;--accent:#ffb340;--act:#5b8cff;--act-ink:#ffffff;--dis:#4a4d5a;--dis-b:#252832;color-scheme:dark}
+.ph[data-skin="ios-c"] .hd-date b{font-size:21px;font-weight:800;letter-spacing:-.6px}
+.ph[data-skin="ios-c"] .nav{border:0}
+.ph[data-skin="ios-c"] .nav button{font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;position:relative}
+.ph[data-skin="ios-c"] .nav button.on{color:var(--ink);text-decoration:none}
+.ph[data-skin="ios-c"] .nav button.on::after{content:'';position:absolute;left:50%;bottom:2px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--act)}
+.ph[data-skin="ios-c"] .cols{grid-template-columns:1fr;row-gap:30px}
+.ph[data-skin="ios-c"] .col{min-height:0;gap:0}
+.ph[data-skin="ios-c"] :is(.col-h,.day-h){border:0;font-size:20px;font-weight:800;text-transform:none;letter-spacing:-.3px;color:var(--ink);padding:0 0 6px;align-items:center}
+.ph[data-skin="ios-c"] .col-h span:first-child{display:flex;align-items:center;gap:8px}
+.ph[data-skin="ios-c"] .col-h span:first-child::before{content:'';width:20px;height:20px;background:var(--accent);-webkit-mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27m12%203%202.7%205.6%206.1.9-4.4%204.3%201%206.1L12%2017l-5.4%202.9%201-6.1L3.2%209.5l6.1-.9z%27%20fill%3D%27black%27/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Cpath%20d%3D%27m12%203%202.7%205.6%206.1.9-4.4%204.3%201%206.1L12%2017l-5.4%202.9%201-6.1L3.2%209.5l6.1-.9z%27%20fill%3D%27black%27/%3E%3C/svg%3E") center/contain no-repeat}
+.ph[data-skin="ios-c"] .col:nth-child(2) .col-h span:first-child::before{background:#e5484d;-webkit-mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%273%27/%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%3E%3Crect%20x%3D%273%27%20y%3D%275%27%20width%3D%2718%27%20height%3D%2716%27%20rx%3D%273%27/%3E%3Cpath%20d%3D%27M3%2010h18M8%203v4M16%203v4%27/%3E%3C/svg%3E")}
+.ph[data-skin="ios-c"] .col-h span:last-child{font-size:14px;color:var(--muted);font-weight:600}
+.ph[data-skin="ios-c"] .col-s{display:none}
+.ph[data-skin="ios-c"] :is(.scr,.hd){background:var(--bg)}
+.ph[data-skin="ios-c"] .col .card{flex-direction:row;align-items:flex-start;gap:10px;border:0;border-radius:0;background:var(--paper);box-shadow:none;padding:12px 14px 12px 12px;border-bottom:1px solid var(--hair)}
+.ph[data-skin="ios-c"] :is(.col-s+.card,.col-h+.card,.day-h+.task,.day-h+.da+.task){border-top-left-radius:12px;border-top-right-radius:12px}
+.ph[data-skin="ios-c"] :is(.card,.task):has(+ .dslot),.ph[data-skin="ios-c"] :is(.card,.task):has(+ .da){border-bottom:0;border-bottom-left-radius:12px;border-bottom-right-radius:12px}
+.ph[data-skin="ios-c"] .card .chk{position:static;width:22px;height:22px;flex:none}
+.ph[data-skin="ios-c"] :is(.card,.task) .chk::before{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line)}
+.ph[data-skin="ios-c"] :is(.task.completing,.card.completing,.pend) .chk::before{background:var(--act);border-color:var(--act)}
+.ph[data-skin="ios-c"] .card .tt{font-size:16.5px;padding-right:0}
+.ph[data-skin="ios-c"] .card .tm{font-size:12.5px;margin-top:2px}
+.ph[data-skin="ios-c"] .task{background:var(--paper);border-bottom:1px solid var(--hair);padding:11px 12px}
+.ph[data-skin="ios-c"] .dslot{border:0;opacity:.6;justify-content:flex-start;padding-left:4px;color:var(--muted);margin-top:6px}
+.ph[data-skin="ios-c"] .dslot span{position:static;width:auto;height:auto;clip:auto;font-size:15px;font-weight:500}
+.ph[data-skin="ios-c"] .pd-wrap{border-radius:12px;overflow:hidden}
+.ph[data-skin="ios-c"] .pd-wrap :is(.pd-btn,.pd-alt){border-radius:0}
+.ph[data-skin="ios-c"] .pd-btn,.ph[data-skin="ios-c"] .pd-alt{background:var(--paper);color:var(--ink)}
+.ph[data-skin="ios-c"] .pd-alt{border-left-color:var(--hair)}
+.ph[data-skin="ios-c"] .qi{border:0;background:var(--paper);border-radius:12px}
+.ph[data-skin="ios-c"] .scr{padding-bottom:110px}
+.ph[data-skin="ios-c"] .ft{position:absolute;right:18px;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:auto;z-index:15;display:flex;gap:12px;align-items:center;background:none;border:0;padding:0}
+.ph[data-skin="ios-c"] .ft>.add{order:3;width:60px;height:60px;flex:none;border-radius:50%;padding:0;font-size:0;box-shadow:0 8px 20px color-mix(in srgb,var(--act) 45%,transparent)}
+.ph[data-skin="ios-c"] .ft>.add::before{content:'+';display:block;text-align:center;font-size:34px;font-weight:300;line-height:60px}
+.ph[data-skin="ios-c"] .ft>:is(.mic-btn,.pad-btn){width:46px;height:46px;min-width:0;flex:none;border-radius:50%;padding:0;font-size:0;border:0;background:var(--paper);color:var(--ink);box-shadow:0 4px 14px rgba(20,20,60,.14),0 0 0 .5px rgba(20,20,60,.08)}
+.ph[data-skin="ios-c"] .ft>.pad-btn b{display:none}
+.ph[data-skin="ios-c"] .ft-drop{inset:-6px}
 </style>
 <style>
 /* standalone (home-screen) overrides */
@@ -711,7 +755,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 <body>
 <div class="wrap">
   <div class="ttl">Life Board <span>· round 5</span></div>
-  <div class="bar"><div class="modes" role="group" aria-label="Preview size"><button class="mode" data-mode="phone">Phone</button><button class="mode" data-mode="desk">Desktop</button></div><div class="modes" role="group" aria-label="Look"><button class="mode skin" data-skin="notes">Notes</button><button class="mode skin" data-skin="field">Field</button><button class="mode skin" data-skin="swiss">Swiss</button><button class="mode skin" data-skin="planner">Planner</button><button class="mode skin" data-skin="ios">Native</button><button class="mode skin" data-skin="editorial">Editorial</button></div></div>
+  <div class="bar"><div class="modes" role="group" aria-label="Preview size"><button class="mode" data-mode="phone">Phone</button><button class="mode" data-mode="desk">Desktop</button></div><div class="modes" role="group" aria-label="Look"><button class="mode skin" data-skin="ios-c">Native</button><button class="mode skin" data-skin="notes">Notes</button><button class="mode skin" data-skin="field">Field</button><button class="mode skin" data-skin="swiss">Swiss</button><button class="mode skin" data-skin="planner">Planner</button><button class="mode skin" data-skin="ios">Native</button><button class="mode skin" data-skin="editorial">Editorial</button></div></div>
   <div class="phone" id="root"></div>
   <p class="hint">Tap a box to finish. Press and hold a task (or click and drag) to move it; drop it on the bottom bar to finish. Tap a task to edit its date, time, people and note. Your changes are kept in this browser. <button class="rst" id="reset">Reset sample data</button></p>
 </div>
@@ -734,8 +778,8 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const CATS=['Errands','Home','Car','Health','Travel','Workout','Work','Money','Other'];
 const SWATCH=['#e30613','#f28c28','#d9a400','#2e9e5b','#1a9aa0','#1c4fa0','#7a3fc2','#d6408b','#8a8a8a'];
 const DEFCOL={Errands:'#f28c28',Home:'#2e9e5b',Car:'#1a9aa0',Health:'#d6408b',Travel:'#d9a400',Workout:'#e30613',Work:'#1c4fa0',Money:'#7a3fc2',Other:null};
-const SKINS=[['notes','Notes'],['field','Field'],['swiss','Swiss'],['planner','Planner'],['ios','Native'],['editorial','Editorial']];
-const defSettings=()=>({skinV:2,noteEs:false,skin:'notes',theme:'system',colorOn:false,catColors:Object.assign({},DEFCOL),sheet:'70.3 plan · Oct–Race tab',lastFetch:null,fetchCount:0,calOn:true,lastSync:null,syncCount:0});
+const SKINS=[['ios-c','Native'],['notes','Notes'],['field','Field'],['swiss','Swiss'],['planner','Planner'],['editorial','Editorial']];
+const defSettings=()=>({skinV:3,noteEs:false,skin:'ios-c',theme:'system',colorOn:false,catColors:Object.assign({},DEFCOL),sheet:'70.3 plan · Oct–Race tab',lastFetch:null,fetchCount:0,calOn:true,lastSync:null,syncCount:0});
 const COG='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 const hm=ms=>{const d=new Date(ms);return (iso(d)===TODAY?'today ':short(iso(d))+' ')+fmtTime(pad(d.getHours())+':'+pad(d.getMinutes()))};
 const mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
@@ -791,7 +835,7 @@ function seedCore(){
     ]};
 }
 function load(){
-  try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&d.tasks){S=Object.assign({view:'board',realm:'all',sel:TODAY,sheet:null,anim:false,draft:null,confirmDel:null,flash:null,keep:false,people:[],notes:[],quick:null},d,{sheet:null,draft:null,sel:TODAY});S.settings=Object.assign(defSettings(),d.settings||{});S.budget=d.budget&&d.budget.buckets?d.budget:BSEED();S.ko=Object.assign({time:30,eff:6},d.ko||{});S.habits=Array.isArray(d.habits)?d.habits:seedHabits();S.habRange=d.habRange||'week';S.wo=Array.isArray(d.wo)?d.wo:seedWorkouts();S.tags=Array.isArray(d.tags)?d.tags:[];S.closes=d.closes||{};S.wins=d.wins||{};S.es=esFix(d.es);if(!(d.settings&&d.settings.skinV)){S.settings.skin='notes';S.settings.skinV=2}S.tagF=d.tagF||null;S.woSync=d.woSync||Date.now();S.habEdit=false;S.confirmHab=null;return}}}catch(e){}
+  try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&d.tasks){S=Object.assign({view:'board',realm:'all',sel:TODAY,sheet:null,anim:false,draft:null,confirmDel:null,flash:null,keep:false,people:[],notes:[],quick:null},d,{sheet:null,draft:null,sel:TODAY});S.settings=Object.assign(defSettings(),d.settings||{});S.budget=d.budget&&d.budget.buckets?d.budget:BSEED();S.ko=Object.assign({time:30,eff:6},d.ko||{});S.habits=Array.isArray(d.habits)?d.habits:seedHabits();S.habRange=d.habRange||'week';S.wo=Array.isArray(d.wo)?d.wo:seedWorkouts();S.tags=Array.isArray(d.tags)?d.tags:[];S.closes=d.closes||{};S.wins=d.wins||{};S.es=esFix(d.es);if(!(d.settings&&d.settings.skinV>=3)){S.settings.skin='ios-c';S.settings.skinV=3}S.tagF=d.tagF||null;S.woSync=d.woSync||Date.now();S.habEdit=false;S.confirmHab=null;return}}}catch(e){}
   seed();
 }
 function save(){try{const {tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins,es}=S;localStorage.setItem(KEY,JSON.stringify({tasks,people,notes,view,realm,settings,ko,habits,habRange,wo,woSync,tags,tagF,closes,wins,es}))}catch(e){}try{syTrack()}catch(e){}}
@@ -799,7 +843,7 @@ function save(){try{const {tasks,people,notes,view,realm,settings,ko,habits,habR
 /* ---------- close the day ---------- */
 function closeStats(){
   const doneT=S.tasks.filter(t=>t.done&&!t.dropped&&t.doneAt===TODAY&&inR(t));
-  const left=S.tasks.filter(t=>!t.done&&inR(t)&&eff(t)===TODAY);
+  const left=S.tasks.filter(t=>!t.done&&t.src!=='gcal'&&inR(t)&&eff(t)===TODAY);
   const tb=doneT.filter(t=>t.time).length,tbAll=tb+left.filter(t=>t.time).length;
   return {done:doneT.length,planned:doneT.length+left.length,left,tb,tbAll};
 }
@@ -1161,7 +1205,7 @@ const find=i=>S.tasks.find(t=>t.id===i);
 const pname=i=>{const p=S.people.find(x=>x.id===i);return p?p.name:null};
 const inR=t=>(S.realm==='all'||t.realm===S.realm)&&(!S.tagF||(t.tags||[]).includes(S.tagF));
 const openTasks=()=>S.tasks.filter(t=>!t.done&&inR(t));
-const rolled=t=>(!t.done&&t.date&&t.date<TODAY)?diff(t.date,TODAY):0;
+const rolled=t=>(!t.done&&t.src!=='gcal'&&t.date&&t.date<TODAY)?diff(t.date,TODAY):0;
 const eff=t=>(t.date&&t.date<TODAY)?TODAY:t.date;
 const byTime=(a,b)=>rolled(b)-rolled(a)||((a.time||'99')<(b.time||'99')?-1:(a.time||'99')>(b.time||'99')?1:0);
 const dayTasks=d=>openTasks().filter(t=>eff(t)===d).sort(byTime);
@@ -1224,7 +1268,7 @@ function row(t,showDate){
   const pd=!!PEND[t.id];
   return `<div ${attrs(t,'task')} data-id="${t.id}" data-drag>`+
     `<button class="chk" data-act="done" data-id="${t.id}" aria-label="${pd?'Undo finish':'Finish'} ${esc(t.title)}"></button>`+
-    `<div class="tb" data-act="edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span>${pd?'':meta(t,showDate)}</div>`+
+    `<div class="tb" data-act="edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span>${pd?'':gcPill(t)+meta(t,showDate)}</div>`+
     (pd?undoBtn(t):`<span class="tc">${catColor(t)?'<i class="sq"></i>':''}${t.cat}</span>`)+`</div>`;
 }
 function card(t){
@@ -1239,8 +1283,10 @@ function card(t){
   m.push(t.cat);
   return `<div ${attrs(t,'card')} data-id="${t.id}" data-drag>`+
     `<button class="chk" data-act="done" data-id="${t.id}" aria-label="Finish ${esc(t.title)}"></button>`+
-    `<div class="tb" data-act="edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span><span class="tm">${m.join(' · ')}</span></div></div>`;
+    `<div class="tb" data-act="edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span>${gcPill(t)}<span class="tm">${m.join(' · ')}</span></div></div>`;
 }
+const GCICON='<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+const gcPill=t=>t.src==='gcal'?`<span class="gc-pill" title="${esc(t.cal||'Google Calendar')}">${GCICON}Google Calendar</span>`:'';
 const list=(L,showDate,empty)=>L.map(t=>row(t,showDate)).join('')||`<div class="empty">${empty||'—'}</div>`;
 
 function header(){
@@ -1524,16 +1570,16 @@ function sheet(){
         :`<label class="set-k" for="sy-url">Script URL</label><input id="sy-url" class="inp sm" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" autocapitalize="off" spellcheck="false">`+
          `<label class="set-k" for="sy-key">Key</label><input id="sy-key" class="inp sm" placeholder="From the script’s setup log" autocomplete="off" autocapitalize="off" spellcheck="false">`+
          `<button class="pri" data-act="sy-on">Connect</button><span class="set-k">${esc(syStatus())}</span>`)+`</div>`+
-      `<div class="fld"><span class="lbl">Look</span><div class="seg3" role="group" aria-label="Look">${SKINS.map(([k,l])=>`<button class="${(st.skin||'notes')===k?'on':''}" data-skin="${k}" aria-pressed="${(st.skin||'notes')===k}">${l}</button>`).join('')}</div></div>`+
+      `<div class="fld"><span class="lbl">Look</span><div class="seg3" role="group" aria-label="Look">${SKINS.map(([k,l])=>`<button class="${(st.skin||'ios-c')===k?'on':''}" data-skin="${k}" aria-pressed="${(st.skin||'ios-c')===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><span class="lbl">Language</span><div class="seg3" role="group" aria-label="Language">${[['en','English'],['es','Español']].map(([k,l])=>`<button class="${(st.lang||'en')===k?'on':''}" data-act="lang" data-v="${k}" aria-pressed="${(st.lang||'en')===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><span class="lbl">Appearance</span><div class="seg3" role="group" aria-label="Appearance">${[['system','System'],['light','Light'],['dark','Dark']].map(([k,l])=>`<button class="${st.theme===k?'on':''}" data-act="theme" data-v="${k}" aria-pressed="${st.theme===k}">${l}</button>`).join('')}</div></div>`+
       `<div class="fld"><div class="sh-top"><span class="lbl">Category colors</span><label class="tg" for="s-color"><input type="checkbox" id="s-color"${st.colorOn?' checked':''}>Color items</label></div>`+
         CATS.map(c=>`<div class="sw-row"><span>${c}</span><div class="sws${st.colorOn?'':' off'}">${SWATCH.map(x=>`<button class="sw${st.catColors[c]===x?' on':''}" style="background:${x}" data-swatch="${c}" data-v="${x}" aria-label="${c} ${x}"></button>`).join('')}<button class="sw none${!st.catColors[c]?' on':''}" data-swatch="${c}" data-v="" aria-label="${c} no color"></button></div></div>`).join('')+`</div>`+
       `<div class="fld"><span class="lbl">Workout plan</span><label class="set-k" for="s-sheet">Google Sheet and tab</label><input id="s-sheet" class="inp sm" value="${esc(st.sheet)}" autocomplete="off">`+
         `<button class="sec" data-act="fetch-plan">Fetch workout plan now</button><span class="set-k">${st.lastFetch?'Last fetched '+hm(st.lastFetch)+' · '+st.fetchCount+' workouts added':'Not fetched yet'}</span></div>`+
-      `<div class="fld"><span class="lbl">Calendar</span><label class="tg" for="s-cal"><input type="checkbox" id="s-cal"${st.calOn?' checked':''}>Send reminders to Google Calendar</label>`+
-        `<button class="sec" data-act="sync-cal">Sync calendar now</button><span class="set-k">${st.lastSync?'Last synced '+hm(st.lastSync)+' · '+st.syncCount+' reminders':'Not synced yet'}</span></div>`+
-      `<p class="sh-p">Prototype: the Sheet and Calendar buttons use sample data until the app is connected to your Google account.</p>`;
+      `<div class="fld"><span class="lbl">Google Calendar</span><label class="tg" for="s-calshow"><input type="checkbox" id="s-calshow"${st.calShow!==false?' checked':''}>Show my calendar on the board</label>`+
+        `<span class="set-k">${!SY.url?'Connect Sync above first. Events come through your Apps Script.':S.calInfo?S.calInfo.n+' events from '+S.calInfo.cals+' calendar'+(S.calInfo.cals===1?'':'s')+' · next '+CAL_DAYS+' days · checked '+hm(S.calInfo.at):st.calShow===false?'Off':'Events show up after the next sync.'}</span></div>`+
+      ``;
     tall=true;
   }
   else if(type==='roll'&&t){
@@ -1579,7 +1625,7 @@ const ES={'Board':'Tablero','Week':'Semana','Habits':'Hábitos','Workouts':'Entr
 'This week':'Esta semana','Next week':'Próxima semana','Edit habits':'Editar hábitos','Category':'Categoría','Repeat':'Repetir','People':'Personas','When':'Cuándo',
 'Save':'Guardar','Light':'Claro','Dark':'Oscuro','System':'Sistema','Tap to talk again':'Toca para hablar otra vez','Listening…':'Escuchando…',
 'Tap the mic on your keyboard and talk.':'Toca el micrófono del teclado y habla.','Add a habit, e.g. Floss':'Agrega un hábito, p. ej. Hilo dental',
-'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
+'Task pay HOA tomorrow at 9':'Tarea pagar HOA mañana a las 9','Nice':'¡Dale!','Sync':'Sincronizar','Connect':'Conectar','Disconnect':'Desconectar','Script URL':'URL del script','Key':'Clave','Synced':'Sincronizado','Google Calendar':'Google Calendar','Show my calendar on the board':'Mostrar mi calendario en el tablero','Spanish':'Español','Spanish phrase':'Frase en español','Add a phrase':'Agregar frase','Add phrase':'Agregar frase','Add to Spanish list':'Agregar a mi lista','English meaning':'Significado en inglés','Nota (optional)':'Nota (opcional)','Learning':'Aprendiendo','Retired':'Dominadas','Right today':'Bien hoy','Start':'Empezar','Next':'Siguiente','Finish':'Terminar','Correct':'¡Correcto!','Not quite':'Casi','Redo today’s quiz':'Repetir el quiz de hoy','Today’s quiz':'Quiz de hoy','Quiz log':'Registro del quiz','It comes back later in this quiz.':'Vuelve más adelante en este quiz.'};
 const ESW={Monday:'lunes',Tuesday:'martes',Wednesday:'miércoles',Thursday:'jueves',Friday:'viernes',Saturday:'sábado',Sunday:'domingo',
 Mon:'lun',Tue:'mar',Wed:'mié',Thu:'jue',Fri:'vie',Sat:'sáb',Sun:'dom',January:'enero',February:'febrero',March:'marzo',April:'abril',May:'mayo',June:'junio',July:'julio',
 August:'agosto',September:'septiembre',October:'octubre',November:'noviembre',December:'diciembre',Jan:'ene',Feb:'feb',Mar:'mar',Apr:'abr',Jun:'jun',Jul:'jul',Aug:'ago',
@@ -1632,6 +1678,24 @@ function syInbox(text){
   const v=parseVoice(ro.body);if(!v.title)return false;
   S.tasks.push(newTask({title:v.title,cat:'Other',date:v.date||TODAY,time:v.time,dur:v.dur,tags:[]}));return true;
 }
+/* Google Calendar events arrive with each sync and become tiles with a pill. Same event = same tile id on every device. */
+const CAL_DAYS=14;
+function calApply(list){
+  if(!Array.isArray(list))return 0;
+  const seen=new Set(),end=add(TODAY,CAL_DAYS);let n=0;
+  list.forEach(e=>{
+    const id='gc_'+(h32(e.id)>>>0).toString(36);seen.add(id);
+    const work=/work|outlook|office|pepsi/i.test(e.cal||'');
+    const f={title:e.title||'(No title)',date:e.date,time:e.time||null,dur:e.dur!=null?Math.max(15,Math.min(240,Math.round(e.dur/15)*15)):null,cal:e.cal||'',loc:e.loc||''};
+    const t=S.tasks.find(x=>x.id===id);
+    if(!t){if(e.date<TODAY)return;S.tasks.push(newTask(Object.assign({id,src:'gcal',cat:work?'Work':'Other',realm:work?'work':'personal'},f)));n++;return}
+    if(!t.done)Object.keys(f).forEach(k=>{if(t[k]!==f[k])t[k]=f[k]});
+  });
+  // events that ended (past days) or were removed from the calendar drop off the board
+  S.tasks=S.tasks.filter(t=>t.src!=='gcal'||t.done||(t.date>=TODAY&&(seen.has(t.id)||t.date>end)));
+  S.calInfo={n:list.length,cals:[...new Set(list.map(e=>e.cal))].length,at:Date.now()};
+  return n;
+}
 let syBusy=false,syTimer=null;
 function sySoon(ms){clearTimeout(syTimer);syTimer=setTimeout(syncNow,ms==null?2500:ms)}
 async function syncNow(manual){
@@ -1640,7 +1704,7 @@ async function syncNow(manual){
   syBusy=true;const E=syEntities();
   const rows=SY.ready?Object.values(SY.out).map(o=>o.del?o:Object.assign({},o,{d:(E[o.c+':'+o.id]||{}).d})).filter(o=>o.del||o.d):[];
   try{
-    const res=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'sync',token:SY.key,since:SY.lastPull,rows})});
+    const res=await fetch(SY.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({action:'sync',token:SY.key,since:SY.lastPull,rows,cal:S.settings.calShow!==false?CAL_DAYS:0})});
     const j=await res.json();if(!j.ok)throw new Error(j.error==='bad key'?'The key doesn’t match your script.':(j.error||'Sync failed'));
     rows.forEach(o=>{const k=o.c+':'+o.id;if(SY.out[k]&&SY.out[k].u===o.u)delete SY.out[k]});
     let changed=false,inb=0;syTrackOn=false;
@@ -1648,6 +1712,7 @@ async function syncNow(manual){
     syTrackOn=true;
     const first=!SY.ready;SY.ready=true;SY.lastPull=j.now;SY.lastOk=Date.now();SY.err='';
     (j.inbox||[]).forEach(x=>{if(syInbox(x.text))inb++});
+    const before=S.tasks.length;if(S.settings.calShow!==false&&calApply(j.cal))changed=true;else if(S.settings.calShow===false&&S.tasks.some(t=>t.src==='gcal'&&!t.done)){S.tasks=S.tasks.filter(t=>t.src!=='gcal'||t.done);changed=true}if(S.tasks.length!==before)changed=true;
     sySave();
     if(changed||inb||first||manual){S.keep=true;render()}
     if(inb)toast(inb===1?'1 added from Siri':inb+' added from Siri');
@@ -1675,9 +1740,9 @@ function render(){
   root.classList.toggle('desk',!!S.desk);
   document.querySelectorAll('.mode').forEach(b=>b.classList.toggle('on',(b.dataset.mode==='desk')===!!S.desk));
   root.innerHTML=S.desk
-    ?`<div class="ph desk" data-theme="${themeNow()}" data-skin="${S.settings.skin||'notes'}"><div class="dk"><div class="dk-main">${main}</div><aside class="dk-side" aria-label="Notes">${notesSheet(true)}</aside></div>${sheet()}</div>`
-    :`<div class="ph" data-theme="${themeNow()}" data-skin="${S.settings.skin||'notes'}">${main}${sheet()}</div>`;
-  document.querySelectorAll('.skin').forEach(b=>b.classList.toggle('on',b.dataset.skin===(S.settings.skin||'notes')));
+    ?`<div class="ph desk" data-theme="${themeNow()}" data-skin="${S.settings.skin||'ios-c'}"><div class="dk"><div class="dk-main">${main}</div><aside class="dk-side" aria-label="Notes">${notesSheet(true)}</aside></div>${sheet()}</div>`
+    :`<div class="ph" data-theme="${themeNow()}" data-skin="${S.settings.skin||'ios-c'}">${main}${sheet()}</div>`;
+  document.querySelectorAll('.skin').forEach(b=>b.classList.toggle('on',b.dataset.skin===(S.settings.skin||'ios-c')));
   if(S.keep){const s2=root.querySelector('#scr');if(s2)s2.scrollTop=st;const h2=root.querySelector('.sheet');if(h2&&!S.anim)h2.scrollTop=shs}
   root.querySelectorAll('.wh').forEach(w=>{const sc=w.querySelector('.wh-s');sc.scrollTop=+w.dataset.i*ITEM});
   translateUI(root);document.documentElement.lang=isES()?'es':'en';
@@ -1704,7 +1769,7 @@ function finishTask(t,dropped){
 /* ---------- day cleared: celebrate once a day when every task due today is done; bonus for pulling ahead ---------- */
 function dayScore(){
   const isDoneToday=t=>PEND[t.id]||(t.done&&!t.dropped&&t.doneAt===TODAY);
-  const due=S.tasks.filter(t=>!t.dropped&&((!t.done&&eff(t)===TODAY)||(isDoneToday(t)&&t.date&&t.date<=TODAY)));
+  const due=S.tasks.filter(t=>!t.dropped&&t.src!=='gcal'&&((!t.done&&eff(t)===TODAY)||(isDoneToday(t)&&t.date&&t.date<=TODAY)));
   const done=due.filter(isDoneToday).length;
   const bonus=S.tasks.filter(t=>isDoneToday(t)&&(!t.date||t.date>TODAY)).length;
   return {planned:due.length,done,bonus,pct:due.length?Math.round((done+bonus)/due.length*100):0};
@@ -1907,6 +1972,7 @@ root.addEventListener('change',e=>{
   if(sid==='s-bsheet'){S.budget.sheet=e.target.value.trim()||S.budget.sheet;return save()}
   if(sid==='s-color'){S.settings.colorOn=e.target.checked;return render()}
   if(sid==='s-cal'){S.settings.calOn=e.target.checked;return save()}
+  if(sid==='s-calshow'){S.settings.calShow=e.target.checked;save();if(SY.url)syncNow(true);else render();return}
   if(sid==='s-sheet'){S.settings.sheet=e.target.value.trim()||S.settings.sheet;return save()}
   const d=S.draft;if(!d)return;
   if(e.target.id==='q-r'){d.remind=e.target.checked;return render()}
@@ -2041,6 +2107,6 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
-<!-- build eafd4dd0 -->
+<!-- build 71c5998f -->
 </body>
 </html>

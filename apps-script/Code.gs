@@ -95,7 +95,9 @@ function sync_(b) {
   for (r = 1; r < iv.length; r++) {
     if (!iv[r][4]) { inbox.push({ id: iv[r][0], text: iv[r][2] }); ib.getRange(r + 1, 5).setValue(new Date()); }
   }
-  return { ok: true, now: now, rows: back, inbox: inbox };
+  var out = { ok: true, now: now, rows: back, inbox: inbox };
+  if (Number(b.cal) > 0) { try { out.cal = cal_(Number(b.cal)); } catch (x) { out.calError = String(x); } }
+  return out;
 }
 
 // ---------- Spanish ----------
@@ -141,4 +143,34 @@ function es_(b) {
     out.push({ es: String(dv[r][0]).trim(), en: String(dv[r][1]).trim(), note: String(dv[r][2] || '').replace(/^N\/A$/i, '').trim(), added: String(dv[r][3] || '').trim(), passes: passes });
   }
   return { ok: true, rows: out };
+}
+
+// ---------- Google Calendar (read-only) ----------
+// Events from your visible calendars for today + the next N days, so they can show as tiles on the board.
+// Skips holiday/birthday calendars and events you declined. Recurring events get one tile per day.
+function cal_(days) {
+  var tz = Session.getScriptTimeZone();
+  var start = new Date(); start.setHours(0, 0, 0, 0);
+  var end = new Date(start.getTime() + (days + 1) * 864e5);
+  var out = [];
+  CalendarApp.getAllCalendars().forEach(function (c) {
+    if (c.isHidden() || !c.isSelected()) return;
+    var name = c.getName();
+    if (/holiday|birthday|week numbers|feiertage/i.test(name)) return;
+    c.getEvents(start, end).forEach(function (e) {
+      try { if (e.getMyStatus() === CalendarApp.GuestStatus.NO) return; } catch (x) {}
+      var s = e.getStartTime(), en = e.getEndTime(), all = e.isAllDayEvent();
+      var day = Utilities.formatDate(s, tz, 'yyyy-MM-dd');
+      out.push({
+        id: e.getId() + '|' + day,
+        title: e.getTitle() || '(No title)',
+        date: day,
+        time: all ? null : Utilities.formatDate(s, tz, 'HH:mm'),
+        dur: all ? null : Math.round((en - s) / 60000),
+        cal: name,
+        loc: e.getLocation() || ''
+      });
+    });
+  });
+  return out;
 }

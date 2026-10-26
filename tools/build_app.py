@@ -14,7 +14,7 @@ def must(a, b):
     assert app.count(a) == 1, a[:60]
     app = app.replace(a, b)
 # real app: Field look following the phone's light/dark, empty start, own storage key
-must("skin:'notes',theme:'dark',", "skin:'notes',theme:'system',")
+must("skin:'ios-c',theme:'dark',", "skin:'ios-c',theme:'system',")
 must("  let h=`<div class=\"bsync\"><span>Garmin synced <b>${hm(S.woSync)}</b>", "  if(!S.wo.length)return `<div class=\"bsync\"><span>Not connected yet. Your plan from Google Sheets and actuals from Garmin show up here once sync is set up.</span></div>`;\n  let h=`<div class=\"bsync\"><span>Garmin synced <b>${hm(S.woSync)}</b>")
 must("const KEY='lifeboard-swiss-v1';", "const KEY='lifeboard-v1';")
 must("function seed(){", "function seed(){seedDemo();Object.assign(S,{tasks:[],notes:[],people:[],tags:[],closes:{},wo:[],habits:[],es:esFix({})})}\nfunction seedDemo(){")
