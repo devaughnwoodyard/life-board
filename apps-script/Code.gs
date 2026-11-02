@@ -38,6 +38,7 @@ function setup() {
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
+  if (p.state === 'strava' && (p.code || p.error)) return stravaCallback_(p);
   var res = p.payload ? (function () { try { var b = JSON.parse(p.payload); b.token = b.token || p.token; return handle_(b); } catch (x) { return handle_(p); } })() : handle_(p);
   // JSONP: lets the app read the reply even when a browser or network blocks cross-site fetch
   if (p.callback && /^[\w.$]+$/.test(p.callback)) {
@@ -230,7 +231,14 @@ function plan_() {
     out.push({ date: day, am: [v[r][26], v[r][27], v[r][28]], pm: [v[r][29], v[r][30], v[r][31]], bail: v[r][32], mi: v[r][33],
                act: v[r][4] ? { sport: String(v[r][4]), min: v[r][6], hr: v[r][7] } : null });
   }
-  return { ok: true, rows: out };
+  // Every synced activity (Garmin → Strava → this sheet), so days with two sessions count both.
+  var acts = {}, a = SpreadsheetApp.openById(id).getSheetByName('Activities');
+  if (a && a.getLastRow() > 1) a.getRange(2, 1, a.getLastRow() - 1, 6).getValues().forEach(function (x) {
+    var day = x[0] instanceof Date ? Utilities.formatDate(x[0], tz, 'yyyy-MM-dd') : String(x[0]).slice(0, 10);
+    (acts[day] = acts[day] || []).push({ sport: String(x[1]), min: Number(x[3]) || 0, mi: Number(x[4]) || 0, hr: x[5] });
+  });
+  out.forEach(function (o) { o.acts = acts[o.date] || (o.act ? [o.act] : []); });
+  return { ok: true, rows: out, synced: PropertiesService.getScriptProperties().getProperty('STRAVA_LAST') || '' };
 }
 
 // ---------- Download a note file saved earlier ----------
@@ -319,4 +327,99 @@ function icuWorkout_(sport, t, min, mi) {
     else if (min) s = '- ' + min + 'm 92-125w';
   } else if (min) s = '- ' + min + 'm';
   return { type: type, steps: s };
+}
+
+// ---------- Garmin → Strava → training plan sheet (automatic, hourly) ----------
+// Garmin uploads every activity to Strava; this copies them into the plan sheet ("Activities" tab
+// + columns E–J of the day's row) and the app reads them from there.
+// One-time setup: run connectStrava() and follow the two lines it prints in the Execution log.
+function connectStrava() {
+  var p = PropertiesService.getScriptProperties(), id = p.getProperty('STRAVA_ID'), sec = p.getProperty('STRAVA_SECRET');
+  var url = ScriptApp.getService().getUrl();
+  if (!id || !sec) {
+    Logger.log('1) Open https://www.strava.com/settings/api and create an app: name "2nd Brain", website https://devaughnwoodyard.github.io, Authorization Callback Domain: script.google.com');
+    Logger.log('2) Project Settings → Script Properties: add STRAVA_ID = Client ID and STRAVA_SECRET = Client Secret. Then run connectStrava again.');
+    return;
+  }
+  if (!url) { Logger.log('Deploy the web app first (Deploy → New deployment), then run this again.'); return; }
+  Logger.log('Open this link, click Authorize, and you are done:\n' + 'https://www.strava.com/oauth/authorize?client_id=' + id +
+    '&response_type=code&approval_prompt=force&scope=activity:read_all&state=strava&redirect_uri=' + encodeURIComponent(url));
+}
+function stravaCallback_(p) {
+  if (p.error) return HtmlService.createHtmlOutput('<h2>Strava not connected</h2><p>' + p.error + '</p>');
+  var props = PropertiesService.getScriptProperties();
+  var r = UrlFetchApp.fetch('https://www.strava.com/oauth/token', { method: 'post', muteHttpExceptions: true, payload: {
+    client_id: props.getProperty('STRAVA_ID'), client_secret: props.getProperty('STRAVA_SECRET'), code: p.code, grant_type: 'authorization_code' } });
+  var j = JSON.parse(r.getContentText());
+  if (!j.refresh_token) return HtmlService.createHtmlOutput('<h2>Strava did not connect</h2><pre>' + r.getContentText().slice(0, 300) + '</pre>');
+  props.setProperty('STRAVA_REFRESH', j.refresh_token);
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'syncStrava') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('syncStrava').timeBased().everyHours(1).create();
+  var n = syncStrava();
+  return HtmlService.createHtmlOutput('<h2 style="font-family:sans-serif">Strava connected ✓</h2><p style="font-family:sans-serif">Copied ' + n +
+    ' activities into your training plan. It now syncs every hour; Garmin activities show up in 2nd Brain automatically. You can close this tab.</p>');
+}
+function stravaToken_() {
+  var p = PropertiesService.getScriptProperties();
+  var r = UrlFetchApp.fetch('https://www.strava.com/oauth/token', { method: 'post', muteHttpExceptions: true, payload: {
+    client_id: p.getProperty('STRAVA_ID'), client_secret: p.getProperty('STRAVA_SECRET'), refresh_token: p.getProperty('STRAVA_REFRESH'), grant_type: 'refresh_token' } });
+  var j = JSON.parse(r.getContentText());
+  if (!j.access_token) throw new Error('Strava token: ' + r.getContentText().slice(0, 200));
+  if (j.refresh_token) p.setProperty('STRAVA_REFRESH', j.refresh_token);
+  return j.access_token;
+}
+function syncStrava() {
+  var p = PropertiesService.getScriptProperties();
+  if (!p.getProperty('STRAVA_REFRESH')) return 0;
+  var tok = stravaToken_(), tz = Session.getScriptTimeZone();
+  var book = SpreadsheetApp.openById(p.getProperty('PLAN_SHEET_ID') || PLAN_SHEET_ID);
+  var acts = book.getSheetByName('Activities');
+  if (!acts) {
+    acts = book.insertSheet('Activities');
+    acts.appendRow(['Date', 'Sport', 'Start', 'Minutes', 'Miles', 'Avg HR', 'Max HR', 'Relative Effort', 'Name', 'Strava ID']);
+    acts.setFrozenRows(1);
+    // weekly actuals in the plan tab now count every activity, not just one per day
+    var plan = book.getSheets()[0], keys = ['Run', 'Ride', 'Swim', 'Yoga', 'Weight'];
+    for (var r = 3; r <= 21; r++) for (var k = 0; k < 5; k++)
+      plan.getRange(r, 45 + k).setFormula('=SUMPRODUCT(ISNUMBER(SEARCH("' + keys[k] + '",Activities!$B$2:$B$2000))*(Activities!$A$2:$A$2000>=$AK' + r + ')*(Activities!$A$2:$A$2000<$AK' + r + '+7)*Activities!$D$2:$D$2000)/60');
+  }
+  var have = {}, last = acts.getLastRow();
+  if (last > 1) acts.getRange(2, 10, last - 1, 1).getValues().forEach(function (x) { have[String(x[0])] = 1; });
+  var after = Number(p.getProperty('STRAVA_AFTER')) || Math.floor(new Date('2026-11-01T00:00:00').getTime() / 1000);
+  var rows = [], page = 1, newest = after;
+  while (page < 6) {
+    var res = UrlFetchApp.fetch('https://www.strava.com/api/v3/athlete/activities?per_page=100&page=' + page + '&after=' + (after - 86400),
+      { headers: { Authorization: 'Bearer ' + tok }, muteHttpExceptions: true });
+    var list = JSON.parse(res.getContentText());
+    if (!Array.isArray(list) || !list.length) break;
+    list.forEach(function (a) {
+      var t = Math.floor(new Date(a.start_date).getTime() / 1000); if (t > newest) newest = t;
+      if (have[String(a.id)]) return;
+      var d = new Date(a.start_date);
+      rows.push([Utilities.formatDate(d, tz, 'yyyy-MM-dd'), a.sport_type || a.type, Utilities.formatDate(d, tz, 'h:mm a'),
+        Math.round((a.moving_time || a.elapsed_time || 0) / 6) / 10, Math.round((a.distance || 0) / 160.934) / 10,
+        a.average_heartrate ? Math.round(a.average_heartrate) : '', a.max_heartrate ? Math.round(a.max_heartrate) : '',
+        a.suffer_score || '', a.name || '', String(a.id)]);
+    });
+    page++;
+  }
+  if (rows.length) {
+    rows.sort(function (a, b) { return a[0] < b[0] ? -1 : 1; });
+    acts.getRange(acts.getLastRow() + 1, 1, rows.length, 10).setValues(rows);
+    // also fill Actual columns E–J on the plan row for each day (first activity; extra ones listed in Sport)
+    var plan = book.getSheets()[0], pv = plan.getRange(3, 1, Math.max(plan.getLastRow() - 2, 1), 1).getValues(), at = {};
+    pv.forEach(function (x, i) { var k = x[0] instanceof Date ? Utilities.formatDate(x[0], tz, 'yyyy-MM-dd') : String(x[0]).slice(0, 10); at[k] = i + 3; });
+    var byDay = {};
+    acts.getRange(2, 1, acts.getLastRow() - 1, 8).getValues().forEach(function (x) {
+      var k = x[0] instanceof Date ? Utilities.formatDate(x[0], tz, 'yyyy-MM-dd') : String(x[0]).slice(0, 10); (byDay[k] = byDay[k] || []).push(x);
+    });
+    rows.forEach(function (r0) {
+      var day = r0[0], rr = at[day], list = byDay[day]; if (!rr || !list) return;
+      var mins = list.reduce(function (s, x) { return s + (Number(x[3]) || 0); }, 0);
+      plan.getRange(rr, 5, 1, 6).setValues([[list.map(function (x) { return x[1]; }).join(' + '), list[0][2], Math.round(mins * 10) / 10, list[0][5], list[0][6], list[0][7]]]);
+    });
+  }
+  p.setProperty('STRAVA_AFTER', String(newest));
+  p.setProperty('STRAVA_LAST', new Date().toISOString());
+  return rows.length;
 }

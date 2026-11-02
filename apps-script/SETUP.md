@@ -23,7 +23,7 @@ Notes and to-dos from the old Life Board app come across on the first sync.
 | To-dos, notes, folders, habits, Spanish phrases | "Data" tab of 2nd Brain Data (newest edit wins) |
 | Note files, Granola imports, summaries | Drive → 2nd Brain → Notes → Work / Personal → folder |
 | Calendar | Your visible Google calendars, 2 weeks back to ~10 weeks ahead |
-| Workouts | The **Ironman 70.3 Little Elm 2027 — Training Plan** sheet (planned sessions; actuals from columns E–G once the Garmin/Strava script runs there). Reloads every 3 hours or from Google sync → Reload training plan. If you make a new plan sheet, set Script Property `PLAN_SHEET_ID`. |
+| Workouts | Planned sessions from the **Ironman 70.3 Little Elm 2027 — Training Plan** sheet; completed Garmin activities from its **Activities** tab (see below). Reloads every 30 min or from Google sync → Reload training plan. New plan sheet? Set Script Property `PLAN_SHEET_ID`. |
 
 Calendar colors: a time in the title (e.g. "Dentist 3:30pm") = **appointment** (yellow). A person's name in the title (e.g. "Lunch with Dana") = **with people** (red). Add names the app doesn't know in **Google sync → Names**; names of your event guests are learned automatically.
 
@@ -44,7 +44,16 @@ Open an imported note → **Summary**: date, main topics and to-dos (with **Add*
 ## Siri
 Shortcuts → **+**: **Dictate Text** → **Get Contents of URL** (your `/exec` URL, Method POST, Request Body JSON: `action` = `add`, `token` = your key, `text` = Dictated Text) → **Show Notification** "Added". Say the same commands ("To do Friday, call the dentist"); they're created on the app's next sync.
 
-## Send the plan to Garmin (through Intervals.icu)
+## Garmin → plan sheet (through Strava, one time, ~5 min)
+Garmin Connect must already auto-upload to Strava (Garmin Connect app → Settings → Connected Apps → Strava).
+1. https://www.strava.com/settings/api → create an app. Name: `2nd Brain`, Website: `https://devaughnwoodyard.github.io/life-board/`, **Authorization Callback Domain: `script.google.com`**. Copy **Client ID** and **Client Secret**.
+2. Apps Script → ⚙️ **Project Settings → Script Properties → Add**: `STRAVA_ID` = Client ID, `STRAVA_SECRET` = Client Secret. Save.
+3. Paste the latest Code.gs → **Save** → **Deploy → Manage deployments → ✏️ → Version: New version → Deploy**.
+4. Pick **connectStrava** → **Run**. Open the link in the Execution log → **Authorize**. The page says "Strava connected".
+
+After that, every hour the script copies new activities into the plan sheet's **Activities** tab and fills columns E–J on the matching day; the weekly actual-hours columns read from that tab. 2nd Brain marks a planned session done when a matching sport shows up that day. Sleep/HRV/Body Battery don't come through Strava.
+
+## Optional: push structured workouts to the watch (Intervals.icu)
 1. Make a free account at https://intervals.icu → **Settings** → connect **Garmin Connect** → turn on **Upload planned workouts**.
 2. Intervals.icu **Settings → Developer Settings**: copy **Athlete ID** (looks like `i123456`) and **API Key**.
 3. Apps Script → ⚙️ **Project Settings → Script Properties → Add**: `ICU_ATHLETE` = athlete ID, `ICU_KEY` = API key. Save.

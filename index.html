@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>2nd Brain</title><meta name="2b-build" content="19b4ca39"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="2nd Brain"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png"></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>2nd Brain</title><meta name="2b-build" content="ceaeb829"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="2nd Brain"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png"></head><body>
 <meta charset="utf-8">
 <meta name="theme-color" content="#f5f5f8">
 <title>2nd Brain · Mobile and Desktop</title>
@@ -2137,7 +2137,7 @@ async function sync(manual) {
     cfg.since = res.now;
     if (res.cal) { calCache = res.cal; ls.set(CAL_KEY, calCache); learnNames(); changed = true; }
     const hasPlan = (data.workouts || []).some(w => String(w.id).startsWith('gp-'));
-    if (!hasPlan || Date.now() - (cfg.planAt || 0) > 3 * 36e5) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
+    if (!hasPlan || Date.now() - (cfg.planAt || 0) > 30 * 60e3) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
     if (changed) { _save(); hashes = null; markChanges(); }
     if (dedupeGeneral()) { save(); changed = true; }
     (res.inbox || []).forEach(x => runCommand(x.text, { from: 'Siri' }));
@@ -2228,29 +2228,31 @@ events = function () {
 
 /* ---------- 5. Training plan from the Little Elm sheet ---------- */
 const KIND = s => /run|race/i.test(s) ? 'run' : /bike|ride|spin/i.test(s) ? 'bike' : /swim/i.test(s) ? 'swim' : /yoga|mobility/i.test(s) ? 'yoga' : /upper|legs|plyo|strength/i.test(s) ? 'workout' : '';
+const ACT_KIND = s => /run/i.test(s) ? 'run' : /ride|bike|cycl/i.test(s) ? 'bike' : /swim/i.test(s) ? 'swim' : /yoga|pilates|stretch|mobility/i.test(s) ? 'yoga' : /weight|workout|strength|crossfit|hiit/i.test(s) ? 'workout' : '';
 const EFFORT = (s, kind) => /threshold|tempo|goal hm|vo2|sweet spot|race|hill/i.test(s) ? 8 : /long/i.test(s) ? 6 : kind === 'workout' ? 6 : kind === 'yoga' ? 2 : 4;
 async function loadPlan() {
   const r = await api({ action: 'plan' });
   const out = [];
   (r.rows || []).forEach(p => {
+    const acts = (p.acts || (p.act ? [p.act] : [])).map(a => Object.assign({ kind: ACT_KIND(String(a.sport || '')) }, a));
     [['AM', p.am], ['PM', p.pm]].forEach(([slot, s]) => {
       const [sport, session, mins] = s || [];
       const kind = KIND(sport || ''); if (!kind || !session) return;
       const mi = kind === 'run' && Number(p.mi) ? Number(p.mi) : 0;
-      const act = p.act && p.act.sport && KIND(p.act.sport) === kind ? p.act : null;
+      const ai = acts.findIndex(a => a.kind === kind && !a.used); const act = ai >= 0 ? acts[ai] : null; if (act) act.used = true;
       const m = Number(mins) || 0;
       out.push({
         id: 'gp-' + p.date + '-' + slot.toLowerCase(), kind, title: String(session).split(/[:(]/)[0].trim().slice(0, 60) || sport, detail: session,
         date: p.date, time: slot, duration: m, distance: mi ? mi + ' mi' : m + ' min',
         planned: mi || m, unit: mi ? 'mi' : 'min', basis: mi ? 'distance' : 'minutes', effort: EFFORT(session, kind),
-        actual: act ? (mi ? mi : Number(act.min) || m) : null, actualMinutes: act ? Number(act.min) || null : null, actualEffort: null,
+        actual: act ? (mi ? (Number(act.mi) || mi) : Number(act.min) || m) : null, actualMinutes: act ? Number(act.min) || null : null, actualEffort: null,
         notes: p.bail || '', done: !!act, source: 'plan'
       });
     });
   });
   if (!out.length) return false;
   data.workouts = (data.workouts || []).filter(w => !String(w.id).startsWith('gp-')).concat(out);
-  data.volSeed = true; cfg.planAt = Date.now(); delete cfg.planError; saveCfg();
+  data.volSeed = true; cfg.planAt = Date.now(); cfg.garminAt = r.synced || ''; delete cfg.planError; saveCfg();
   return true;
 }
 
@@ -2508,9 +2510,9 @@ function syncSheet() {
     <label for="s-url">Apps Script web app URL</label><input id="s-url" value="${esc(cfg.url || '')}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
     <label for="s-key">Key</label><input id="s-key" value="${esc(cfg.token || '')}" placeholder="From the setup() log" autocomplete="off">
     <label for="s-names">Names that mean “with people” on your calendar</label><input id="s-names" value="${esc(cfg.names || '')}" placeholder="e.g. Steph, Kofi, Dana">
-    <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}</p>
+    <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}${cfg.url ? '<br>Garmin activities: ' + (cfg.garminAt ? 'last synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected yet (run connectStrava in Apps Script)') : ''}</p>
     <button type="button" class="submit" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button>
-    ${cfg.url ? '<button type="button" class="wide-button" data-2b="s-plan">Reload training plan</button><button type="button" class="wide-button" data-2b="s-garmin">Send plan to Garmin</button><button type="button" class="danger" data-2b="s-off">Disconnect this device</button>' : ''}`, { kind: '2b-sync' });
+    ${cfg.url ? '<button type="button" class="wide-button" data-2b="s-plan">Reload training plan</button><button type="button" class="danger" data-2b="s-off">Disconnect this device</button>' : ''}`, { kind: '2b-sync' });
 }
 function paintStatus() { const el = document.getElementById('s-status'); if (el) el.textContent = cfg.status || ''; const dot = document.getElementById('sync-dot'); if (dot) dot.dataset.state = /^Synced/.test(cfg.status || '') ? 'ok' : /^Syncing/.test(cfg.status || '') ? 'busy' : cfg.url ? 'err' : 'off'; }
 
