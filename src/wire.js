@@ -328,6 +328,24 @@ workoutScore = function () {
   return rows.length ? Math.round(rows.reduce((s, w) => s + Math.min((w.actual || 0) / w.target, 1) * 100, 0) / rows.length) : 0;
 };
 
+/* ---------- 5a. Workout type icons ---------- */
+const SPORT_SVG = {
+  Run: '<circle cx="14.5" cy="4.5" r="2"/><path d="M8 21l3-6 3 2v5M10.5 11l2-3 3.5 2 2.5 3M12.5 8l-4 1-2 3M11 15l-2.5-3"/>',
+  Bike: '<circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5l4-7h6l3 7M9.5 9.5l3 7h-7M14 6h3l-1.5 3.5"/>',
+  Swim: '<circle cx="16" cy="6" r="2"/><path d="M3 17c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0 3-1 4.5 0M3 21c1.5 1 3 1 4.5 0s3-1 4.5 0 3 1 4.5 0 3-1 4.5 0M6 13l4-4 3 2 2-2"/>',
+  Strength: '<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>',
+  Yoga: '<circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M5 10l7 2 7-2M7 20l5-6 5 6M4 20h16"/>',
+  Other: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'
+};
+const sportIcon = k => `<svg class="sport-ic sport-${(SPORT_SVG[k] ? k : 'Other').toLowerCase()}" viewBox="0 0 24 24" aria-hidden="true">${SPORT_SVG[k] || SPORT_SVG.Other}</svg>`;
+function decorateSportIcons() {
+  const kindOf = id => { const w = data.workouts.find(x => x.id === id); return w && w.kind; };
+  document.querySelectorAll('.session').forEach(el => { const id = el.dataset.wid || el.querySelector('[data-act="workout-edit"]')?.dataset.id; const b = el.querySelector('b'); if (id && b && !b.querySelector('.sport-ic')) b.insertAdjacentHTML('afterbegin', sportIcon(kindOf(id))); });
+  document.querySelectorAll('.session-preview button[data-act="workout-log"]').forEach(el => { const b = el.querySelector('b'); if (b && !b.querySelector('.sport-ic')) b.insertAdjacentHTML('afterbegin', sportIcon(kindOf(el.dataset.id))); });
+  document.querySelectorAll('.agenda-item > button[data-act="workout-edit"]').forEach(el => { const b = el.querySelector('b'); if (b && !b.querySelector('.sport-ic')) b.insertAdjacentHTML('afterbegin', sportIcon(kindOf(el.dataset.id))); });
+  document.querySelectorAll('.disc-row > b').forEach(b => { if (!b.querySelector('.sport-ic')) b.insertAdjacentHTML('afterbegin', sportIcon(b.textContent.trim())); });
+}
+
 /* ---------- 5b. Moving training sessions → plan sheet ---------- */
 const isPlan = w => w && String(w.id).startsWith('gp-');
 const snapPlan = () => Object.fromEntries((data.workouts || []).filter(isPlan).map(w => [w.id, { date: w.date, slot: w.slot, title: w.title, target: Number(w.target), kind: w.kind }]));
@@ -849,6 +867,7 @@ render = function () {
     if (st && rows) st.insertAdjacentHTML('afterend', `<section class="disc" aria-label="Planned vs actual by discipline"><div class="disc-h"><span>This week by discipline</span><span>actual / planned</span></div>${rows}</section>`);
   }
   if (page === 'workouts' && Object.keys(cfg.planQ || {}).length) document.querySelector('.week-control')?.insertAdjacentHTML('afterend', `<p class="plan-src">${Object.keys(cfg.planQ).length} day(s) waiting to save to the plan sheet</p>`);
+  decorateSportIcons();
   document.querySelectorAll('.session').forEach(el => {
     const b = el.querySelector('[data-act="workout-edit"]'); const w = b && data.workouts.find(x => x.id === b.dataset.id);
     if (w && w.garmin) { el.classList.add('from-garmin'); el.querySelector('small')?.insertAdjacentHTML('beforeend', ` · ✓ ${w.garmin.mi ? w.garmin.mi + ' mi' : ''}${w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}`); }

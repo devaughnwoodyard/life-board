@@ -77,7 +77,15 @@
 /* weekly planned vs actual by discipline */
 .disc{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:-6px 0 16px}
 .disc-h{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-weight:650;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
-.disc-row{display:grid;grid-template-columns:72px 1fr auto;align-items:baseline;gap:4px 10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums}
+.disc-row{display:grid;grid-template-columns:104px 1fr auto;align-items:baseline;gap:4px 10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums}
 .disc-row:first-of-type{border-top:0}.disc-row b{font-size:12px}.disc-row small{color:var(--muted);font-size:11px}
 .disc-mi{text-align:right;color:var(--accent);font-weight:600}
 .disc-bar{grid-column:1/-1;display:block;height:4px;border-radius:3px;background:var(--line);overflow:hidden}.disc-bar>i{display:block;height:100%;background:var(--accent)}
+
+/* workout type icons */
+.sport-ic{width:15px;height:15px;flex:none;display:inline-block;vertical-align:-2px;margin-right:6px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;padding:3px;box-sizing:content-box;border-radius:7px}
+.sport-run{color:#c2410c;background:#fff1e8}.sport-bike{color:#1d6fb8;background:#e8f2fc}.sport-swim{color:#0e8a8a;background:#e4f6f5}
+.sport-strength{color:#6b4fc8;background:#f0ecfc}.sport-yoga{color:#2f8a4e;background:#e8f6ed}.sport-other{color:#667786;background:#eef2f5}
+.session b{display:flex;align-items:flex-start}.session b .sport-ic{margin-top:-1px}
+.session.from-garmin b::before{content:none}.session.from-garmin small::before{content:"✓ ";color:#2fb36b;font-weight:700}
+.disc-row>b{display:flex;align-items:center}
