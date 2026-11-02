@@ -459,6 +459,12 @@ document.addEventListener('dragend', e => { document.querySelectorAll('.session.
 document.addEventListener('dragover', e => { const s = e.target.closest && e.target.closest('.slot[data-date]'); if (s && [...e.dataTransfer.types].includes('text/x-wid')) { e.preventDefault(); document.querySelectorAll('.slot.drop-on').forEach(x => x !== s && x.classList.remove('drop-on')); s.classList.add('drop-on'); } });
 document.addEventListener('drop', e => { const s = e.target.closest && e.target.closest('.slot[data-date]'); const id = e.dataTransfer.getData('text/x-wid'); if (!s || !id) return; e.preventDefault(); e.stopImmediatePropagation(); s.classList.remove('drop-on'); moveSession(id, s.dataset.date, s.dataset.slot); }, true);
 
+// Habit efficiency: the 7 full days before today (today doesn't count until it's over)
+habitScore = function () {
+  const ds = Array.from({ length: 7 }, (_, i) => add(today, -(i + 1)));
+  return data.habits.length ? Math.round(data.habits.reduce((n, h) => n + ds.filter(d => (h.days || []).includes(d)).length, 0) / (data.habits.length * 7) * 100) : 0;
+};
+
 /* ---------- 6. Quick capture: commands + voice ---------- */
 const WD = { sun: 0, mon: 1, tue: 2, tues: 2, wed: 3, thu: 4, thur: 4, thurs: 4, fri: 5, sat: 6 };
 const MONTHS = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
@@ -935,6 +941,8 @@ render = function () {
     const w = data.workouts.find(x => x.id === el.dataset.id), sp = el.querySelector('span'); if (!w || !sp) return;
     sp.innerHTML = `<span class="v-pln">${w.target} min</span> · ${w.actual == null ? 'Log session' : `<span class="v-act">${w.actual} min done</span>`}`;
   });
+  if (page === 'habits') { const sm = document.querySelector('#page-content .stats > div small'); if (sm) sm.textContent = 'Last 7 full days (today not counted)'; }
+  document.querySelectorAll('.scoreline span[title^="Trailing"]').forEach(x => x.title = 'Habit efficiency: last 7 full days, not counting today');
   decorateSportIcons();
   document.querySelectorAll('.session').forEach(el => {
     const b = el.querySelector('[data-act="workout-edit"]'); const w = b && data.workouts.find(x => x.id === b.dataset.id);
