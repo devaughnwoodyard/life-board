@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>2nd Brain</title><meta name="2b-build" content="e432db66"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="2nd Brain"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png"></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><title>2nd Brain</title><meta name="2b-build" content="62dd1200"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="2nd Brain"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon-192.png"></head><body>
 <meta charset="utf-8">
 <meta name="theme-color" content="#f5f5f8">
 <title>2nd Brain · Mobile and Desktop</title>
@@ -1967,6 +1967,14 @@ body[data-view="desktop"] .cap-fab{right:24px;bottom:24px;background:var(--accen
 .g-btn{margin-bottom:8px}
 #modal-root input,#modal-root select,#modal-root textarea{font-size:16px}
 #toast{pointer-events:none}#toast button{pointer-events:auto}
+.wo-today{margin:12px 0 4px;padding:12px 14px;border-radius:14px;background:var(--paper,#fff);border:1px solid var(--line,#dde)}
+.wo-today-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:14px}
+.wo-today-h button{border:0;background:none;color:var(--accent,#315fe8);font:600 13px inherit;cursor:pointer;padding:4px 0}
+.wo-today-r{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line,#dde);font-size:13px;line-height:1.35}
+.wo-today-r:first-of-type{border-top:0}
+.wo-slot{font-weight:700;color:var(--muted,#667);font-size:11px}
+.wo-m{color:var(--muted,#667);white-space:nowrap;font-variant-numeric:tabular-nums}
+.wo-today-r.done .wo-t{text-decoration:line-through;opacity:.6}
 </style>
 <script id="wire-js">
 /* ===== 2nd Brain: real-app wiring =====
@@ -1998,12 +2006,24 @@ if (data.__demo) {
   try { LBF.del && LBF.del('a_sample1'); } catch (e) {}
   delete data.__demo;
 }
+// One General folder per notebook with a fixed id, so every device shares the same one.
 function generalFolder(tab) {
-  let f = data.folders.find(x => x.tab === tab && /^general$/i.test(x.name));
-  if (!f) { f = { id: 'f' + Math.random().toString(36).slice(2, 9), tab, name: 'General', created: today() }; data.folders.push(f); }
+  let f = data.folders.find(x => x.id === 'gen-' + tab);
+  if (!f) { f = { id: 'gen-' + tab, tab, name: 'General', created: today() }; data.folders.push(f); }
   return f;
 }
-generalFolder('work'); generalFolder('personal');
+function dedupeGeneral() {
+  let changed = false;
+  ['work', 'personal'].forEach(tab => {
+    const keep = generalFolder(tab);
+    data.folders.filter(f => f.tab === tab && f.id !== keep.id && /^general$/i.test(f.name)).forEach(dup => {
+      data.notes.forEach(n => { if (n.folder === dup.id) n.folder = keep.id; });
+      data.folders = data.folders.filter(f => f !== dup); changed = true;
+    });
+  });
+  return changed;
+}
+generalFolder('work'); generalFolder('personal'); dedupeGeneral();
 // Layout follows the screen: desktop command center at 900px+, mobile below.
 function fitView() {
   const want = canDesk() ? 'desktop' : 'phone';
@@ -2116,8 +2136,10 @@ async function sync(manual) {
     });
     cfg.since = res.now;
     if (res.cal) { calCache = res.cal; ls.set(CAL_KEY, calCache); learnNames(); changed = true; }
-    if (Date.now() - (cfg.planAt || 0) > 3 * 36e5) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
+    const hasPlan = (data.workouts || []).some(w => String(w.id).startsWith('gp-'));
+    if (!hasPlan || Date.now() - (cfg.planAt || 0) > 3 * 36e5) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
     if (changed) { _save(); hashes = null; markChanges(); }
+    if (dedupeGeneral()) { save(); changed = true; }
     (res.inbox || []).forEach(x => runCommand(x.text, { from: 'Siri' }));
     cfg.status = 'Synced ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     cfg.lastOk = Date.now(); saveCfg();
@@ -2505,18 +2527,27 @@ finalMenu = function () {
 const _render = render;
 render = function (o) {
   const out = _render(o);
+  const td = document.querySelector('.todo-new');
+  if (td && !document.querySelector('.wo-today')) td.insertAdjacentHTML('afterend', trainingCard());
   if (state.binder !== 'spanish') document.querySelectorAll('[data-action="lbn-new"]').forEach(b => {
     if (b.parentElement && !b.parentElement.querySelector('[data-2b="granola"]') && !b.closest('.sheet')) b.insertAdjacentHTML('afterend', `<button type="button" class="g-import-btn" data-2b="granola">${icon('book')}Import Granola</button>`);
   });
   return out;
 };
 
+function trainingCard() {
+  const ws = (data.workouts || []).filter(w => w.date === today()).sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  if (!ws.length) return cfg.url ? '' : '';
+  return `<section class="wo-today" aria-label="Today's training"><div class="wo-today-h"><b>Today's training</b><button type="button" data-2b="open-wo">All workouts ›</button></div>
+    ${ws.map(w => `<div class="wo-today-r${w.done ? ' done' : ''}"><span class="wo-slot">${esc(w.time || '')}</span><span class="wo-t">${esc(w.detail || w.title)}</span><span class="wo-m">${esc(w.distance || (w.duration ? w.duration + ' min' : ''))}${w.done ? ' ✓' : ''}</span></div>`).join('')}</section>`;
+}
 addEventListener('click', async e => {
   const b = e.target.closest('[data-2b]'); if (!b) return;
   e.preventDefault(); e.stopImmediatePropagation();
   const a = b.dataset['2b'], n = b.dataset.id && data.notes.find(x => x.id === b.dataset.id);
   switch (a) {
     case 'capture': if (state.modal) closeModal(); captureSheet(false); break;
+    case 'open-wo': if (state.view === 'desktop' && state.cc) { state.cc.activePage = 'workouts'; state.cc.navOpen = false; } state.tab = 'workouts'; render(); break;
     case 'mic': listening ? stopMic() : startMic(); break;
     case 'cap-go': capGo(); break;
     case 'granola': if (state.modal) closeModal(); granolaSheet(); break;

@@ -40,3 +40,11 @@ body[data-view="desktop"] .cap-fab{right:24px;bottom:24px;background:var(--accen
 .g-btn{margin-bottom:8px}
 #modal-root input,#modal-root select,#modal-root textarea{font-size:16px}
 #toast{pointer-events:none}#toast button{pointer-events:auto}
+.wo-today{margin:12px 0 4px;padding:12px 14px;border-radius:14px;background:var(--paper,#fff);border:1px solid var(--line,#dde)}
+.wo-today-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:14px}
+.wo-today-h button{border:0;background:none;color:var(--accent,#315fe8);font:600 13px inherit;cursor:pointer;padding:4px 0}
+.wo-today-r{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line,#dde);font-size:13px;line-height:1.35}
+.wo-today-r:first-of-type{border-top:0}
+.wo-slot{font-weight:700;color:var(--muted,#667);font-size:11px}
+.wo-m{color:var(--muted,#667);white-space:nowrap;font-variant-numeric:tabular-nums}
+.wo-today-r.done .wo-t{text-decoration:line-through;opacity:.6}

@@ -27,12 +27,24 @@ if (data.__demo) {
   try { LBF.del && LBF.del('a_sample1'); } catch (e) {}
   delete data.__demo;
 }
+// One General folder per notebook with a fixed id, so every device shares the same one.
 function generalFolder(tab) {
-  let f = data.folders.find(x => x.tab === tab && /^general$/i.test(x.name));
-  if (!f) { f = { id: 'f' + Math.random().toString(36).slice(2, 9), tab, name: 'General', created: today() }; data.folders.push(f); }
+  let f = data.folders.find(x => x.id === 'gen-' + tab);
+  if (!f) { f = { id: 'gen-' + tab, tab, name: 'General', created: today() }; data.folders.push(f); }
   return f;
 }
-generalFolder('work'); generalFolder('personal');
+function dedupeGeneral() {
+  let changed = false;
+  ['work', 'personal'].forEach(tab => {
+    const keep = generalFolder(tab);
+    data.folders.filter(f => f.tab === tab && f.id !== keep.id && /^general$/i.test(f.name)).forEach(dup => {
+      data.notes.forEach(n => { if (n.folder === dup.id) n.folder = keep.id; });
+      data.folders = data.folders.filter(f => f !== dup); changed = true;
+    });
+  });
+  return changed;
+}
+generalFolder('work'); generalFolder('personal'); dedupeGeneral();
 // Layout follows the screen: desktop command center at 900px+, mobile below.
 function fitView() {
   const want = canDesk() ? 'desktop' : 'phone';
@@ -145,8 +157,10 @@ async function sync(manual) {
     });
     cfg.since = res.now;
     if (res.cal) { calCache = res.cal; ls.set(CAL_KEY, calCache); learnNames(); changed = true; }
-    if (Date.now() - (cfg.planAt || 0) > 3 * 36e5) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
+    const hasPlan = (data.workouts || []).some(w => String(w.id).startsWith('gp-'));
+    if (!hasPlan || Date.now() - (cfg.planAt || 0) > 3 * 36e5) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
     if (changed) { _save(); hashes = null; markChanges(); }
+    if (dedupeGeneral()) { save(); changed = true; }
     (res.inbox || []).forEach(x => runCommand(x.text, { from: 'Siri' }));
     cfg.status = 'Synced ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     cfg.lastOk = Date.now(); saveCfg();
@@ -534,18 +548,27 @@ finalMenu = function () {
 const _render = render;
 render = function (o) {
   const out = _render(o);
+  const td = document.querySelector('.todo-new');
+  if (td && !document.querySelector('.wo-today')) td.insertAdjacentHTML('afterend', trainingCard());
   if (state.binder !== 'spanish') document.querySelectorAll('[data-action="lbn-new"]').forEach(b => {
     if (b.parentElement && !b.parentElement.querySelector('[data-2b="granola"]') && !b.closest('.sheet')) b.insertAdjacentHTML('afterend', `<button type="button" class="g-import-btn" data-2b="granola">${icon('book')}Import Granola</button>`);
   });
   return out;
 };
 
+function trainingCard() {
+  const ws = (data.workouts || []).filter(w => w.date === today()).sort((a, b) => String(a.time).localeCompare(String(b.time)));
+  if (!ws.length) return cfg.url ? '' : '';
+  return `<section class="wo-today" aria-label="Today's training"><div class="wo-today-h"><b>Today's training</b><button type="button" data-2b="open-wo">All workouts ›</button></div>
+    ${ws.map(w => `<div class="wo-today-r${w.done ? ' done' : ''}"><span class="wo-slot">${esc(w.time || '')}</span><span class="wo-t">${esc(w.detail || w.title)}</span><span class="wo-m">${esc(w.distance || (w.duration ? w.duration + ' min' : ''))}${w.done ? ' ✓' : ''}</span></div>`).join('')}</section>`;
+}
 addEventListener('click', async e => {
   const b = e.target.closest('[data-2b]'); if (!b) return;
   e.preventDefault(); e.stopImmediatePropagation();
   const a = b.dataset['2b'], n = b.dataset.id && data.notes.find(x => x.id === b.dataset.id);
   switch (a) {
     case 'capture': if (state.modal) closeModal(); captureSheet(false); break;
+    case 'open-wo': if (state.view === 'desktop' && state.cc) { state.cc.activePage = 'workouts'; state.cc.navOpen = false; } state.tab = 'workouts'; render(); break;
     case 'mic': listening ? stopMic() : startMic(); break;
     case 'cap-go': capGo(); break;
     case 'granola': if (state.modal) closeModal(); granolaSheet(); break;
