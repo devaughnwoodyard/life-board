@@ -142,7 +142,7 @@ function phraseNote(d) {
   if (!d || !d.id || !(d.es || d.en)) return null;
   const body = '<p><b>' + esc(d.es || '') + '</b></p>' + (d.en ? '<p>' + esc(d.en) + '</p>' : '') + (d.note ? '<p>' + esc(d.note) + '</p>' : '');
   const at = d.entered || new Date().toISOString();
-  return { id: 'ph-' + d.id, tab: 'Spanish', folder: 'Phrases', title: String(d.es || d.en).slice(0, 160), body, entered: at, updated: at, source: 'phrase' };
+  return { id: 'ph-' + d.id, tab: 'Spanish', folder: 'Phrases', title: String(d.es || d.en).slice(0, 160), body, entered: at, updated: at, source: 'phrase', es: d.es || '', en: d.en || '', note: d.note || '', passes: Array.isArray(d.passes) ? d.passes : [], reviews: Array.isArray(d.reviews) ? d.reviews : [] };
 }
 // Local data saved by the previous app version (same device): bring it across once.
 function markAllDirty() { const u = Date.now(); COLLS.forEach(c => (data[c] || []).forEach(x => { if (syncable(c, x)) dirty[c + '|' + x.id] = { u }; })); ls.set(DIRTY_KEY, dirty); }
@@ -402,6 +402,8 @@ function runCommand(raw, opt = {}) {
     undoToast(`${tab} note saved in ${folder}${opt.from ? ' (from ' + opt.from + ')' : ''}.`, () => { data.notes = data.notes.filter(x => x !== n); save(); render(); });
     return n;
   }
+  m = t.match(/^(?:spanish|espa[nñ]ol)(?:\s+phrase)?\b[\s,:.-]*(.*)$/is);
+  if (m) { const sp = splitPhrase(m[1]); return addPhrase(sp.es, sp.en, '', opt.from); }
   m = t.match(/^(work\s+)?(?:to[\s-]?dos?|todo|task|reminder)\b[\s,:.-]*(.*)$/is);
   const body = m ? m[2] : t;
   let { date: d, text } = splitDate(body);
@@ -444,7 +446,7 @@ function captureSheet(autoMic) {
     <textarea id="cap-text" rows="4" placeholder="To do Friday, call the dentist&#10;Work note Vendors, pricing came in 8% higher" autocapitalize="sentences" enterkeyhint="done"></textarea>
     <div class="cap-row"><button type="button" class="cap-mic" data-2b="mic">${ICONS.mic}Speak</button><button type="button" class="cap-go" data-2b="cap-go">Add</button></div>
     <p class="cap-status" id="cap-status" role="status">Start with <b>To do</b> (and a day) or <b>Work note</b> / <b>Personal note</b> (and a folder). Anything else becomes a to-do for today.</p>
-    <ul class="cap-ex"><li><b>To do tomorrow, renew passport</b></li><li><b>To do [Nov 14] book flights at 7pm</b></li><li><b>Work to do Friday, send the deck</b></li><li><b>Work note Sprint planning, QA owner is Dana</b></li><li><b>Personal note</b> gift idea: cooking class → General</li></ul>
+    <ul class="cap-ex"><li><b>To do tomorrow, renew passport</b></li><li><b>To do [Nov 14] book flights at 7pm</b></li><li><b>Work to do Friday, send the deck</b></li><li><b>Work note Sprint planning, QA owner is Dana</b></li><li><b>Personal note</b> gift idea: cooking class → General</li><li><b>Spanish le llegas means do you get it</b></li></ul>
     <div class="cap-more"><button type="button" class="secondary" data-2b="cap-forms">More: event, workout, note, habit…</button></div></div>`, { kind: '2b-capture', form: false });
   const ta = document.getElementById('cap-text');
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); capGo(); } });
@@ -453,7 +455,7 @@ function captureSheet(autoMic) {
 function capGo() {
   const ta = document.getElementById('cap-text'); if (!ta) return;
   stopMic();
-  const lines = ta.value.split(/\n(?=\s*(?:work\s+)?(?:to[\s-]?do|todo|work note|personal note|spanish note|note)\b)/i).map(s => s.trim()).filter(Boolean);
+  const lines = ta.value.split(/\n(?=\s*(?:work\s+)?(?:to[\s-]?do|todo|work note|personal note|spanish|note)\b)/i).map(s => s.trim()).filter(Boolean);
   if (!lines.length) { ta.focus(); return; }
   forceClose();
   lines.forEach(l => runCommand(l));
@@ -533,6 +535,7 @@ function summaryBlock(n) {
 }
 const _noteRead = noteRead;
 noteRead = function (id) {
+  const pn = data.notes.find(x => x.id === id); if (isPhrase(pn)) { normPhrase(pn); return phraseDetail(pn, false); }
   _noteRead(id);
   const n = data.notes.find(x => x.id === id), root = document.querySelector('#modal-root .sheet'); if (!root || !n) return;
   const reader = root.querySelector('.reader'); if (!reader) return;
@@ -578,6 +581,109 @@ async function granolaImport() {
   uploadFiles();
 }
 
+/* ---------- 7b. Spanish: quick phrase entry + Quiz me (phrases are notes in Spanish › Phrases) ---------- */
+const isPhrase = n => n && n.tab === 'Spanish' && (n.source === 'phrase' || n.folder === 'Phrases');
+function phraseBody(n) { return '<p><b>' + esc(n.es || '') + '</b></p>' + (n.en ? '<p>' + esc(n.en) + '</p>' : '') + (n.note ? '<p>' + esc(n.note) + '</p>' : ''); }
+// Older phrase notes only have the body: recover es/en and add review fields.
+function normPhrase(n) {
+  if (!isPhrase(n)) return false; let ch = false;
+  if (n.es == null) { const t = document.createElement('div'); t.innerHTML = n.body || ''; const ps = [...t.querySelectorAll('p')].map(p => p.textContent.trim()).filter(Boolean); n.es = ps[0] || n.title || ''; n.en = ps[1] || ''; n.note = ps.slice(2).join(' '); ch = true; }
+  if (!Array.isArray(n.passes)) { n.passes = []; ch = true; }
+  if (!Array.isArray(n.reviews)) { n.reviews = []; ch = true; }
+  if (n.source !== 'phrase') { n.source = 'phrase'; ch = true; }
+  return ch;
+}
+const phrases = () => data.notes.filter(isPhrase).map(n => (normPhrase(n), n));
+function addPhrase(es, en, note, from) {
+  es = String(es || '').trim(); en = String(en || '').trim();
+  if (!es) { notify('Type or say the Spanish phrase first.'); return null; }
+  const dup = phrases().find(p => p.es.toLowerCase() === es.toLowerCase());
+  if (dup) { if (en && !dup.en) { dup.en = en; dup.body = phraseBody(dup); dup.updated = new Date().toISOString(); save(); render(); notify('Meaning added to “' + dup.es + '”.'); } else notify('“' + dup.es + '” is already in your phrases.'); return dup; }
+  const now = new Date().toISOString();
+  const n = { id: uid(), tab: 'Spanish', folder: 'Phrases', title: es.slice(0, 160), es, en, note: note || '', passes: [], reviews: [], entered: now, updated: now, lastOpened: now, source: 'phrase' };
+  n.body = phraseBody(n); data.notes.unshift(n); save(); if (!$('#modal-root').children.length) render();
+  undoToast(`Phrase added${from ? ' (from ' + from + ')' : ''}${en ? '' : ': add the English meaning so it can be quizzed'}.`, () => { data.notes = data.notes.filter(x => x !== n); save(); render(); });
+  return n;
+}
+// "Spanish le llegas means do you get it" · "Spanish phrase le llegas = do you get it" · "Spanish, le llegas, do you get it"
+function splitPhrase(s) {
+  s = String(s || '').trim();
+  let m = s.split(/\s+(?:means|meaning|=|->|→|–|—|\|)\s+/i); if (m.length >= 2) return { es: m[0].replace(/[,:]\s*$/, ''), en: m.slice(1).join(' ') };
+  const c = s.lastIndexOf(','); if (c > 0) return { es: s.slice(0, c).trim(), en: s.slice(c + 1).trim() };
+  return { es: s, en: '' };
+}
+const boxes = c => `<span class="review-boxes" aria-label="${c} of 5 correct review days">${Array.from({ length: 5 }, (_, i) => `<i class="${i < c ? 'on' : ''}">${i < c ? '✓' : ''}</i>`).join('')}</span>`;
+let phraseFilter = 'learning', spMic = null;
+function spanishPanel() {
+  const all = phrases(), active = all.filter(p => p.passes.length < 5), mastered = all.filter(p => p.passes.length >= 5);
+  const list = (phraseFilter === 'learning' ? active : mastered).slice().sort((a, b) => String(b.entered).localeCompare(String(a.entered)));
+  const quizN = Math.min(10, active.filter(p => p.en).length);
+  const others = folderTiles('Spanish').replace(/<button class="note-card folder-tile"[^>]*data-folder="Phrases"[\s\S]*?<\/button>/, '');
+  return `<form class="sp-add" id="sp-add" autocomplete="off"><div class="sp-row"><input id="sp-es" lang="es" placeholder="Spanish phrase" maxlength="200" aria-label="Spanish phrase" autocapitalize="off"><button type="button" class="icon-btn sp-mic" data-2b="sp-mic" aria-label="Say it in Spanish">${ICONS.mic}</button></div>
+      <div class="sp-row"><input id="sp-en" placeholder="English meaning" maxlength="200" aria-label="English meaning"><button class="primary" type="submit">Add</button></div><p class="sp-hint" id="sp-status">Mic listens in Spanish (DR). Or use quick capture: <b>Spanish le llegas means do you get it</b></p></form>
+    <button class="quiz-banner" data-2b="quiz-start" ${quizN ? '' : 'disabled'}><div><strong>Quiz me</strong><small>${quizN ? quizN + ' phrases · missed answers come back' : active.length ? 'Add English meanings to quiz these' : 'Add a phrase to start'}</small></div><span>→</span></button>
+    <div class="filters sp-filters"><button data-2b="sp-filter" data-v="learning" class="${phraseFilter === 'learning' ? 'on' : ''}">Learning · ${active.length}</button><button data-2b="sp-filter" data-v="mastered" class="${phraseFilter === 'mastered' ? 'on' : ''}">Mastered · ${mastered.length}</button></div>
+    <div class="list sp-list">${list.map(p => `<button class="phrase" data-2b="phrase" data-id="${p.id}"><b lang="es">${esc(p.es)}</b><small>${esc(p.en || 'Add the English meaning')}</small><span class="phrase-foot">${boxes(p.passes.length)}<small>${p.reviews.length} review${p.reviews.length === 1 ? '' : 's'}</small></span></button>`).join('') || `<div class="empty">${phraseFilter === 'learning' ? 'No phrases yet. Add one above.' : 'Nothing mastered yet. Five correct review days (one per day) masters a phrase.'}</div>`}</div>
+    ${others ? `<div class="section-label">Other Spanish notes</div><div class="notes-grid folder-grid">${others}</div>` : ''}`;
+}
+function spMicToggle() {
+  const inp = document.getElementById('sp-es'), st = document.getElementById('sp-status'), btn = document.querySelector('[data-2b="sp-mic"]');
+  if (spMic) { try { spMic.stop(); } catch (e) {} spMic = null; btn && btn.classList.remove('listening'); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { inp.focus(); st.textContent = 'Use the keyboard mic (switch the keyboard to Español).'; return; }
+  const r = spMic = new SR(); r.lang = 'es-DO'; r.interimResults = true; r.continuous = false;
+  r.onstart = () => { btn.classList.add('listening'); st.textContent = 'Escuchando… say the phrase in Spanish.'; };
+  r.onresult = e => { let t = ''; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; inp.value = t.trim(); };
+  r.onerror = e => { st.textContent = e.error === 'language-not-supported' ? 'Spanish voice isn’t available here; use the keyboard mic in Español.' : e.error === 'not-allowed' ? 'Microphone is blocked for this site.' : 'Didn’t catch that. Tap the mic and try again.'; };
+  r.onend = () => { spMic = null; btn && btn.classList.remove('listening'); if (inp.value) { st.textContent = 'Now add the English meaning, then Add.'; document.getElementById('sp-en').focus(); } };
+  try { r.start(); } catch (e) { st.textContent = 'Could not start the mic.'; }
+}
+function recordReview(p, correct) {
+  p.reviews.push({ day: today, correct }); if (correct && !p.passes.includes(today) && p.passes.length < 5) p.passes.push(today);
+  p.updated = new Date().toISOString(); save();
+}
+function phraseDetail(p, revealed) {
+  modal('Phrase review', `<p class="eyebrow">${p.passes.length >= 5 ? 'Mastered' : 'Learning'} · ${p.reviews.length} total reviews</p><p class="sp-big" lang="es">${esc(p.es)}</p>
+    ${revealed || !p.en ? `<p class="sp-mean">${esc(p.en || 'No English meaning yet')}</p>${p.note ? `<p class="muted" style="font-size:12px">${esc(p.note)}</p>` : ''}` : `<button class="secondary" style="width:100%" data-2b="phrase-reveal" data-id="${p.id}">Reveal meaning</button>`}
+    ${boxes(p.passes.length)}<p class="muted" style="font-size:11px;margin-top:8px">${p.passes.length}/5 correct review days. One box per day.</p>
+    ${revealed ? `<div class="form-actions" style="justify-content:stretch"><button class="secondary" style="flex:1" data-2b="phrase-review" data-id="${p.id}" data-ok="0">Keep practicing</button><button class="primary" style="flex:1" data-2b="phrase-review" data-id="${p.id}" data-ok="1">I remembered it</button></div>` : ''}
+    <div class="section-label">Review history</div><ul class="sp-hist">${p.reviews.length ? p.reviews.slice().reverse().slice(0, 15).map(r => `<li>${fmt(r.day, { month: 'short', day: 'numeric', year: 'numeric' })} · ${r.correct ? 'Remembered' : 'Practicing'}</li>`).join('') : '<li>No reviews yet.</li>'}</ul>
+    <div class="form-actions"><button class="danger" data-2b="phrase-del" data-id="${p.id}">Delete</button><button class="secondary" data-2b="phrase-edit" data-id="${p.id}">Edit phrase</button></div>`, { kind: '2b-phrase', id: p.id, form: false });
+}
+function phraseEditor(p) {
+  modal('Edit phrase', `<label for="pe-es">Spanish</label><input id="pe-es" lang="es" value="${esc(p.es)}" maxlength="200"><label for="pe-en">English meaning</label><input id="pe-en" value="${esc(p.en || '')}" maxlength="200"><label for="pe-note">Usage note · optional</label><textarea id="pe-note" rows="2">${esc(p.note || '')}</textarea>
+    <div class="form-actions"><button class="secondary" data-act="close">Cancel</button><button class="primary" data-2b="phrase-save" data-id="${p.id}">Save</button></div>`, { kind: '2b-phrase-edit', id: p.id, form: false });
+}
+const shuffle = l => l.map(x => ({ x, r: Math.random() })).sort((a, b) => a.r - b.r).map(x => x.x);
+let quiz = null;
+function startQuiz() {
+  const pool = phrases().filter(p => p.passes.length < 5 && p.en).sort((a, b) => (a.passes.includes(today) - b.passes.includes(today)) || a.passes.length - b.passes.length).slice(0, 10);
+  if (!pool.length) { notify('No phrases to quiz. Add a phrase with its English meaning.'); return; }
+  quiz = { queue: pool.map(p => p.id), total: pool.length, correct: 0, missed: 0, answered: false, picked: null, options: [], dir: 'es' };
+  quizQuestion();
+}
+function quizQuestion() {
+  const q = quiz; if (!q) return;
+  if (!q.queue.length) {
+    const h = data.habits.find(x => /spanish/i.test(x.title)); if (h && !h.days.includes(today)) h.days.push(today);
+    save(); quiz = null;
+    modal('Practice complete', `<div class="stats"><div><b>${q.total}</b><small>Phrases practiced</small></div><div><b>${q.missed}</b><small>Missed answers revisited</small></div></div><p class="muted" style="font-size:12px;line-height:1.6">Correct answers add one review box per day. ${h ? 'Spanish is ticked for today.' : ''}</p><div class="form-actions"><button class="primary" data-2b="quiz-done">Back to Spanish</button></div>`, { kind: '2b-quiz', form: false });
+    return;
+  }
+  const p = data.notes.find(x => x.id === q.queue[0]); if (!p) { q.queue.shift(); return quizQuestion(); }
+  q.answered = false; q.picked = null;
+  const wrong = shuffle([...new Set(phrases().filter(x => x.id !== p.id && x.en && x.en !== p.en).map(x => x.en))]).slice(0, 3);
+  for (const x of ['Take care', 'Good morning', 'Be careful', 'Of course', 'What’s up?']) { if (wrong.length >= 3) break; if (x !== p.en && !wrong.includes(x)) wrong.push(x); }
+  q.options = shuffle([p.en, ...wrong]); renderQuiz(p);
+}
+function renderQuiz(p) {
+  const q = quiz, ok = q.answered && q.options[q.picked] === p.en;
+  modal('Quiz me', `<p class="eyebrow">${q.correct} of ${q.total} learned · ${q.queue.length} in queue</p><div class="sp-prog"><i style="width:${q.correct / q.total * 100}%"></i></div>
+    <p class="sp-big" lang="es">${esc(p.es)}</p><p class="muted" style="font-size:12px">Choose the English meaning.</p>
+    <div class="quiz-options">${q.options.map((o, i) => `<button class="quiz-option ${q.answered ? (o === p.en ? 'right' : i === q.picked ? 'wrong' : '') : ''}" data-2b="quiz-answer" data-i="${i}" ${q.answered ? 'disabled' : ''}>${esc(o)}</button>`).join('')}</div>
+    ${q.answered ? `<p class="quiz-feedback">${ok ? `<b>Correct.</b> ${p.passes.length}/5 correct review days.${p.passes.length === 5 ? ' Mastered.' : ''}` : `<b>Keep practicing.</b> ${esc(p.en)}. It comes back later in this quiz.`}</p><div class="form-actions"><button class="primary" data-2b="quiz-next">${q.queue.length === 1 && ok ? 'Finish' : 'Next phrase'}</button></div>` : ''}`, { kind: '2b-quiz', form: false });
+}
+
 /* ---------- 8. Sync settings ---------- */
 function syncSheet() {
   modal('Google sync', `<p class="muted" style="font-size:12px;line-height:1.6">Connects this device to your 2nd Brain Google Sheet: to-dos, notes, habits, workouts and events sync across devices; Google Calendar and the Little Elm training plan (with Garmin results) come in; note files go to the 2nd Brain Drive folder.</p>
@@ -609,6 +715,10 @@ render = function () {
   // notes: Granola import next to +
   const nc = document.querySelector('.notes-controls');
   if (nc && !nc.querySelector('[data-2b="granola"]')) nc.insertAdjacentHTML('beforeend', `<button class="icon-btn" data-2b="granola" aria-label="Import Granola notes" title="Import Granola notes">${ICONS.book}</button>`);
+  if (page === 'notes' && noteTab === 'Spanish' && (noteFolder === 'all' || noteFolder === 'Phrases')) {
+    const ctl = document.querySelector('.notes-controls');
+    if (ctl) { while (ctl.nextSibling) ctl.nextSibling.remove(); ctl.insertAdjacentHTML('afterend', '<div class="sp-panel">' + spanishPanel() + '</div>'); }
+  }
   // workouts: where the plan comes from
   const wc = document.querySelector('.week-control');
   if (page === 'workouts' && wc && cfg.url) wc.insertAdjacentHTML('afterend', `<p class="plan-src">Plan: Little Elm sheet${cfg.planError ? ' · not loaded: ' + esc(cfg.planError) : ''} · Garmin: ${cfg.garminAt ? 'synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected'}</p>`);
@@ -640,6 +750,18 @@ addEventListener('click', async e => {
       b.textContent = 'Added'; b.disabled = true;
       break;
     }
+    case 'sp-mic': spMicToggle(); break;
+    case 'sp-filter': phraseFilter = b.dataset.v; render(); break;
+    case 'phrase': { const p = data.notes.find(x => x.id === b.dataset.id); if (p) { normPhrase(p); p.lastOpened = new Date().toISOString(); phraseDetail(p, false); } break; }
+    case 'phrase-reveal': { const p = data.notes.find(x => x.id === b.dataset.id); if (p) phraseDetail(p, true); break; }
+    case 'phrase-review': { const p = data.notes.find(x => x.id === b.dataset.id); if (p) { recordReview(p, b.dataset.ok === '1'); forceClose(); render(); notify(b.dataset.ok === '1' ? 'Review saved. One box per day.' : 'Review saved. Keep practicing.'); } break; }
+    case 'phrase-edit': { const p = data.notes.find(x => x.id === b.dataset.id); if (p) phraseEditor(p); break; }
+    case 'phrase-save': { const p = data.notes.find(x => x.id === b.dataset.id); if (!p) break; const es = document.getElementById('pe-es').value.trim(); if (!es) { notify('Enter the Spanish phrase.'); break; } p.es = es; p.en = document.getElementById('pe-en').value.trim(); p.note = document.getElementById('pe-note').value.trim(); p.title = es.slice(0, 160); p.body = phraseBody(p); p.updated = new Date().toISOString(); save(); forceClose(); render(); notify('Phrase saved.'); break; }
+    case 'phrase-del': { if (!confirm('Delete this phrase?')) break; data.notes = data.notes.filter(x => x.id !== b.dataset.id); save(); forceClose(); render(); notify('Deleted.'); break; }
+    case 'quiz-start': forceClose(); startQuiz(); break;
+    case 'quiz-answer': { const q = quiz; if (!q || q.answered) break; const p = data.notes.find(x => x.id === q.queue[0]); q.answered = true; q.picked = Number(b.dataset.i); const ok = q.options[q.picked] === p.en; recordReview(p, ok); if (ok) q.correct++; else q.missed++; renderQuiz(p); break; }
+    case 'quiz-next': { const q = quiz; if (!q) break; const cur = q.queue.shift(), p = data.notes.find(x => x.id === cur); if (p && q.options[q.picked] !== p.en) q.queue.push(cur); quizQuestion(); break; }
+    case 'quiz-done': forceClose(); noteTab = 'Spanish'; noteFolder = 'all'; go('notes'); break;
     case 'sync-settings': forceClose(); syncSheet(); break;
     case 's-save': {
       const url = (document.getElementById('s-url').value.match(/https:\/\/script\.google(?:usercontent)?\.com\/[^\s`'"<>]+?\/exec/) || [document.getElementById('s-url').value.trim()])[0], key = document.getElementById('s-key').value.replace(/[^A-Za-z0-9_-]/g, '');
@@ -657,6 +779,11 @@ addEventListener('click', async e => {
     case 's-off': cfg = { names: cfg.names }; saveCfg(); forceClose(); paintStatus(); notify('This device is no longer syncing. Your data stays here.'); break;
   }
 }, true);
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'sp-add') return; e.preventDefault(); e.stopImmediatePropagation();
+  const es = document.getElementById('sp-es').value, en = document.getElementById('sp-en').value;
+  if (addPhrase(es, en)) { render(); setTimeout(() => document.getElementById('sp-es')?.focus(), 30); }
+}, true);
 // Desktop: Ctrl/Cmd + J opens quick capture
 addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); forceClose(); captureSheet(false); } });
 // Home-screen shortcut: ?capture=1 opens capture with the mic; ?add=text runs a command directly
@@ -669,5 +796,5 @@ markChanges();
 render();
 if (cfg.url) sync();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
-window.__2b = { runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
+window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
