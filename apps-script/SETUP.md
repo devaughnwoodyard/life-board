@@ -13,14 +13,14 @@
 "Anyone" only means the URL is reachable; every request without your key is rejected. Don't share the key.
 
 ## 3. Connect each device
-Open https://devaughnwoodyard.github.io/life-board/ → the small dot in the top-right corner (or **⋯ → Google sync**) → paste the URL and key → **Connect**. Phone: Safari → Share → **Add to Home Screen**.
+Open https://devaughnwoodyard.github.io/life-board/ → the dot button in the header → paste the URL and key → **Connect**. Phone: Safari → Share → **Add to Home Screen**.
 
-Notes and to-dos from the old Life Board app come across on the first sync.
+To-dos, notes and habits saved by the previous version come across on the first sync.
 
 ## What syncs
 | | Where it lives |
 |---|---|
-| To-dos, notes, folders, habits, Spanish phrases | "Data" tab of 2nd Brain Data (newest edit wins) |
+| To-dos, notes, habits, workouts, events | "Data" tab of 2nd Brain Data (newest edit wins) |
 | Note files, Granola imports, summaries | Drive → 2nd Brain → Notes → Work / Personal → folder |
 | Calendar | Your visible Google calendars, 2 weeks back to ~10 weeks ahead |
 | Workouts | Planned sessions from the **Ironman 70.3 Little Elm 2027 — Training Plan** sheet; completed Garmin activities from its **Activities** tab (see below). Reloads every 30 min or from Google sync → Reload training plan. New plan sheet? Set Script Property `PLAN_SHEET_ID`. |
@@ -28,16 +28,16 @@ Notes and to-dos from the old Life Board app come across on the first sync.
 Calendar colors: a time in the title (e.g. "Dentist 3:30pm") = **appointment** (yellow). A person's name in the title (e.g. "Lunch with Dana") = **with people** (red). Add names the app doesn't know in **Google sync → Names**; names of your event guests are learned automatically.
 
 ## Quick capture (voice or text)
-Tap the mic button (bottom right; **Ctrl/Cmd + J** on desktop):
+Tap the mic in the header, or **+** (**Ctrl/Cmd + J** on desktop):
 - `To do Friday, call the dentist` · `To do [Nov 14] book flights at 7pm` · `To do tomorrow, renew passport`
 - `Work note Vendor reviews, pricing came in 8% higher` → goes in the **Vendor reviews** folder if it exists, otherwise **General**. `Work note [New folder], …` creates the folder.
-- `Personal note …` works the same way. Anything else becomes a to-do for Today.
+- `Personal note …` works the same way. `Work to do …` makes a Work to-do. Anything else becomes a Personal to-do for today.
 - Say "comma" if the dictation doesn't add one. A toast confirms what was created, with **Undo**.
 
 iPhone voice: works in Safari. If the home-screen app says voice isn't available, tap in the box and use the keyboard's mic key; the same commands work.
 
 ## Granola
-Notes → **Import Granola** (or **⋯ → Import Granola notes**). Paste a note copied from Granola or pick exported `.md`/`.txt` files. Each becomes a note with its meeting date; the original file uploads to Drive.
+Notes → the book icon next to **+**. Paste a note copied from Granola or pick exported `.md`/`.txt` files. Each becomes a note with its meeting date; the original file uploads to Drive.
 
 Open an imported note → **Summary**: date, main topics and to-dos (with **Add** buttons), saved on the note and uploaded as `Summary - <title>.md`. For Claude-quality summaries add Script Property `ANTHROPIC_KEY` (Project Settings → Script Properties); without it the app uses its built-in summary.
 
