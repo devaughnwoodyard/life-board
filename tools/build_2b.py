@@ -35,6 +35,7 @@ if app.endswith("</body>"): app = app[:-7]
 app += "\n<style id=\"wire-css\">\n" + css + "</style>\n<script id=\"wire-js\">\n" + js + "</script>\n</body></html>\n"
 
 build = hashlib.sha1(app.encode()).hexdigest()[:8]
+app = app.replace('<title>2nd Brain</title>', '<title>2nd Brain</title><meta name="2b-build" content="' + build + '">', 1)
 open(os.path.join(root, "index.html"), "w", encoding="utf-8").write(app)
 
 sw = rd("sw.js")

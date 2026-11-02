@@ -64,6 +64,17 @@ save = function () { _save(); markChanges(); schedule(); };
 let timer = null, syncing = false, again = false;
 function schedule(ms = 2500) { if (!cfg.url) return; clearTimeout(timer); timer = setTimeout(() => sync(), ms); }
 
+// Fallback transport: a <script> tag (works where cross-site fetch is blocked)
+function jsonp(url) {
+  return new Promise((res, rej) => {
+    const cb = '__2bcb' + Math.random().toString(36).slice(2), sc = document.createElement('script');
+    const done = () => { delete window[cb]; sc.remove(); clearTimeout(t); };
+    const t = setTimeout(() => { done(); rej(new Error('No reply from Google (blocked or old script version)')); }, 25000);
+    window[cb] = j => { done(); res(j); };
+    sc.onerror = () => { done(); rej(new Error('Google blocked the request. Check the deployment access is Anyone')); };
+    sc.src = url + '&callback=' + cb; document.head.appendChild(sc);
+  });
+}
 async function api(body) {
   if (!cfg.url) throw new Error('Paste the web app URL (ends in /exec)');
   if (!cfg.token) throw new Error('Paste your key from the setup() log');
@@ -73,7 +84,10 @@ async function api(body) {
   const getUrl = cfg.url + (cfg.url.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(payload);
   if (getUrl.length < 7000) {
     try { r = await fetch(getUrl, { redirect: 'follow' }); }
-    catch (e) { r = await fetch(cfg.url, { method: 'POST', body: payload, redirect: 'follow' }); }
+    catch (e) {
+      try { r = await fetch(cfg.url, { method: 'POST', body: payload, redirect: 'follow' }); }
+      catch (e2) { const j = await jsonp(getUrl); if (!j.ok) throw new Error(j.error || 'Server error'); cfg.via = 'jsonp'; return j; }
+    }
   } else {
     try { r = await fetch(cfg.url, { method: 'POST', body: payload, redirect: 'follow' }); }
     catch (e) { throw new Error('Could not reach the script with a large upload. Update Code.gs and deploy a new version.'); }
@@ -501,7 +515,7 @@ function syncSheet() {
     <label for="s-url">Apps Script web app URL</label><input id="s-url" value="${esc(cfg.url || '')}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
     <label for="s-key">Key</label><input id="s-key" value="${esc(cfg.token || '')}" placeholder="From the setup() log" autocomplete="off">
     <label for="s-names">Names that mean “with people” on your calendar</label><input id="s-names" value="${esc(cfg.names || '')}" placeholder="e.g. Steph, Kofi, Dana">
-    <p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}</p>
+    <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}</p>
     <button type="button" class="submit" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button>
     ${cfg.url ? '<button type="button" class="wide-button" data-2b="s-plan">Reload training plan</button><button type="button" class="danger" data-2b="s-off">Disconnect this device</button>' : ''}`, { kind: '2b-sync' });
 }

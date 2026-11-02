@@ -38,8 +38,12 @@ function setup() {
 
 function doGet(e) {
   var p = (e && e.parameter) || {};
-  if (p.payload) { try { var b = JSON.parse(p.payload); b.token = b.token || p.token; return handle_(b); } catch (x) {} }
-  return handle_(p);
+  var res = p.payload ? (function () { try { var b = JSON.parse(p.payload); b.token = b.token || p.token; return handle_(b); } catch (x) { return handle_(p); } })() : handle_(p);
+  // JSONP: lets the app read the reply even when a browser or network blocks cross-site fetch
+  if (p.callback && /^[\w.$]+$/.test(p.callback)) {
+    return ContentService.createTextOutput(p.callback + '(' + res.getContent() + ')').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return res;
 }
 function doPost(e) {
   var b = {};
