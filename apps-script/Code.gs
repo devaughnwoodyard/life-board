@@ -353,8 +353,13 @@ function icuWorkout_(sport, t, min, mi) {
 // Garmin uploads every activity to Strava; this copies them into the plan sheet ("Activities" tab
 // + columns E–J of the day's row) and the app reads them from there.
 // One-time setup: run connectStrava() and follow the two lines it prints in the Execution log.
+// Strava app keys: Script Properties STRAVA_ID / STRAVA_SECRET, or fill these two lines in your own copy.
+var STRAVA_CLIENT_ID = '';
+var STRAVA_CLIENT_SECRET = '';
+function sid_() { var v = PropertiesService.getScriptProperties().getProperty('STRAVA_ID'); return String(STRAVA_CLIENT_ID || v || '').trim(); }
+function ssec_() { var v = PropertiesService.getScriptProperties().getProperty('STRAVA_SECRET'); return String(STRAVA_CLIENT_SECRET || v || '').trim(); }
 function connectStrava() {
-  var p = PropertiesService.getScriptProperties(), id = p.getProperty('STRAVA_ID'), sec = p.getProperty('STRAVA_SECRET');
+  var p = PropertiesService.getScriptProperties(), id = sid_(), sec = ssec_();
   var url = (ScriptApp.getService().getUrl() || '').replace(/\/dev$/, '/exec');   // the editor can report the /dev URL; Strava must come back to /exec
   if (!id || !sec) {
     Logger.log('1) Open https://www.strava.com/settings/api and create an app: name "2nd Brain", website https://devaughnwoodyard.github.io, Authorization Callback Domain: script.google.com');
@@ -375,7 +380,7 @@ function stravaCallback_(p) {
 }
 function stravaCallbackInner_(p, props) {
   var r = UrlFetchApp.fetch('https://www.strava.com/oauth/token', { method: 'post', muteHttpExceptions: true, payload: {
-    client_id: props.getProperty('STRAVA_ID'), client_secret: props.getProperty('STRAVA_SECRET'), code: p.code, grant_type: 'authorization_code' } });
+    client_id: sid_(), client_secret: ssec_(), code: p.code, grant_type: 'authorization_code' } });
   var j = JSON.parse(r.getContentText());
   if (!j.refresh_token) { props.setProperty('STRAVA_ERR', 'Strava rejected the code: ' + r.getContentText().slice(0, 200)); return HtmlService.createHtmlOutput('<h2>Strava did not connect</h2><pre>' + r.getContentText().slice(0, 300) + '</pre>'); }
   props.deleteProperty('STRAVA_ERR');
@@ -389,7 +394,7 @@ function stravaCallbackInner_(p, props) {
 function stravaToken_() {
   var p = PropertiesService.getScriptProperties();
   var r = UrlFetchApp.fetch('https://www.strava.com/oauth/token', { method: 'post', muteHttpExceptions: true, payload: {
-    client_id: p.getProperty('STRAVA_ID'), client_secret: p.getProperty('STRAVA_SECRET'), refresh_token: p.getProperty('STRAVA_REFRESH'), grant_type: 'refresh_token' } });
+    client_id: sid_(), client_secret: ssec_(), refresh_token: p.getProperty('STRAVA_REFRESH'), grant_type: 'refresh_token' } });
   var j = JSON.parse(r.getContentText());
   if (!j.access_token) throw new Error('Strava token: ' + r.getContentText().slice(0, 200));
   if (j.refresh_token) p.setProperty('STRAVA_REFRESH', j.refresh_token);
@@ -405,7 +410,7 @@ function syncStrava() {
 function stravaStatus() { Logger.log(JSON.stringify(stravaState_(), null, 2)); }
 function stravaState_() {
   var p = PropertiesService.getScriptProperties();
-  return { keys: !!(p.getProperty('STRAVA_ID') && p.getProperty('STRAVA_SECRET')), authorized: !!p.getProperty('STRAVA_REFRESH'),
+  return { keys: !!(sid_() && ssec_()), props: Object.keys(p.getProperties()).filter(function (k) { return /strava/i.test(k); }), authorized: !!p.getProperty('STRAVA_REFRESH'),
            last: p.getProperty('STRAVA_LAST') || '', error: p.getProperty('STRAVA_ERR') || '',
            hourly: ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'syncStrava'; }) };
 }
