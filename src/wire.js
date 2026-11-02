@@ -825,7 +825,34 @@ function paintStatus() {
 
 /* ---------- 9. Decorate the rendered page ---------- */
 const _render = render;
+/* ---------- 8b. Notes: folder cards that open into a list, notes that expand in place ---------- */
+const openFolders = new Set(ls.get('2b-openf', [])), openNotes = new Set();
+const FOLDER_SVG = '<svg class="fold-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
+const fKey = (t, f) => t + '|' + f;
+const ago = iso => { if (!iso) return ''; const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString([], { month: 'short', day: 'numeric' }); };
+function folderCards(tab) {
+  const groups = [...new Set(data.notes.filter(n => n.tab === tab && !isPhrase(n)).map(n => n.folder))];
+  groups.sort((a, b) => (openFolders.has(fKey(tab, b)) - openFolders.has(fKey(tab, a))) || String(folderLastOpened(tab, b)).localeCompare(String(folderLastOpened(tab, a))) || a.localeCompare(b));
+  return groups.map(f => {
+    const ns = data.notes.filter(n => n.tab === tab && n.folder === f && !isPhrase(n)).sort((a, b) => String(b.updated || b.entered).localeCompare(String(a.updated || a.entered)));
+    const open = openFolders.has(fKey(tab, f));
+    return `<article class="fcard${open ? ' open' : ''}"><button class="fcard-h" data-2b="folder-toggle" data-tab="${esc(tab)}" data-folder="${esc(f)}" aria-expanded="${open}">${FOLDER_SVG}<span class="fcard-t"><b>${esc(f)}</b><small>${ns.length} note${ns.length === 1 ? '' : 's'} · ${esc(openedLabel(folderLastOpened(tab, f)))}</small></span><span class="fcard-chev">⌄</span></button>
+      ${open ? `<div class="fcard-list">${ns.map(n => { const ex = openNotes.has(n.id); return `<div class="nrow${ex ? ' ex' : ''}"><button class="nrow-h" data-2b="note-toggle" data-id="${n.id}" aria-expanded="${ex}"><span class="nrow-dot"></span><span class="nrow-t"><b>${esc(n.title)}</b><small>${esc(ago(n.updated || n.entered))}${n.source === 'granola' ? ' · Granola' : ''}${n.summary ? ' · summarized' : ''}${(n.files || []).length ? ' · ' + n.files.length + ' file' + (n.files.length > 1 ? 's' : '') : ''}</small></span><span class="fcard-chev">⌄</span></button>
+        ${ex ? `<div class="nrow-body"><div class="reader">${clean(n.body || '') || '<p class="muted">Empty note.</p>'}</div><div class="nrow-act">${n.source === 'granola' ? `<button class="secondary" data-act="note-read" data-id="${n.id}">${n.summary ? 'Summary' : 'Summarize'}</button>` : ''}<button class="secondary" data-act="note-read" data-id="${n.id}">Open full</button><button class="primary" data-act="note-edit" data-id="${n.id}">Edit</button></div></div>` : ''}</div>`; }).join('') || '<p class="muted" style="padding:10px 4px;font-size:12px">No notes yet.</p>'}
+        <button class="fcard-new" data-2b="note-in-folder" data-tab="${esc(tab)}" data-folder="${esc(f)}">+ New note in ${esc(f)}</button></div>` : ''}</article>`;
+  }).join('');
+}
+function decorateNotes() {
+  if (page !== 'notes' || noteFolder !== 'all') return;
+  const grid = document.querySelector('#page-content .notes-grid.folder-grid'); if (!grid) return;
+  const html = folderCards(noteTab);
+  grid.outerHTML = `<div class="fcards">${html}</div>`;
+  if (html) document.querySelectorAll('#page-content > .empty').forEach(e => e.remove());
+}
+
 render = function () {
+  // a single-folder view always shows as the folder list with that folder open
+  if (page === 'notes' && noteFolder !== 'all' && !(noteTab === 'Spanish' && noteFolder === 'Phrases')) { openFolders.add(fKey(noteTab, noteFolder)); ls.set('2b-openf', [...openFolders]); noteFolder = 'all'; }
   _render();
   const acts = document.querySelector('.header-actions');
   if (acts && !acts.querySelector('.sync-dot')) acts.insertAdjacentHTML('afterbegin', `<button class="icon-btn mic-btn" data-2b="capture-mic" aria-label="Voice capture">${ICONS.mic}</button><button class="icon-btn sync-dot" data-2b="sync-settings" aria-label="Google sync settings"><i></i></button>`);
@@ -844,6 +871,7 @@ render = function () {
     const ctl = document.querySelector('.notes-controls');
     if (ctl) { while (ctl.nextSibling) ctl.nextSibling.remove(); ctl.insertAdjacentHTML('afterend', '<div class="sp-panel">' + spanishPanel() + '</div>'); }
   }
+  decorateNotes();
   // workouts: where the plan comes from
   const wc = document.querySelector('.week-control');
   if (page === 'workouts' && wc && cfg.url) wc.insertAdjacentHTML('afterend', `<p class="plan-src">Plan: Little Elm sheet${cfg.planError ? ' · not loaded: ' + esc(cfg.planError) : ''} · Garmin: ${cfg.garminAt ? 'synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected'}</p>`);
@@ -897,6 +925,9 @@ addEventListener('click', async e => {
       break;
     }
     case 'swap-day': swapDay(b.dataset.date); break;
+    case 'folder-toggle': { const k = fKey(b.dataset.tab, b.dataset.folder); if (openFolders.has(k)) openFolders.delete(k); else { openFolders.add(k); const st = new Date().toISOString(); data.notes.filter(n => n.tab === b.dataset.tab && n.folder === b.dataset.folder).forEach(n => n.lastOpened = st); _save(); } ls.set('2b-openf', [...openFolders]); render(); break; }
+    case 'note-toggle': { const id = b.dataset.id; if (openNotes.has(id)) openNotes.delete(id); else { openNotes.add(id); const n = data.notes.find(x => x.id === id); if (n) { n.lastOpened = new Date().toISOString(); _save(); } } render(); break; }
+    case 'note-in-folder': { const keep = noteFolder; noteTab = b.dataset.tab; noteFolder = b.dataset.folder; noteEditor(); noteFolder = keep; break; }
     case 'sp-mic': spMicToggle(); break;
     case 'sp-filter': phraseFilter = b.dataset.v; render(); break;
     case 'phrase': { const p = data.notes.find(x => x.id === b.dataset.id); if (p) { normPhrase(p); p.lastOpened = new Date().toISOString(); phraseDetail(p, false); } break; }

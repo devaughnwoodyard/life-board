@@ -89,3 +89,22 @@
 .session b{display:flex;align-items:flex-start}.session b .sport-ic{margin-top:-1px}
 .session.from-garmin b::before{content:none}.session.from-garmin small::before{content:"✓ ";color:#2fb36b;font-weight:700}
 .disc-row>b{display:flex;align-items:center}
+
+/* notes: folder cards + cascading notes */
+.fcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-items:start;margin-top:6px}
+body[data-device="mobile"] .fcards{grid-template-columns:1fr;gap:10px}
+.fcard{background:#ffffffb8;border:1px solid #fffffff0;border-radius:20px;box-shadow:0 8px 24px #294b6407;overflow:hidden}
+.fcard.open{grid-column:1/-1;background:#fff}
+.fcard-h{display:flex;align-items:center;gap:14px;width:100%;padding:20px 20px;text-align:left;min-height:84px}
+.fold-ic{width:38px;height:38px;flex:none;padding:9px;border-radius:12px;background:#e3eef7;fill:#cfe2f1;stroke:var(--accent);stroke-width:1.6;stroke-linejoin:round}
+.fcard.open .fold-ic{background:var(--accent);fill:#ffffff40;stroke:#fff}
+.fcard-t{flex:1;min-width:0}.fcard-t b{display:block;font-size:16px;font-weight:650;letter-spacing:-.2px}.fcard-t small{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+.fcard-chev{font-size:16px;color:var(--muted);transition:transform .15s}.fcard.open>.fcard-h .fcard-chev,.nrow.ex .nrow-h .fcard-chev{transform:rotate(180deg)}
+.fcard-list{border-top:1px solid var(--line);padding:6px 14px 14px 20px}
+.nrow{border-bottom:1px solid var(--line)}.nrow:last-of-type{border-bottom:0}
+.nrow-h{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 4px;min-height:52px}
+.nrow-dot{width:4px;height:26px;border-radius:3px;background:#82a5bd;flex:none}.nrow.ex .nrow-dot{background:var(--accent)}
+.nrow-t{flex:1;min-width:0}.nrow-t b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nrow-t small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.nrow-body{padding:0 4px 16px 20px}.nrow-body .reader{min-height:0;font-size:14px;padding:16px 18px;max-height:480px;overflow:auto}
+.nrow-act{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.fcard-new{color:var(--accent);font-size:12px;font-weight:600;padding:12px 4px 0}
