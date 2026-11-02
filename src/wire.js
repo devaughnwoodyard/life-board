@@ -1029,6 +1029,35 @@ const q = new URLSearchParams(location.search);
 if (q.get('add')) { runCommand(q.get('add'), { from: 'link' }); history.replaceState(null, '', location.pathname); }
 else if (q.get('capture')) { setTimeout(() => captureSheet(true), 300); history.replaceState(null, '', location.pathname); }
 
+/* ---------- Pull down to sync everything ---------- */
+let refreshing = false;
+async function fullRefresh(manual) {
+  if (refreshing) return; refreshing = true; ptrState('busy');
+  try {
+    checkUpdate();
+    if (!cfg.url) { if (manual) notify('Connect Google sync first (the dot in the header).'); return; }
+    let garmin = '';
+    try { const r = await api({ action: 'strava' }); cfg.strava = r.strava; garmin = r.strava && r.strava.error ? 'Strava: ' + r.strava.error : r.added ? r.added + ' new Garmin activit' + (r.added === 1 ? 'y' : 'ies') : ''; } catch (e) { garmin = ''; }
+    cfg.planAt = 0; saveCfg();
+    await sync(false);
+    if (manual) notify(/^Synced/.test(cfg.status || '') ? 'Synced: workouts, plan, calendar, notes.' + (garmin ? ' ' + garmin + '.' : '') : cfg.status);
+  } finally { refreshing = false; ptrState(''); }
+}
+document.body.insertAdjacentHTML('beforeend', '<div class="ptr" id="ptr" aria-hidden="true"><span class="ptr-spin"></span><span class="ptr-t">Pull to sync</span></div>');
+function ptrState(st, pull) {
+  const el = document.getElementById('ptr'); if (!el) return;
+  el.dataset.state = st; const t = el.querySelector('.ptr-t');
+  if (st === 'busy') { el.style.transform = 'translate(-50%,12px)'; t.textContent = 'Syncing…'; }
+  else if (st === 'pull') { el.style.transform = `translate(-50%,${Math.min(pull, 90) - 50}px)`; t.textContent = pull > 70 ? 'Release to sync' : 'Pull to sync'; el.classList.toggle('ready', pull > 70); }
+  else { el.style.transform = ''; el.classList.remove('ready'); }
+}
+let ptr = null;
+addEventListener('touchstart', e => { if (scrollY > 2 || $('#modal-root').children.length || drag || press || e.touches.length !== 1) { ptr = null; return; } ptr = { y: e.touches[0].clientY, d: 0 }; }, { passive: true });
+addEventListener('touchmove', e => { if (!ptr || refreshing) return; ptr.d = e.touches[0].clientY - ptr.y; if (scrollY > 2 || drag) { ptr = null; ptrState(''); return; } if (ptr.d > 10) ptrState('pull', ptr.d * 0.6); }, { passive: true });
+addEventListener('touchend', () => { if (!ptr) return; const go = ptr.d * 0.6 > 70; ptr = null; if (go) fullRefresh(true); else ptrState(''); });
+// A browser reload (Safari's own pull-to-refresh) also runs the full sync
+const navType = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0] || {}).type;
+
 if (firstRun) _save();
 markChanges();
 // Pull-to-refresh / reload keeps you on the page you were on (for this session)
@@ -1043,7 +1072,7 @@ try {
 } catch (e) {}
 addEventListener('pagehide', () => { try { const v = JSON.parse(sessionStorage.getItem('2b-view') || '{}'); v.y = scrollY; sessionStorage.setItem('2b-view', JSON.stringify(v)); } catch (e) {} });
 render();
-if (cfg.url) sync();
+if (cfg.url) { if (navType === 'reload') fullRefresh(true); else sync(); }
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();

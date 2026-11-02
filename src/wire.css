@@ -170,3 +170,12 @@ body[data-device="mobile"][data-page="workouts"] .stats{gap:8px;margin:6px 0 14p
 body[data-device="mobile"][data-page="workouts"] .stats>div{padding:10px 12px}
 body[data-device="mobile"][data-page="workouts"] .stats b{font-size:21px!important}
 body[data-device="mobile"][data-page="workouts"] .stats small{font-size:9px}
+
+/* pull to sync */
+.ptr{position:fixed;left:50%;top:0;z-index:60;transform:translate(-50%,-60px);transition:transform .2s;display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:20px;background:#fff;box-shadow:0 6px 20px #1d2c3b26;font-size:12px;font-weight:600;color:var(--accent);pointer-events:none;margin-top:env(safe-area-inset-top,0px)}
+.ptr[data-state="pull"]{transition:none}
+.ptr-spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--soft);border-top-color:var(--accent)}
+.ptr.ready .ptr-spin{border-color:var(--accent)}
+.ptr[data-state="busy"] .ptr-spin{animation:ptrspin .8s linear infinite}
+@keyframes ptrspin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.ptr[data-state="busy"] .ptr-spin{animation:none}}
