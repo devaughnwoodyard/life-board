@@ -43,3 +43,11 @@ Open an imported note → **Summary**: date, main topics and to-dos (with **Add*
 
 ## Siri
 Shortcuts → **+**: **Dictate Text** → **Get Contents of URL** (your `/exec` URL, Method POST, Request Body JSON: `action` = `add`, `token` = your key, `text` = Dictated Text) → **Show Notification** "Added". Say the same commands ("To do Friday, call the dentist"); they're created on the app's next sync.
+
+## Send the plan to Garmin (through Intervals.icu)
+1. Make a free account at https://intervals.icu → **Settings** → connect **Garmin Connect** → turn on **Upload planned workouts**.
+2. Intervals.icu **Settings → Developer Settings**: copy **Athlete ID** (looks like `i123456`) and **API Key**.
+3. Apps Script → ⚙️ **Project Settings → Script Properties → Add**: `ICU_ATHLETE` = athlete ID, `ICU_KEY` = API key. Save.
+4. Paste the latest Code.gs, **Deploy → Manage deployments → ✏️ → New version**.
+5. In the app: sync dot → **Send plan to Garmin** (or run `sendPlanToGarmin` in the editor). Re-run any time the plan changes; it updates the same workouts.
+On the watch: Run/Bike/Swim → Training → **Today's workout** (or Calendar). Runs use HR zones, rides use watts, swims and lifts are timed.

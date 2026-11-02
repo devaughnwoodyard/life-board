@@ -531,7 +531,7 @@ function syncSheet() {
     <label for="s-names">Names that mean “with people” on your calendar</label><input id="s-names" value="${esc(cfg.names || '')}" placeholder="e.g. Steph, Kofi, Dana">
     <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}</p>
     <button type="button" class="submit" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button>
-    ${cfg.url ? '<button type="button" class="wide-button" data-2b="s-plan">Reload training plan</button><button type="button" class="danger" data-2b="s-off">Disconnect this device</button>' : ''}`, { kind: '2b-sync' });
+    ${cfg.url ? '<button type="button" class="wide-button" data-2b="s-plan">Reload training plan</button><button type="button" class="wide-button" data-2b="s-garmin">Send plan to Garmin</button><button type="button" class="danger" data-2b="s-off">Disconnect this device</button>' : ''}`, { kind: '2b-sync' });
 }
 function paintStatus() { const el = document.getElementById('s-status'); if (el) el.textContent = cfg.status || ''; const dot = document.getElementById('sync-dot'); if (dot) dot.dataset.state = /^Synced/.test(cfg.status || '') ? 'ok' : /^Syncing/.test(cfg.status || '') ? 'busy' : cfg.url ? 'err' : 'off'; }
 
@@ -596,6 +596,12 @@ addEventListener('click', async e => {
       break;
     }
     case 's-plan': cfg.planAt = 0; saveCfg(); closeModal(); sync(true); break;
+    case 's-garmin': {
+      b.disabled = true; b.textContent = 'Sending…';
+      try { const r = await api({ action: 'icu' }); toast(`Sent ${r.sent} workouts to Intervals.icu → Garmin (from ${fmtDay(r.from)}).`); }
+      catch (err) { toast('Garmin: ' + err.message); }
+      b.disabled = false; b.textContent = 'Send plan to Garmin'; break;
+    }
     case 's-off': cfg = { names: cfg.names }; saveCfg(); closeModal(); paintStatus(); toast('This device is no longer syncing. Your data stays here.'); break;
   }
 }, true);

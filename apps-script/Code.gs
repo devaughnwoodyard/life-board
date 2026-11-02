@@ -65,6 +65,7 @@ function handle_(b) {
     if (b.action === 'plan') return out_(plan_());
     if (b.action === 'getfile') return out_(getfile_(b));
     if (b.action === 'summarize') return out_(summarize_(b));
+    if (b.action === 'icu') return out_(icu_(b));
     return out_({ ok: false, error: 'unknown action' });
   } finally { lock.releaseLock(); }
 }
@@ -259,4 +260,63 @@ function summarize_(b) {
   var m = txt.match(/\{[\s\S]*\}/);
   var s = JSON.parse(m ? m[0] : txt);
   return { ok: true, summary: { date: s.date || b.date || '', topics: s.topics || [], todos: s.todos || [] } };
+}
+
+// ---------- Send the training plan to Garmin (through Intervals.icu) ----------
+// One-time: intervals.icu account → Settings → connect Garmin and turn on uploading planned workouts.
+// Settings → Developer Settings: copy Athlete ID and API key into Script Properties ICU_ATHLETE and ICU_KEY.
+// Then run sendPlanToGarmin (or tap "Send plan to Garmin" in the app). Re-running updates the same workouts.
+function sendPlanToGarmin() { var r = icu_({}); Logger.log(JSON.stringify(r)); return r; }
+function icu_(b) {
+  var p = PropertiesService.getScriptProperties(), ath = p.getProperty('ICU_ATHLETE'), key = p.getProperty('ICU_KEY');
+  if (!ath || !key) return { ok: false, error: 'Add ICU_ATHLETE and ICU_KEY in Script Properties first' };
+  var tz = Session.getScriptTimeZone(), today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  var events = [];
+  plan_().rows.forEach(function (d) {
+    if (d.date < today) return;
+    [['am', d.am], ['pm', d.pm]].forEach(function (s) {
+      var sport = String(s[1][0] || ''), text = String(s[1][1] || ''), min = Number(s[1][2]) || 0;
+      if (!text || /^rest$/i.test(sport)) return;
+      var mi = /run/i.test(sport) && Number(d.mi) ? Number(d.mi) : 0;
+      var w = icuWorkout_(sport, text, min, mi);
+      events.push({
+        category: 'WORKOUT', start_date_local: d.date + 'T00:00:00', type: w.type,
+        name: text.split(/[:(]/)[0].trim().slice(0, 60), external_id: 'gp-' + d.date + '-' + s[0],
+        moving_time: min * 60, description: text + (d.bail ? '\nBail: ' + d.bail : '') + (w.steps ? '\n\n' + w.steps : '')
+      });
+    });
+  });
+  var res = UrlFetchApp.fetch('https://intervals.icu/api/v1/athlete/' + encodeURIComponent(ath) + '/events/bulk?upsert=true', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Basic ' + Utilities.base64Encode('API_KEY:' + key) }, payload: JSON.stringify(events)
+  });
+  var code = res.getResponseCode();
+  if (code >= 300) return { ok: false, error: 'Intervals.icu ' + code + ': ' + res.getContentText().slice(0, 200) };
+  return { ok: true, sent: events.length, from: today };
+}
+// Structured steps in Intervals.icu workout text (Garmin shows these step by step with targets).
+function icuWorkout_(sport, t, min, mi) {
+  var type = /run|race/i.test(sport) ? 'Run' : /bike|ride|spin/i.test(sport) ? 'Ride' : /swim/i.test(sport) ? 'Swim'
+    : /yoga|mobility/i.test(sport) ? 'Yoga' : 'WeightTraining';
+  var m, s = null, Z1 = ' Z1 HR', Z2 = ' Z2 HR';
+  if (type === 'Run') {
+    if ((m = t.match(/(\d+)×60s hill/))) s = '- 2mi' + Z2 + '\n\n' + m[1] + 'x\n- 60s Z5 HR\n- 90s' + Z1 + '\n\n- 1mi' + Z2;
+    else if ((m = t.match(/(\d+) min steady tempo/))) s = '- 2mi' + Z2 + '\n- ' + m[1] + 'm Z3 HR\n- 1mi' + Z2;
+    else if ((m = t.match(/(\d+) min tempo/))) s = '- 2mi' + Z2 + '\n- ' + m[1] + 'm Z3 HR\n- 1mi' + Z2;
+    else if ((m = t.match(/(\d+)×(\d+) min threshold.*?w\/ (\d+)\s*(min|s)/))) s = '- 2mi' + Z2 + '\n\n' + m[1] + 'x\n- ' + m[2] + 'm Z4 HR\n- ' + m[3] + (m[4] === 's' ? 's' : 'm') + Z1 + '\n\n- 1mi' + Z2;
+    else if ((m = t.match(/(\d+)×(\d+) mi @[^w]*w\/ (\d+) min/))) s = '- 2mi' + Z2 + '\n\n' + m[1] + 'x\n- ' + m[2] + 'mi Z4 HR\n- ' + m[3] + 'm' + Z1 + '\n\n- 1mi' + Z2;
+    else if ((m = t.match(/(\d+)×(\d+) mi @/))) s = '- 2mi' + Z2 + '\n\n' + m[1] + 'x\n- ' + m[2] + 'mi Z4 HR\n- 2m' + Z1 + '\n\n- 1mi' + Z2;
+    else if ((m = t.match(/(\d+) mi @ goal HM pace/))) s = '- 2mi' + Z2 + '\n- ' + m[1] + 'mi Z4 HR\n- 1mi' + Z2;
+    else if ((m = t.match(/last (\d+) mi at steady/)) && mi) s = '- ' + (mi - Number(m[1])) + 'mi' + Z2 + '\n- ' + m[1] + 'mi Z3 HR';
+    else if (/race|half marathon|IRONMAN/i.test(t)) s = null;
+    else if (mi) s = '- ' + mi + 'mi' + Z2 + (/strides/.test(t) ? '\n\n4x\n- 20s Z5 HR\n- 60s' + Z1 : '');
+    else if (min) s = '- ' + min + 'm' + Z2;
+  } else if (type === 'Ride') {
+    if ((m = t.match(/(\d+)×(\d+) min @ (\d+)-(\d+) W w\/ (\d+) min/))) s = '- 10m 92-125w\n\n' + m[1] + 'x\n- ' + m[2] + 'm ' + m[3] + '-' + m[4] + 'w\n- ' + m[5] + 'm 90-110w\n\n- 10m 92-125w';
+    else if ((m = t.match(/(\d+)×(\d+) min sweet spot \((\d+)-(\d+) W\) w\/ (\d+) min/))) s = '- 10m 92-125w\n\n' + m[1] + 'x\n- ' + m[2] + 'm ' + m[3] + '-' + m[4] + 'w\n- ' + m[5] + 'm 90-110w\n\n- 10m 92-125w';
+    else if ((m = t.match(/(\d+)×(\d+) min @ 70\.3 power/))) s = '- 10m 92-125w\n\n' + m[1] + 'x\n- ' + m[2] + 'm 115-125w\n- 3m 90-110w\n\n- 10m 92-125w';
+    else if ((m = t.match(/last (\d+) min at 70\.3 effort/)) && min) s = '- ' + (min - Number(m[1])) + 'm 92-125w\n- ' + m[1] + 'm 115-125w';
+    else if (min) s = '- ' + min + 'm 92-125w';
+  } else if (min) s = '- ' + min + 'm';
+  return { type: type, steps: s };
 }
