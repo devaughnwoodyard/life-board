@@ -149,3 +149,24 @@ body[data-device="mobile"] .quick-form{flex-wrap:nowrap!important}
 body[data-device="mobile"] .quick-form input{flex:1 1 auto!important;min-width:0}
 body[data-device="mobile"] .quick-form select{width:92px!important;flex:none}
 body[data-device="mobile"] .qf-add{padding:0 12px}
+
+/* planned (black) vs actual (blood orange), same size */
+:root{--act:#b3361a;--pln:#1a1f24}
+.v-act{color:var(--act)!important;font-weight:650}.v-pln{color:var(--pln)!important;font-weight:600}.v-sep{color:var(--muted);font-weight:400}
+.disc-row>span{font-size:13px}.disc-mi{font-size:13px}
+.disc-bar>i{background:var(--act)!important}
+.stats b.v-act,.stats b.v-pln{font-size:25px;letter-spacing:-1px}
+.session small{line-height:1.5}.session small .v-act,.session small .v-pln{font-size:10px}
+.session.from-garmin small::before{content:none}
+.session-preview span .v-act,.session-preview span .v-pln{font-size:10px}
+
+/* workouts on mobile: no page title, + sits in the week bar */
+.wk-add{display:none}
+body[data-device="mobile"][data-page="workouts"] #page-content>.page-head{display:none}
+body[data-device="mobile"][data-page="workouts"] .wk-add{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:var(--accent)!important;color:#fff;font-size:20px;border:0!important;padding:0!important;margin-left:6px}
+body[data-device="mobile"][data-page="workouts"] .week-control{padding-top:14px;gap:6px}
+body[data-device="mobile"][data-page="workouts"] .week-control strong{flex:1;text-align:center}
+body[data-device="mobile"][data-page="workouts"] .stats{gap:8px;margin:6px 0 14px}
+body[data-device="mobile"][data-page="workouts"] .stats>div{padding:10px 12px}
+body[data-device="mobile"][data-page="workouts"] .stats b{font-size:21px!important}
+body[data-device="mobile"][data-page="workouts"] .stats small{font-size:9px}

@@ -879,6 +879,8 @@ render = function () {
   if (page === 'notes' && noteFolder !== 'all' && !(noteTab === 'Spanish' && noteFolder === 'Phrases')) { openFolders.add(fKey(noteTab, noteFolder)); ls.set('2b-openf', [...openFolders]); noteFolder = 'all'; }
   _render();
   document.body.dataset.page = page;
+  try { sessionStorage.setItem('2b-view', JSON.stringify({ page, noteTab, week, month, selectedDate, taskFilter, y: page === lastPage ? scrollY : 0 })); } catch (e) {}
+  lastPage = page;
   const qf = document.getElementById('quick-task');
   if (qf && !qf.querySelector('.qf-add')) qf.insertAdjacentHTML('beforeend', '<button class="primary qf-add" type="submit" aria-label="Add to-do">+ Add</button>');
   const acts = document.querySelector('.header-actions');
@@ -916,16 +918,33 @@ render = function () {
       const pmi = l.reduce((s, w) => s + (Number(w.miles) || 0), 0), ami = l.reduce((s, w) => s + (Number(w.garmin && w.garmin.mi) || Number(w.actualMiles) || 0), 0);
       const hm = m => m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') : m + 'm';
       const pct = pm ? Math.min(100, Math.round(am / pm * 100)) : 0;
-      return `<div class="disc-row"><b>${k}</b><span>${hm(am)} <small>/ ${hm(pm)}</small></span><span class="disc-mi">${k === 'Run' ? (Math.round(ami * 10) / 10) + ' <small>/ ' + (Math.round(pmi * 10) / 10) + ' mi</small>' : ''}</span><i class="disc-bar"><i style="width:${pct}%"></i></i></div>`;
+      const r1 = x => Math.round(x * 10) / 10;
+      return `<div class="disc-row"><b>${k}</b><span><span class="v-act">${hm(am)}</span> <span class="v-sep">/</span> <span class="v-pln">${hm(pm)}</span></span><span class="disc-mi">${k === 'Run' ? `<span class="v-act">${r1(ami)}</span> <span class="v-sep">/</span> <span class="v-pln">${r1(pmi)} mi</span>` : ''}</span><i class="disc-bar"><i style="width:${pct}%"></i></i></div>`;
     }).join('');
     const st = document.querySelector('#page-content .stats');
     if (st && rows) st.insertAdjacentHTML('afterend', `<section class="disc" aria-label="Planned vs actual by discipline"><div class="disc-h"><span>This week by discipline</span><span>actual / planned</span></div>${rows}</section>`);
   }
   if (page === 'workouts' && Object.keys(cfg.planQ || {}).length) document.querySelector('.week-control')?.insertAdjacentHTML('afterend', `<p class="plan-src">${Object.keys(cfg.planQ).length} day(s) waiting to save to the plan sheet</p>`);
+  if (page === 'workouts') {
+    const st = document.querySelectorAll('#page-content .stats > div');
+    if (st[0]) st[0].querySelector('b')?.classList.add('v-pln'); if (st[1]) st[1].querySelector('b')?.classList.add('v-act');
+    const ph = document.querySelector('#page-content .page-head'), wc = document.querySelector('#page-content .week-control');
+    if (ph && wc && !wc.querySelector('.wk-add')) wc.querySelector('strong')?.insertAdjacentHTML('afterend', '<button class="wk-add" data-act="workout-new" aria-label="Plan a session">+</button>');
+  }
+  document.querySelectorAll('.session-preview button[data-act="workout-log"]').forEach(el => {
+    const w = data.workouts.find(x => x.id === el.dataset.id), sp = el.querySelector('span'); if (!w || !sp) return;
+    sp.innerHTML = `<span class="v-pln">${w.target} min</span> · ${w.actual == null ? 'Log session' : `<span class="v-act">${w.actual} min done</span>`}`;
+  });
   decorateSportIcons();
   document.querySelectorAll('.session').forEach(el => {
     const b = el.querySelector('[data-act="workout-edit"]'); const w = b && data.workouts.find(x => x.id === b.dataset.id);
-    if (w && w.garmin) { el.classList.add('from-garmin'); el.querySelector('small')?.insertAdjacentHTML('beforeend', ` · ✓ ${w.garmin.mi ? w.garmin.mi + ' mi' : ''}${w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}`); }
+    const sm = el.querySelector('small');
+    if (w && sm) {
+      const pct = w.actual != null && w.target ? Math.round(Math.min(w.actual / w.target, 1) * 100) : null;
+      const act = w.actual != null ? [w.actual + ' min', w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', pct != null ? pct + '%' : ''].filter(Boolean).join(' · ') : '';
+      sm.innerHTML = `${esc(w.kind)} · <span class="v-pln">${w.target} min${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${act ? `<br><span class="v-act">${w.garmin ? '✓ ' : ''}${esc(act)}</span>` : ''}`;
+    }
+    if (w && w.garmin) el.classList.add('from-garmin');
   });
 };
 
@@ -1004,6 +1023,17 @@ else if (q.get('capture')) { setTimeout(() => captureSheet(true), 300); history.
 
 if (firstRun) _save();
 markChanges();
+// Pull-to-refresh / reload keeps you on the page you were on (for this session)
+let lastPage = page;
+try {
+  const v = JSON.parse(sessionStorage.getItem('2b-view') || 'null');
+  if (v && ['home', 'todo', 'notes', 'workouts', 'habits', 'calendar'].includes(v.page)) {
+    page = v.page; lastPage = page;
+    if (v.noteTab) noteTab = v.noteTab; if (v.week) week = v.week; if (v.month) month = v.month; if (v.selectedDate) selectedDate = v.selectedDate; if (v.taskFilter) taskFilter = v.taskFilter;
+    if (v.y) setTimeout(() => scrollTo(0, v.y), 50);
+  }
+} catch (e) {}
+addEventListener('pagehide', () => { try { const v = JSON.parse(sessionStorage.getItem('2b-view') || '{}'); v.y = scrollY; sessionStorage.setItem('2b-view', JSON.stringify(v)); } catch (e) {} });
 render();
 if (cfg.url) sync();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
