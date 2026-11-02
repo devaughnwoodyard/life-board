@@ -1,16 +1,13 @@
-# Life Board
+# 2nd Brain
 
-Personal week-first board: To Do / Upcoming, Week view, habits, workouts, Plan day, Close the day, notes, and voice entry. Runs offline on iPhone as a home-screen app.
+To-dos, notes (folders + files), Google Calendar, Little Elm training plan, habits and Spanish in one app. Mobile layout under 900px, desktop command center above. Works offline; syncs through Google Apps Script.
 
-**Install:** open https://devaughnwoodyard.github.io/life-board/ in Safari → Share → **Add to Home Screen**. Open it once while online; after that it works with no connection.
+**Open:** https://devaughnwoodyard.github.io/life-board/ (iPhone: Safari → Share → Add to Home Screen)
+**Set up sync:** `apps-script/SETUP.md`
 
-## Data
-Stored on the device and works offline. Optional sync to your own Google Sheet via Apps Script: see `apps-script/SETUP.md`. Also enables a Siri Shortcut for quick adds.
+## Build
+`python3 tools/build_2b.py` → writes `index.html`, `sw.js`, `manifest.webmanifest` from:
+- `src/2nd-brain-mockup.html`: the design (drop a new mockup here to restyle)
+- `src/wire.js`, `src/wire.css`: sync, calendar, training plan, Drive files, quick capture (voice + commands), Granola import/summary
 
-## Not wired yet
-Workout plan import, Garmin/Strava actuals, Google Calendar reminders, and Claude file processing.
-
-## Files
-- `index.html`: the whole app
-- `sw.js`: offline cache (network-first for the page, so updates arrive when online)
-- `manifest.webmanifest`, `icons/`: home-screen install
+`src/lifeboard.html` + `tools/build_app.py` are the retired Life Board app; don't run that build (it overwrites `index.html`).

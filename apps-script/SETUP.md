@@ -1,41 +1,45 @@
 # 2nd Brain sync setup (about 10 minutes)
 
-## 1. Make the Sheet and script
-1. Open your **2nd Brain** folder in Google Drive and open the sheet in it called **Life Board**. Rename it **2nd Brain Data**. (Everything the app saves to Drive goes in this folder.)
-2. **Extensions → Apps Script**. Delete what's there, paste all of `Code.gs` from this folder, click **Save**.
-3. Pick **setup** in the function dropdown and click **Run**. Approve access (Advanced → Go to project → Allow).
-4. Open **Execution log** and copy the line `Your 2nd Brain key: …`. That's your key.
+## 1. Update the script
+1. Open **2nd Brain Data** (the sheet in your 2nd Brain Drive folder) → **Extensions → Apps Script**.
+2. Delete what's there, paste all of `Code.gs` from this folder, **Save**.
+3. Pick **setup** → **Run**. Approve access (Advanced → Go to project → Allow). It now also opens your Little Elm training plan sheet, so approve the extra access if asked.
+4. **Execution log** → copy `Your 2nd Brain key: …` (same key as before if you already had one).
 
-## 2. Publish it as a web app
-1. **Deploy → New deployment** → gear icon → **Web app**.
-2. Execute as: **Me**. Who has access: **Anyone**.
-3. **Deploy**, then copy the **Web app URL** (ends in `/exec`).
+## 2. Publish
+- First time: **Deploy → New deployment → Web app**. Execute as **Me**, access **Anyone**. Copy the `/exec` URL.
+- Already deployed: **Deploy → Manage deployments → pencil → Version: New version → Deploy**. The URL stays the same.
 
-"Anyone" means anyone with the URL can reach the script, but every request is rejected without your key. Don't share the key.
-
-## Spanish quiz
-The script also reads and writes your **Spanish for Life Tool** sheet (first tab): new phrases are added as rows, each correct day goes in the first empty **Prueba** column (5 filled = retired), and every answer is logged to a **Quiz Log** tab it creates. If you already deployed before this was added, paste the new code, run **setup** once more and approve the extra access (it now opens a second spreadsheet), then **Deploy → Manage deployments → New version**.
-
-## Google Calendar
-On each sync the script also reads your visible Google calendars (today + 14 days; holidays, birthdays and events you declined are skipped) and the app shows them as tiles with a **Google Calendar** pill. Events with guests show red; appointments (dentist, doctor, haircut, therapy, vet, check-up and similar titles, or anything on a calendar named "Appointments") show yellow. Calendars with "work", "Outlook" or "Office" in the name land under Work. Turn it off in **Settings → Google Calendar**. After pasting the new code, run **setup** again and approve calendar access, then deploy a **new version**.
-
-## Note attachments
-Files you drop or attach in Notes (.md, .docx, .xlsx, .txt, .csv, .pdf) are saved to **2nd Brain → Notes → Work / Personal → <note folder>**, and the note links to them. The app keeps a readable preview so you can search them offline. After pasting the new code, run **setup** again and approve Drive access, then deploy a **new version**.
+"Anyone" only means the URL is reachable; every request without your key is rejected. Don't share the key.
 
 ## 3. Connect each device
-In the app: **cog → Sync** → paste the URL and key → **Connect**. Do your phone first (it has your data), then the work browser and anything else.
+Open https://devaughnwoodyard.github.io/life-board/ → the small dot in the top-right corner (or **⋯ → Google sync**) → paste the URL and key → **Connect**. Phone: Safari → Share → **Add to Home Screen**.
 
-## 4. Siri: "Hey Siri, Life Board"
-In the **Shortcuts** app → **+**:
-1. **Dictate Text**. Stop Listening: After Pause.
-2. **Get Contents of URL**. URL: your `/exec` URL. Tap the arrow: Method **POST**, Request Body **JSON**, add three Text fields:
-   - `action` = `add`
-   - `token` = your key
-   - `text` = *Dictated Text* (pick the variable)
-3. **Show Notification**: `Added to Life Board`.
-4. Name the shortcut **Life Board**.
+Notes and to-dos from the old Life Board app come across on the first sync.
 
-Say "Hey Siri, Life Board", then "Task call mom tomorrow at 6" or "Note ask Sam about QA". It lands in the Sheet's Inbox and shows up in the app on its next sync (open the app, or within 2 minutes while it's open). Spanish works too: "Tarea…", "Nota…".
+## What syncs
+| | Where it lives |
+|---|---|
+| To-dos, notes, folders, habits, Spanish phrases | "Data" tab of 2nd Brain Data (newest edit wins) |
+| Note files, Granola imports, summaries | Drive → 2nd Brain → Notes → Work / Personal → folder |
+| Calendar | Your visible Google calendars, 2 weeks back to ~10 weeks ahead |
+| Workouts | The **Ironman 70.3 Little Elm 2027 — Training Plan** sheet (planned sessions; actuals from columns E–G once the Garmin/Strava script runs there). Reloads every 3 hours or from Google sync → Reload training plan. If you make a new plan sheet, set Script Property `PLAN_SHEET_ID`. |
 
-## Updating the script later
-Paste the new code, then **Deploy → Manage deployments → pencil → Version: New version → Deploy**. The URL stays the same.
+Calendar colors: a time in the title (e.g. "Dentist 3:30pm") = **appointment** (yellow). A person's name in the title (e.g. "Lunch with Dana") = **with people** (red). Add names the app doesn't know in **Google sync → Names**; names of your event guests are learned automatically.
+
+## Quick capture (voice or text)
+Tap the mic button (bottom right; **Ctrl/Cmd + J** on desktop):
+- `To do Friday, call the dentist` · `To do [Nov 14] book flights at 7pm` · `To do tomorrow, renew passport`
+- `Work note Vendor reviews, pricing came in 8% higher` → goes in the **Vendor reviews** folder if it exists, otherwise **General**. `Work note [New folder], …` creates the folder.
+- `Personal note …` works the same way. Anything else becomes a to-do for Today.
+- Say "comma" if the dictation doesn't add one. A toast confirms what was created, with **Undo**.
+
+iPhone voice: works in Safari. If the home-screen app says voice isn't available, tap in the box and use the keyboard's mic key; the same commands work.
+
+## Granola
+Notes → **Import Granola** (or **⋯ → Import Granola notes**). Paste a note copied from Granola or pick exported `.md`/`.txt` files. Each becomes a note with its meeting date; the original file uploads to Drive.
+
+Open an imported note → **Summary**: date, main topics and to-dos (with **Add** buttons), saved on the note and uploaded as `Summary - <title>.md`. For Claude-quality summaries add Script Property `ANTHROPIC_KEY` (Project Settings → Script Properties); without it the app uses its built-in summary.
+
+## Siri
+Shortcuts → **+**: **Dictate Text** → **Get Contents of URL** (your `/exec` URL, Method POST, Request Body JSON: `action` = `add`, `token` = your key, `text` = Dictated Text) → **Show Notification** "Added". Say the same commands ("To do Friday, call the dentist"); they're created on the app's next sync.

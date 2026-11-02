@@ -1,13 +1,12 @@
 {
-  "name": "Life Board",
-  "short_name": "Life Board",
-  "description": "Week-first personal kanban with habits and training",
+  "name": "2nd Brain",
+  "short_name": "2nd Brain",
+  "description": "To-dos, notes, calendar, training and habits in one place",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#efe8da",
-  "theme_color": "#1f4d37",
+  "background_color": "#f3f5f9",
+  "theme_color": "#f5f5f8",
   "icons": [
     {
       "src": "./icons/icon-192.png",
@@ -24,6 +23,13 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Quick capture",
+      "short_name": "Capture",
+      "url": "./?capture=1"
     }
   ]
 }

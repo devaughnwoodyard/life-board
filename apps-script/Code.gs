@@ -16,6 +16,8 @@ var ES_SHEET_ID = '1Yrd1kUdiQ3Dv3QEuZVcWlzETm9X-WaFRORSllLkuXAk', ES_LOG = 'Quiz
 // Everything the app saves to Drive goes under this folder: "2nd Brain".
 var HOME_FOLDER_ID = '1kAWONSWXTozPLNia1oGauzqxi290sOhN';
 // Appointment titles: these show yellow in the app. Events with guests show red.
+// Training plan sheet (Ironman 70.3 Little Elm 2027). Override with Script Property PLAN_SHEET_ID.
+var PLAN_SHEET_ID = '1GyQuEuDgY4o8XndLL7ArBprIBGWNV1-wv7azbsAcSVQ';
 var APPT_RE = /appointment|\bappt\b|dentist|doctor|\bdr\.?\s|clinic|therapy|haircut|barber|physio|\bvet\b|check-?up|massage|optometr|dermatolog|orthodont|chiro/i;
 
 function setup() {
@@ -29,6 +31,7 @@ function setup() {
   if (!k) { k = Utilities.getUuid().replace(/-/g, ''); p.setProperty('TOKEN', k); }
   try { esBook_().getName(); } catch (x) { Logger.log('Could not open the Spanish sheet: ' + x); }
   try { home_().getName(); } catch (x) { Logger.log('Could not open the 2nd Brain folder: ' + x); }
+  try { SpreadsheetApp.openById(p.getProperty('PLAN_SHEET_ID') || PLAN_SHEET_ID).getName(); } catch (x) { Logger.log('Could not open the training plan sheet: ' + x); }
   Logger.log('Your 2nd Brain key: ' + k);
   return k;
 }
@@ -51,6 +54,9 @@ function handle_(b) {
     if (b.action === 'file') return out_(file_(b));
     if (b.action === 'es') return out_(es_(b));
     if (b.action === 'ping') return out_({ ok: true });
+    if (b.action === 'plan') return out_(plan_());
+    if (b.action === 'getfile') return out_(getfile_(b));
+    if (b.action === 'summarize') return out_(summarize_(b));
     return out_({ ok: false, error: 'unknown action' });
   } finally { lock.releaseLock(); }
 }
@@ -159,6 +165,7 @@ function cal_(days) {
   var tz = Session.getScriptTimeZone();
   var start = new Date(); start.setHours(0, 0, 0, 0);
   var end = new Date(start.getTime() + (days + 1) * 864e5);
+  start = new Date(start.getTime() - 14 * 864e5);  // keep the last two weeks visible too
   var out = [];
   CalendarApp.getAllCalendars().forEach(function (c) {
     if (c.isHidden() || !c.isSelected()) return;
@@ -198,4 +205,50 @@ function file_(b) {
   var blob = Utilities.newBlob(Utilities.base64Decode(b.b64), b.mime || 'application/octet-stream', String(b.name).slice(0, 200));
   var f = sub.createFile(blob);
   return { ok: true, id: f.getId(), url: f.getUrl(), folder: '2nd Brain/Notes/' + (b.work ? 'Work' : 'Personal') + (b.folder ? '/' + sub.getName() : '') };
+}
+
+// ---------- Training plan (read-only) ----------
+// Columns from the Little Elm sheet: A date, E/G actual sport + minutes (Garmin/Strava sync),
+// AA-AC AM sport/session/min, AD-AF PM sport/session/min, AG bail rule, AH planned run miles.
+function plan_() {
+  var id = PropertiesService.getScriptProperties().getProperty('PLAN_SHEET_ID') || PLAN_SHEET_ID;
+  var sh = SpreadsheetApp.openById(id).getSheets()[0];
+  var v = sh.getDataRange().getValues(), tz = Session.getScriptTimeZone(), out = [];
+  for (var r = 2; r < v.length; r++) {
+    var d = v[r][0]; if (!d) continue;
+    var day = d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+    out.push({ date: day, am: [v[r][26], v[r][27], v[r][28]], pm: [v[r][29], v[r][30], v[r][31]], bail: v[r][32], mi: v[r][33],
+               act: v[r][4] ? { sport: String(v[r][4]), min: v[r][6], hr: v[r][7] } : null });
+  }
+  return { ok: true, rows: out };
+}
+
+// ---------- Download a note file saved earlier ----------
+function getfile_(b) {
+  var f = DriveApp.getFileById(String(b.id || ''));
+  var blob = f.getBlob();
+  return { ok: true, name: f.getName(), mime: blob.getContentType(), b64: Utilities.base64Encode(blob.getBytes()) };
+}
+
+// ---------- Meeting-note summary (optional: needs an Anthropic API key) ----------
+// Script Properties: ANTHROPIC_KEY (required for this), CLAUDE_MODEL (optional).
+// Without a key the app falls back to its built-in summary.
+function summarize_(b) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ANTHROPIC_KEY');
+  if (!key) return { ok: false, error: 'no key' };
+  var prompt = 'Summarize this meeting note. Reply with JSON only, no prose: ' +
+    '{"date":"YYYY-MM-DD (meeting date; use ' + (b.date || 'the date in the note') + ' if unsure)",' +
+    '"topics":["3-8 short main topics"],"todos":["action items, each starting with a verb; include the owner name if one is given"]}\n\n' +
+    'Title: ' + (b.title || '') + '\n\n' + String(b.text || '').slice(0, 60000);
+  var res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({ model: p.getProperty('CLAUDE_MODEL') || 'claude-sonnet-5-5', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (res.getResponseCode() !== 200) return { ok: false, error: 'Claude ' + res.getResponseCode() };
+  var txt = JSON.parse(res.getContentText()).content[0].text;
+  var m = txt.match(/\{[\s\S]*\}/);
+  var s = JSON.parse(m ? m[0] : txt);
+  return { ok: true, summary: { date: s.date || b.date || '', topics: s.topics || [], todos: s.todos || [] } };
 }
