@@ -299,15 +299,18 @@ async function loadPlan() {
   (r.rows || []).forEach(p => {
     const acts = (p.acts || (p.act ? [p.act] : [])).map(a => Object.assign({ kind: ACT_KIND(String(a.sport || '')) }, a));
     [['AM', p.am], ['PM', p.pm]].forEach(([slot, s]) => {
-      const [sport, session, mins] = s || [];
+      const sports = String((s || [])[0] || '').split(/\s*\+\s*/), sessions = String((s || [])[1] || '').split(/\s+\|\s+/), minsL = String((s || [])[2] == null ? '' : s[2]).split('+');
+      const parts = sessions.length > 1 && sports.length === sessions.length ? sessions.map((x, i) => [sports[i], x, minsL[i], i]) : [[(s || [])[0], (s || [])[1], (s || [])[2], 0]];
+      parts.forEach(([sport, session, mins, si]) => {
       const kind = KIND(sport || ''); if (!kind || !session) return;
       const ai = acts.findIndex(a => a.kind === kind && !a.used); const act = ai >= 0 ? acts[ai] : null; if (act) act.used = true;
-      const id = 'gp-' + p.date + '-' + slot.toLowerCase(), old = prev[id] || {};
+      const id = 'gp-' + p.date + '-' + slot.toLowerCase() + (si ? '-' + si : ''), old = prev[id] || {};
       const target = Number(mins) || 30, mi = kind === 'Run' && Number(p.mi) ? Number(p.mi) : 0;
       out.push({
         id, title: String(session).trim().slice(0, 160), date: p.date, slot, kind, target, effort: EFFORT(session, kind),
         actual: act ? Number(act.min) || target : (old.actual != null ? old.actual : null), actualEffort: act ? old.actualEffort || null : old.actualEffort || null,
         notes: old.notes || (p.bail ? 'Bail rule: ' + p.bail : ''), plan: true, miles: mi || undefined, sport: String(sport), bail: p.bail || '', garmin: act ? { name: act.name || '', mi: act.mi || null, hr: act.hr || null } : undefined
+      });
       });
     });
   });
@@ -331,7 +334,8 @@ const snapPlan = () => Object.fromEntries((data.workouts || []).filter(isPlan).m
 let planSnap = ls.get('2b-plansnap', null) || snapPlan();
 function dayRow(d) {
   const ws = data.workouts.filter(w => isPlan(w) && w.date === d);
-  const cell = sl => { const w = ws.find(x => x.slot === sl); return w ? [w.sport || w.kind, w.title, Number(w.target) || 0] : ['', '', '']; };
+  const cell = sl => { const l = ws.filter(x => x.slot === sl); if (!l.length) return ['', '', ''];
+    return l.length === 1 ? [l[0].sport || l[0].kind, l[0].title, Number(l[0].target) || 0] : [l.map(w => w.sport || w.kind).join(' + '), l.map(w => w.title.replace(/\s+\|\s+/g, ' / ')).join(' | '), l.map(w => Number(w.target) || 0).join('+')]; };
   const run = ws.find(w => w.kind === 'Run' && w.miles), first = ws.find(w => w.slot === 'AM') || ws[0];
   return { date: d, am: cell('AM'), pm: cell('PM'), bail: (first && first.bail) || (ws.find(w => w.bail) || {}).bail || '', mi: run ? run.miles : '' };
 }
@@ -343,12 +347,6 @@ function planChanges() {
     if (a.date !== b.date || a.slot !== b.slot || a.title !== b.title || a.target !== b.target || a.kind !== b.kind) { dates.add(a.date); dates.add(b.date); if (a.date !== b.date || a.slot !== b.slot) changed.push([id, a]); }
   });
   Object.keys(cur).forEach(id => { if (!planSnap[id]) dates.add(cur[id].date); });
-  // two plan sessions in one slot: the one already there moves to where the other came from
-  changed.forEach(([id, from]) => {
-    const w = data.workouts.find(x => x.id === id);
-    const o = data.workouts.find(x => isPlan(x) && x !== w && x.date === w.date && x.slot === w.slot && !changed.some(c => c[0] === x.id));
-    if (o) { o.date = from.date; o.slot = from.slot; dates.add(from.date); }
-  });
   if (!dates.size) return;
   data.workouts.filter(w => isPlan(w) && dates.has(w.date)).forEach(w => { const a = planSnap[w.id]; if (a && (a.date !== w.date || a.slot !== w.slot)) { w.actual = null; delete w.garmin; } });
   cfg.planQ = cfg.planQ || {};
@@ -364,7 +362,7 @@ async function pushPlan() {
     const r = await api({ action: 'planMove', days });
     days.forEach(d => { if (cfg.planQ[d.date] === d) delete cfg.planQ[d.date]; });
     cfg.planAt = 0; saveCfg();
-    notify((r.saved || []).length ? 'Training plan updated in Google Sheets.' : 'Those days aren’t in the plan sheet.');
+    const busy = !$('#toast').hidden && $('#toast button'); if (!busy) notify((r.saved || []).length ? 'Training plan updated in Google Sheets.' : 'Those days aren’t in the plan sheet.');
     sync();
   } catch (e) {
     notify(/unknown|action/i.test(e.message) ? 'Saved here. To update the sheet, paste the latest Code.gs and deploy a New version.' : 'Saved here; will update the sheet on the next sync.');
@@ -373,9 +371,17 @@ async function pushPlan() {
 function moveSession(id, date, slot) {
   const w = data.workouts.find(x => x.id === id); if (!w || (w.date === date && w.slot === slot)) return;
   const from = { date: w.date, slot: w.slot };
-  const o = data.workouts.find(x => x !== w && x.date === date && x.slot === slot && isPlan(x) === isPlan(w));
-  w.date = date; w.slot = slot; if (o) { o.date = from.date; o.slot = from.slot; }
-  save(); render(); notify(o ? 'Swapped.' : 'Moved to ' + fmtDay(date) + ' ' + slot + '.');
+  const there = data.workouts.filter(x => x !== w && x.date === date && x.slot === slot);
+  w.date = date; w.slot = slot;
+  save(); render();
+  const msg = 'Moved to ' + fmtDay(date) + ' ' + slot + '.';
+  if (!there.length) { notify(msg); return; }
+  actionToast(msg + ' Added alongside ' + there.map(x => x.title.split(/[:(,]/)[0].trim()).join(', ') + '.', 'Swap instead', () => {
+    const names = there.map(x => x.title), mine = w.title;
+    const now = data.workouts.filter(x => x.date === date && x.slot === slot && names.includes(x.title) && x.title !== mine);
+    if (!now.length) { notify('Couldn’t find those sessions to swap.'); return; }
+    now.forEach(x => { x.date = from.date; x.slot = from.slot; }); save(); render(); notify('Swapped.');
+  });
 }
 function swapDay(d) {
   const ws = data.workouts.filter(w => w.date === d); if (!ws.length) return;
@@ -478,6 +484,11 @@ function normalizeSpoken(t) {
     .replace(/\s+,/g, ',').replace(/,\s*,/g, ',').trim();
 }
 const fmtDay = d => d ? fmt(d, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+function actionToast(msg, label, fn) {
+  const t = $('#toast'); t.innerHTML = esc(msg) + ' <button type="button">' + esc(label) + '</button>'; t.hidden = false;
+  t.querySelector('button').onclick = () => { t.hidden = true; fn(); };
+  clearTimeout(window.__2bToast); clearTimeout(toastTimer); window.__2bToast = setTimeout(() => { t.hidden = true; }, 8000);
+}
 function undoToast(msg, undo) {
   const t = $('#toast'); t.innerHTML = esc(msg) + ' <button type="button" data-2b="undo">Undo</button>'; t.hidden = false;
   t.querySelector('button').onclick = () => { undo(); t.hidden = true; };
