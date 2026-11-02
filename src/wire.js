@@ -27,6 +27,8 @@ const ICONS = {
   book: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8z"/></svg>'
 };
 
+addEventListener('error', e => { try { notify('App error: ' + (e.message || e)); } catch (x) {} });
+addEventListener('unhandledrejection', e => { try { notify('App error: ' + ((e.reason && e.reason.message) || e.reason)); } catch (x) {} });
 /* ---------- 1. Real app, not a preview ---------- */
 let firstRun = false;
 if (data.__demo) {
@@ -40,15 +42,15 @@ function dedupeHabits() {
   let changed = false;
   const byTitle = {};
   data.habits.forEach(h => {
-    const k = h.title.trim().toLowerCase();
+    const k = String(h.title || '').trim().toLowerCase();
     if (!byTitle[k]) { byTitle[k] = h; return; }
     const keep = byTitle[k]; keep.days = [...new Set([...(keep.days || []), ...(h.days || [])])]; changed = true;
   });
   data.habits = Object.values(byTitle);
-  data.habits.forEach(h => { const want = HABITS.find(x => x[0].toLowerCase() === h.title.trim().toLowerCase()); if (want && h.id !== 'hab-' + slug(want[0])) { h.id = 'hab-' + slug(want[0]); changed = true; } });
+  data.habits.forEach(h => { const want = HABITS.find(x => x[0].toLowerCase() === String(h.title || '').trim().toLowerCase()); if (want && h.id !== 'hab-' + slug(want[0])) { h.id = 'hab-' + slug(want[0]); changed = true; } });
   return changed;
 }
-dedupeHabits();
+try { dedupeHabits(); } catch (e) {}
 
 /* ---------- 2. Change tracking + sync ---------- */
 const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return h.toString(36); };
@@ -135,16 +137,31 @@ function fromOldApp(c, d) {
   if (c === 'events') return d.gcal ? null : d;
   return d;
 }
+// Spanish phrases from the previous app become notes in Spanish › Phrases (same id prefix on every device)
+function phraseNote(d) {
+  if (!d || !d.id || !(d.es || d.en)) return null;
+  const body = '<p><b>' + esc(d.es || '') + '</b></p>' + (d.en ? '<p>' + esc(d.en) + '</p>' : '') + (d.note ? '<p>' + esc(d.note) + '</p>' : '');
+  const at = d.entered || new Date().toISOString();
+  return { id: 'ph-' + d.id, tab: 'Spanish', folder: 'Phrases', title: String(d.es || d.en).slice(0, 160), body, entered: at, updated: at, source: 'phrase' };
+}
 // Local data saved by the previous app version (same device): bring it across once.
+function markAllDirty() { const u = Date.now(); COLLS.forEach(c => (data[c] || []).forEach(x => { if (syncable(c, x)) dirty[c + '|' + x.id] = { u }; })); ls.set(DIRTY_KEY, dirty); }
 (function migrateLocal() {
-  const old = ls.get(OLD_KEY, null); if (!old || typeof old !== 'object') return;
-  (old.folders || []).forEach(f => fromOldApp('folders', f));
-  ['tasks', 'notes', 'habits', 'workouts'].forEach(c => (old[c] || []).forEach(x => {
-    const d = fromOldApp(c, x); if (!d || data[c].some(y => y.id === d.id)) return; data[c].push(d);
-  }));
-  dedupeHabits();
-  try { localStorage.removeItem(OLD_KEY); localStorage.removeItem('2b-hash'); } catch (e) {}
-  hashes = null; cfg.since = 0; cfg.planAt = 0; saveCfg(); _save();
+  const old = ls.get(OLD_KEY, null) || ls.get(OLD_KEY + '-backup', null);
+  if (old && typeof old === 'object' && !cfg.migratedV1) {
+    ls.set(OLD_KEY + '-backup', old);   // keep a copy until the next version
+    (old.folders || []).forEach(f => { try { fromOldApp('folders', f); } catch (e) {} });
+    ['tasks', 'notes', 'habits', 'workouts'].forEach(c => (old[c] || []).forEach(x => {
+      try { const d = fromOldApp(c, x); if (!d || data[c].some(y => y.id === d.id)) return; data[c].push(d); } catch (e) { console.warn('skip', c, e); }
+    }));
+    (old.phrases || []).forEach(x => { try { const d = phraseNote(x); if (d && !data.notes.some(y => y.id === d.id)) data.notes.push(d); } catch (e) {} });
+    try { localStorage.removeItem(OLD_KEY); } catch (e) {}
+  }
+  // one-time: pull everything from the Sheet again and push everything this device has
+  if (!cfg.migratedV1) {
+    try { dedupeHabits(); } catch (e) {}
+    cfg.migratedV1 = Date.now(); cfg.since = 0; cfg.planAt = 0; saveCfg(); _save(); hashes = null; markChanges(); markAllDirty();
+  }
 })();
 
 async function sync(manual) {
@@ -154,6 +171,7 @@ async function sync(manual) {
   try {
     markChanges();
     const sent = {};
+    Object.keys(dirty).forEach(k => { if (!COLLS.includes(k.split('|')[0])) delete dirty[k]; });
     const rows = Object.entries(dirty).map(([k, v]) => {
       const i = k.indexOf('|'), c = k.slice(0, i), idv = k.slice(i + 1);
       sent[k] = v.u;
@@ -165,9 +183,15 @@ async function sync(manual) {
     let changed = false;
     const incoming = res.rows || [];
     incoming.filter(r => r.c === 'folders' && !r.del).forEach(r => fromOldApp('folders', r.d));
+    incoming.filter(r => r.c === 'phrases').forEach(r => {
+      const nid = 'ph-' + r.id, at = data.notes.findIndex(x => x.id === nid);
+      if (r.del) { if (at >= 0 && data.notes[at].source === 'phrase') { data.notes.splice(at, 1); changed = true; } return; }
+      if (at >= 0) return;   // already a note (and maybe edited since)
+      const d = phraseNote(r.d); if (d) { data.notes.push(d); dirty['notes|' + nid] = { u: Date.now() }; changed = true; }
+    });
     incoming.forEach(r => {
       if (!COLLS.includes(r.c) || dirty[r.c + '|' + r.id]) return;
-      if (!r.del) { r.d = fromOldApp(r.c, r.d); if (!r.d) return; }
+      if (!r.del) { try { r.d = fromOldApp(r.c, r.d); } catch (e) { r.d = null; } if (!r.d) return; }
       const list = data[r.c] = data[r.c] || [];
       const at = list.findIndex(x => String(x.id) === String(r.id));
       if (r.del) { if (at >= 0) { list.splice(at, 1); changed = true; } }
@@ -180,7 +204,7 @@ async function sync(manual) {
     const hasPlan = (data.workouts || []).some(w => String(w.id).startsWith('gp-'));
     if (!hasPlan || Date.now() - (cfg.planAt || 0) > 30 * 60e3) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
     if (dedupeHabits()) changed = true;
-    if (changed) { _save(); hashes = null; markChanges(); }
+    if (changed) { _save(); hashes = null; markChanges(); if (Object.keys(dirty).length) schedule(1500); }
     (res.inbox || []).forEach(x => runCommand(x.text, { from: 'Siri' }));
     cfg.status = 'Synced ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     cfg.lastOk = Date.now(); saveCfg();
