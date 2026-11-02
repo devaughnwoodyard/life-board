@@ -71,7 +71,7 @@ function jsonp(url) {
     const done = () => { delete window[cb]; sc.remove(); clearTimeout(t); };
     const t = setTimeout(() => { done(); rej(new Error('No reply from Google (blocked or old script version)')); }, 25000);
     window[cb] = j => { done(); res(j); };
-    sc.onerror = () => { done(); rej(new Error('Google blocked the request. Check the deployment access is Anyone')); };
+    sc.onerror = () => { done(); rej(new Error('The script replied in the old format. Paste the latest Code.gs, deploy a New version, and make sure the URL here is that deployment\'s /exec link')); };
     sc.src = url + '&callback=' + cb; document.head.appendChild(sc);
   });
 }
