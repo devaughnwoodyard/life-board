@@ -81,7 +81,7 @@ function jsonp(url) {
     const done = () => { delete window[cb]; sc.remove(); clearTimeout(t); };
     const t = setTimeout(() => { done(); rej(new Error('No reply from Google (blocked or old script version)')); }, 25000);
     window[cb] = j => { done(); res(j); };
-    sc.onerror = () => { done(); rej(new Error('The script replied in the old format. Paste the latest Code.gs, deploy a New version, and make sure the URL here is that deployment\'s /exec link')); };
+    sc.onerror = () => { done(); rej(new Error('Google sent back a page instead of data. Usually Safari is signed into more than one Google account, or the URL is wrong. Open the /exec link in Safari: it should show {"ok":false,"error":"bad key"}')); };
     sc.src = url + '&callback=' + cb; document.head.appendChild(sc);
   });
 }
@@ -642,7 +642,7 @@ addEventListener('click', async e => {
     }
     case 'sync-settings': forceClose(); syncSheet(); break;
     case 's-save': {
-      const url = document.getElementById('s-url').value.trim(), key = document.getElementById('s-key').value.trim();
+      const url = (document.getElementById('s-url').value.match(/https:\/\/script\.google(?:usercontent)?\.com\/[^\s`'"<>]+?\/exec/) || [document.getElementById('s-url').value.trim()])[0], key = document.getElementById('s-key').value.replace(/[^A-Za-z0-9_-]/g, '');
       cfg.names = document.getElementById('s-names').value.trim(); learnNames();
       if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { notify('That should be the script.google.com …/exec link.'); return; }
       if (url && !key) { notify('Paste your key too: the long code after “Your 2nd Brain key:” in the Apps Script Execution log.'); document.getElementById('s-key').focus(); return; }
