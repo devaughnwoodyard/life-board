@@ -65,6 +65,7 @@ function handle_(b) {
     if (b.action === 'ping') return out_({ ok: true });
     if (b.action === 'plan') return out_(plan_());
     if (b.action === 'planMove') return out_(planMove_(b));
+    if (b.action === 'strava') { var n = syncStrava(); return out_({ ok: true, added: n, strava: stravaState_() }); }
     if (b.action === 'getfile') return out_(getfile_(b));
     if (b.action === 'summarize') return out_(summarize_(b));
     if (b.action === 'icu') return out_(icu_(b));
@@ -239,7 +240,7 @@ function plan_() {
     (acts[day] = acts[day] || []).push({ sport: String(x[1]), min: Number(x[3]) || 0, mi: Number(x[4]) || 0, hr: x[5] });
   });
   out.forEach(function (o) { o.acts = acts[o.date] || (o.act ? [o.act] : []); });
-  return { ok: true, rows: out, synced: PropertiesService.getScriptProperties().getProperty('STRAVA_LAST') || '' };
+  return { ok: true, rows: out, synced: PropertiesService.getScriptProperties().getProperty('STRAVA_LAST') || '', strava: stravaState_() };
 }
 
 // ---------- Moves made in the app (drag, swap AM/PM, edit) write back to the plan sheet ----------
@@ -354,23 +355,30 @@ function icuWorkout_(sport, t, min, mi) {
 // One-time setup: run connectStrava() and follow the two lines it prints in the Execution log.
 function connectStrava() {
   var p = PropertiesService.getScriptProperties(), id = p.getProperty('STRAVA_ID'), sec = p.getProperty('STRAVA_SECRET');
-  var url = ScriptApp.getService().getUrl();
+  var url = (ScriptApp.getService().getUrl() || '').replace(/\/dev$/, '/exec');   // the editor can report the /dev URL; Strava must come back to /exec
   if (!id || !sec) {
     Logger.log('1) Open https://www.strava.com/settings/api and create an app: name "2nd Brain", website https://devaughnwoodyard.github.io, Authorization Callback Domain: script.google.com');
     Logger.log('2) Project Settings → Script Properties: add STRAVA_ID = Client ID and STRAVA_SECRET = Client Secret. Then run connectStrava again.');
     return;
   }
   if (!url) { Logger.log('Deploy the web app first (Deploy → New deployment), then run this again.'); return; }
+  p.deleteProperty('STRAVA_ERR');
+  Logger.log('Strava will send you back to: ' + url);
   Logger.log('Open this link, click Authorize, and you are done:\n' + 'https://www.strava.com/oauth/authorize?client_id=' + id +
     '&response_type=code&approval_prompt=force&scope=activity:read_all&state=strava&redirect_uri=' + encodeURIComponent(url));
 }
 function stravaCallback_(p) {
-  if (p.error) return HtmlService.createHtmlOutput('<h2>Strava not connected</h2><p>' + p.error + '</p>');
   var props = PropertiesService.getScriptProperties();
+  if (p.error) { props.setProperty('STRAVA_ERR', 'Authorize was declined: ' + p.error); return HtmlService.createHtmlOutput('<h2>Strava not connected</h2><p>' + p.error + '</p>'); }
+  try { return stravaCallbackInner_(p, props); }
+  catch (x) { props.setProperty('STRAVA_ERR', 'Connect failed: ' + String(x).slice(0, 300)); return HtmlService.createHtmlOutput('<h2>Strava connect failed</h2><pre>' + String(x).slice(0, 500) + '</pre>'); }
+}
+function stravaCallbackInner_(p, props) {
   var r = UrlFetchApp.fetch('https://www.strava.com/oauth/token', { method: 'post', muteHttpExceptions: true, payload: {
     client_id: props.getProperty('STRAVA_ID'), client_secret: props.getProperty('STRAVA_SECRET'), code: p.code, grant_type: 'authorization_code' } });
   var j = JSON.parse(r.getContentText());
-  if (!j.refresh_token) return HtmlService.createHtmlOutput('<h2>Strava did not connect</h2><pre>' + r.getContentText().slice(0, 300) + '</pre>');
+  if (!j.refresh_token) { props.setProperty('STRAVA_ERR', 'Strava rejected the code: ' + r.getContentText().slice(0, 200)); return HtmlService.createHtmlOutput('<h2>Strava did not connect</h2><pre>' + r.getContentText().slice(0, 300) + '</pre>'); }
+  props.deleteProperty('STRAVA_ERR');
   props.setProperty('STRAVA_REFRESH', j.refresh_token);
   ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'syncStrava') ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('syncStrava').timeBased().everyHours(1).create();
@@ -389,7 +397,19 @@ function stravaToken_() {
 }
 function syncStrava() {
   var p = PropertiesService.getScriptProperties();
-  if (!p.getProperty('STRAVA_REFRESH')) return 0;
+  if (!p.getProperty('STRAVA_REFRESH')) { if (!p.getProperty('STRAVA_ERR')) p.setProperty('STRAVA_ERR', 'Not authorized yet: run connectStrava, open the link, click Authorize'); return 0; }
+  try { var n = syncStravaInner_(p); p.deleteProperty('STRAVA_ERR'); return n; }
+  catch (x) { p.setProperty('STRAVA_ERR', 'Sync failed: ' + String(x).slice(0, 300)); throw x; }
+}
+// Run this in the editor to see where the Strava link stands.
+function stravaStatus() { Logger.log(JSON.stringify(stravaState_(), null, 2)); }
+function stravaState_() {
+  var p = PropertiesService.getScriptProperties();
+  return { keys: !!(p.getProperty('STRAVA_ID') && p.getProperty('STRAVA_SECRET')), authorized: !!p.getProperty('STRAVA_REFRESH'),
+           last: p.getProperty('STRAVA_LAST') || '', error: p.getProperty('STRAVA_ERR') || '',
+           hourly: ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'syncStrava'; }) };
+}
+function syncStravaInner_(p) {
   var tok = stravaToken_(), tz = Session.getScriptTimeZone();
   var book = SpreadsheetApp.openById(p.getProperty('PLAN_SHEET_ID') || PLAN_SHEET_ID);
   var acts = book.getSheetByName('Activities');
@@ -410,7 +430,8 @@ function syncStrava() {
     var res = UrlFetchApp.fetch('https://www.strava.com/api/v3/athlete/activities?per_page=100&page=' + page + '&after=' + (after - 86400),
       { headers: { Authorization: 'Bearer ' + tok }, muteHttpExceptions: true });
     var list = JSON.parse(res.getContentText());
-    if (!Array.isArray(list) || !list.length) break;
+    if (!Array.isArray(list)) throw new Error('Strava API: ' + res.getContentText().slice(0, 200));
+    if (!list.length) break;
     list.forEach(function (a) {
       var t = Math.floor(new Date(a.start_date).getTime() / 1000); if (t > newest) newest = t;
       if (have[String(a.id)]) return;

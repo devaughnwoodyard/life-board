@@ -318,7 +318,7 @@ async function loadPlan() {
   if (Object.keys(cfg.planQ || {}).length) return false;   // local moves not on the sheet yet: don't overwrite them
   data.workouts = (data.workouts || []).filter(w => !String(w.id).startsWith('gp-')).concat(out);
   planSnap = snapPlan();
-  cfg.planAt = Date.now(); cfg.garminAt = r.synced || ''; delete cfg.planError; saveCfg();
+  cfg.planAt = Date.now(); cfg.garminAt = r.synced || ''; cfg.strava = r.strava || null; delete cfg.planError; saveCfg();
   return true;
 }
 
@@ -815,8 +815,8 @@ function syncSheet() {
     <label for="s-url">Apps Script web app URL</label><input id="s-url" value="${esc(cfg.url || '')}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
     <label for="s-key">Key</label><input id="s-key" value="${esc(cfg.token || '')}" placeholder="From the setup() log" autocomplete="off">
     <label for="s-names">Names that mean “with people” on your calendar</label><input id="s-names" value="${esc(cfg.names || '')}" placeholder="e.g. Steph, Kofi, Dana">
-    <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}${cfg.url ? '<br>Garmin activities: ' + (cfg.garminAt ? 'last synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected yet (run connectStrava in Apps Script)') : ''}</p>
-    <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">${cfg.url ? '<button type="button" class="danger" data-2b="s-off">Disconnect</button><button type="button" class="secondary" data-2b="s-plan">Reload training plan</button>' : ''}<button type="button" class="primary" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button></div>`, { kind: '2b-sync', form: false });
+    <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}${cfg.url ? '<br>Garmin activities: ' + (cfg.garminAt ? 'last synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not synced yet') + (cfg.strava && cfg.strava.error ? '<br><b>Strava:</b> ' + esc(cfg.strava.error) : cfg.strava && !cfg.strava.keys ? '<br><b>Strava:</b> add STRAVA_ID and STRAVA_SECRET in Script Properties' : '') : ''}</p>
+    <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">${cfg.url ? '<button type="button" class="danger" data-2b="s-off">Disconnect</button><button type="button" class="secondary" data-2b="s-plan">Reload training plan</button><button type="button" class="secondary" data-2b="s-strava">Sync Garmin now</button>' : ''}<button type="button" class="primary" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button></div>`, { kind: '2b-sync', form: false });
 }
 function paintStatus() {
   const el = document.getElementById('s-status'); if (el) el.textContent = cfg.status || '';
@@ -874,7 +874,7 @@ render = function () {
   decorateNotes();
   // workouts: where the plan comes from
   const wc = document.querySelector('.week-control');
-  if (page === 'workouts' && wc && cfg.url) wc.insertAdjacentHTML('afterend', `<p class="plan-src">Plan: Little Elm sheet${cfg.planError ? ' · not loaded: ' + esc(cfg.planError) : ''} · Garmin: ${cfg.garminAt ? 'synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected'}</p>`);
+  if (page === 'workouts' && wc && cfg.url) wc.insertAdjacentHTML('afterend', `<p class="plan-src">Plan: Little Elm sheet${cfg.planError ? ' · not loaded: ' + esc(cfg.planError) : ''} · Garmin: ${cfg.garminAt ? 'synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : cfg.strava && cfg.strava.error ? esc(cfg.strava.error) : 'not connected'}</p>`);
   if (page === 'workouts') document.querySelectorAll('.workout-day').forEach(sec => {
     const add = sec.querySelector('.slot-add'); const d = add && add.dataset.date; if (!d) return;
     sec.querySelectorAll('.slot').forEach(sl => { const a = sl.querySelector('.slot-add'); if (a) { sl.dataset.date = a.dataset.date; sl.dataset.slot = a.dataset.slot; } });
@@ -954,6 +954,12 @@ addEventListener('click', async e => {
       break;
     }
     case 's-plan': cfg.planAt = 0; saveCfg(); forceClose(); sync(true); break;
+    case 's-strava': {
+      b.disabled = true; b.textContent = 'Syncing Garmin…';
+      try { const r = await api({ action: 'strava' }); cfg.strava = r.strava; cfg.planAt = 0; saveCfg(); forceClose(); notify(r.strava && r.strava.error ? 'Strava: ' + r.strava.error : `Garmin: ${r.added} new activit${r.added === 1 ? 'y' : 'ies'}.`); sync(); }
+      catch (err) { notify(/unknown|action/i.test(err.message) ? 'Paste the latest Code.gs and deploy a New version first.' : 'Garmin sync: ' + err.message); b.disabled = false; b.textContent = 'Sync Garmin now'; }
+      break;
+    }
     case 's-off': cfg = { names: cfg.names }; saveCfg(); forceClose(); paintStatus(); notify('This device is no longer syncing. Your data stays here.'); break;
   }
 }, true);
