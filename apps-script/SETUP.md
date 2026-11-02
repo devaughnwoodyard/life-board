@@ -1,10 +1,10 @@
-# Life Board sync setup (about 10 minutes)
+# 2nd Brain sync setup (about 10 minutes)
 
 ## 1. Make the Sheet and script
-1. Create a new Google Sheet named **Life Board Data**.
+1. Open your **2nd Brain** folder in Google Drive and open the sheet in it called **Life Board**. Rename it **2nd Brain Data**. (Everything the app saves to Drive goes in this folder.)
 2. **Extensions → Apps Script**. Delete what's there, paste all of `Code.gs` from this folder, click **Save**.
 3. Pick **setup** in the function dropdown and click **Run**. Approve access (Advanced → Go to project → Allow).
-4. Open **Execution log** and copy the line `Your Life Board key: …`. That's your key.
+4. Open **Execution log** and copy the line `Your 2nd Brain key: …`. That's your key.
 
 ## 2. Publish it as a web app
 1. **Deploy → New deployment** → gear icon → **Web app**.
@@ -17,10 +17,10 @@
 The script also reads and writes your **Spanish for Life Tool** sheet (first tab): new phrases are added as rows, each correct day goes in the first empty **Prueba** column (5 filled = retired), and every answer is logged to a **Quiz Log** tab it creates. If you already deployed before this was added, paste the new code, run **setup** once more and approve the extra access (it now opens a second spreadsheet), then **Deploy → Manage deployments → New version**.
 
 ## Google Calendar
-On each sync the script also reads your visible Google calendars (today + 14 days; holidays, birthdays and events you declined are skipped) and the app shows them as tiles with a **Google Calendar** pill. Calendars with "work", "Outlook" or "Office" in the name land under Work. Turn it off in **Settings → Google Calendar**. After pasting the new code, run **setup** again and approve calendar access, then deploy a **new version**.
+On each sync the script also reads your visible Google calendars (today + 14 days; holidays, birthdays and events you declined are skipped) and the app shows them as tiles with a **Google Calendar** pill. Events with guests show red; appointments (dentist, doctor, haircut, therapy, vet, check-up and similar titles, or anything on a calendar named "Appointments") show yellow. Calendars with "work", "Outlook" or "Office" in the name land under Work. Turn it off in **Settings → Google Calendar**. After pasting the new code, run **setup** again and approve calendar access, then deploy a **new version**.
 
 ## Note attachments
-Files you drop or attach in Notes (.md, .docx, .xlsx, .txt, .csv, .pdf) are saved to **My Drive → Life Board Notes → Work / Personal**, and the note links to them. The app keeps a readable preview so you can search them offline. After pasting the new code, run **setup** again and approve Drive access, then deploy a **new version**.
+Files you drop or attach in Notes (.md, .docx, .xlsx, .txt, .csv, .pdf) are saved to **2nd Brain → Notes → Work / Personal → <note folder>**, and the note links to them. The app keeps a readable preview so you can search them offline. After pasting the new code, run **setup** again and approve Drive access, then deploy a **new version**.
 
 ## 3. Connect each device
 In the app: **cog → Sync** → paste the URL and key → **Connect**. Do your phone first (it has your data), then the work browser and anything else.

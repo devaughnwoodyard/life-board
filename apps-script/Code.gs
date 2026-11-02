@@ -1,5 +1,6 @@
 /**
- * Life Board sync — paste into Extensions > Apps Script of a Google Sheet.
+ * 2nd Brain sync — paste into Extensions > Apps Script of the "2nd Brain Data" sheet
+ * (keep that sheet in your 2nd Brain Drive folder).
  * 1. Run setup() once (Run button). Approve access. Copy the key from the Execution log.
  * 2. Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy the /exec URL.
  * 3. In the app: Settings > Sync > paste URL + key > Connect.
@@ -12,6 +13,10 @@ var DATA = 'Data', INBOX = 'Inbox';
 // Your "Spanish for Life Tool" sheet (first tab). Columns: Frase en Espanol, Frase en Ingles, Nota,
 // Fecha Agregada, Prueba 1..5 Pass. A pass date goes in the first empty Prueba column; 5 = retired.
 var ES_SHEET_ID = '1Yrd1kUdiQ3Dv3QEuZVcWlzETm9X-WaFRORSllLkuXAk', ES_LOG = 'Quiz Log';
+// Everything the app saves to Drive goes under this folder: "2nd Brain".
+var HOME_FOLDER_ID = '1kAWONSWXTozPLNia1oGauzqxi290sOhN';
+// Appointment titles: these show yellow in the app. Events with guests show red.
+var APPT_RE = /appointment|\bappt\b|dentist|doctor|\bdr\.?\s|clinic|therapy|haircut|barber|physio|\bvet\b|check-?up|massage|optometr|dermatolog|orthodont|chiro/i;
 
 function setup() {
   var ss = SpreadsheetApp.getActive();
@@ -23,7 +28,8 @@ function setup() {
   var k = p.getProperty('TOKEN');
   if (!k) { k = Utilities.getUuid().replace(/-/g, ''); p.setProperty('TOKEN', k); }
   try { esBook_().getName(); } catch (x) { Logger.log('Could not open the Spanish sheet: ' + x); }
-  Logger.log('Your Life Board key: ' + k);
+  try { home_().getName(); } catch (x) { Logger.log('Could not open the 2nd Brain folder: ' + x); }
+  Logger.log('Your 2nd Brain key: ' + k);
   return k;
 }
 
@@ -162,9 +168,14 @@ function cal_(days) {
       try { if (e.getMyStatus() === CalendarApp.GuestStatus.NO) return; } catch (x) {}
       var s = e.getStartTime(), en = e.getEndTime(), all = e.isAllDayEvent();
       var day = Utilities.formatDate(s, tz, 'yyyy-MM-dd');
+      var people = [];
+      try { people = e.getGuestList(false).map(function (g) { return g.getName() || g.getEmail(); }); } catch (x) {}
+      var title = e.getTitle() || '(No title)';
       out.push({
+        people: people,
+        kind: APPT_RE.test(title) || /appointment/i.test(name) ? 'appt' : (people.length ? 'people' : ''),
         id: e.getId() + '|' + day,
-        title: e.getTitle() || '(No title)',
+        title: title,
         date: day,
         time: all ? null : Utilities.formatDate(s, tz, 'HH:mm'),
         dur: all ? null : Math.round((en - s) / 60000),
@@ -177,12 +188,14 @@ function cal_(days) {
 }
 
 // ---------- Note attachments -> Google Drive ----------
-// Files dropped into Notes are saved under My Drive / Life Board Notes / Work or Personal.
+// Files attached to notes are saved under 2nd Brain / Notes / Work or Personal / <note folder>.
+function home_() { return DriveApp.getFolderById(HOME_FOLDER_ID); }
 function folder_(name, parent) { var it = parent.getFoldersByName(name); return it.hasNext() ? it.next() : parent.createFolder(name); }
 function file_(b) {
   if (!b.b64 || !b.name) return { ok: false, error: 'no file' };
-  var root = folder_('Life Board Notes', DriveApp.getRootFolder()), sub = folder_(b.work ? 'Work' : 'Personal', root);
+  var root = folder_('Notes', home_()), sub = folder_(b.work ? 'Work' : 'Personal', root);
+  if (b.folder) sub = folder_(String(b.folder).slice(0, 80), sub);
   var blob = Utilities.newBlob(Utilities.base64Decode(b.b64), b.mime || 'application/octet-stream', String(b.name).slice(0, 200));
   var f = sub.createFile(blob);
-  return { ok: true, id: f.getId(), url: f.getUrl(), folder: 'Life Board Notes/' + sub.getName() };
+  return { ok: true, id: f.getId(), url: f.getUrl(), folder: '2nd Brain/Notes/' + (b.work ? 'Work' : 'Personal') + (b.folder ? '/' + sub.getName() : '') };
 }
