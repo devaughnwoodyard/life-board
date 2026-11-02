@@ -67,8 +67,19 @@ function schedule(ms = 2500) { if (!cfg.url) return; clearTimeout(timer); timer 
 async function api(body) {
   if (!cfg.url) throw new Error('Paste the web app URL (ends in /exec)');
   if (!cfg.token) throw new Error('Paste your key from the setup() log');
-  const r = await fetch(cfg.url, { method: 'POST', body: JSON.stringify(Object.assign({}, body, { token: cfg.token })) });
-  const j = await r.json();
+  const payload = JSON.stringify(Object.assign({}, body, { token: cfg.token }));
+  let r;
+  // Small requests go as GET (most reliable with Apps Script redirects); big ones (files, large syncs) as POST.
+  const getUrl = cfg.url + (cfg.url.includes('?') ? '&' : '?') + 'payload=' + encodeURIComponent(payload);
+  if (getUrl.length < 7000) {
+    try { r = await fetch(getUrl, { redirect: 'follow' }); }
+    catch (e) { r = await fetch(cfg.url, { method: 'POST', body: payload, redirect: 'follow' }); }
+  } else {
+    try { r = await fetch(cfg.url, { method: 'POST', body: payload, redirect: 'follow' }); }
+    catch (e) { throw new Error('Could not reach the script with a large upload. Update Code.gs and deploy a new version.'); }
+  }
+  const txt = await r.text();
+  let j; try { j = JSON.parse(txt); } catch (e) { throw new Error(/doGet|doPost/.test(txt) ? 'The deployment has old code: deploy a new version' : 'Unexpected reply from Google'); }
   if (!j.ok) throw new Error(j.error || 'Server error');
   return j;
 }

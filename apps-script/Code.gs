@@ -36,7 +36,11 @@ function setup() {
   return k;
 }
 
-function doGet(e) { return handle_((e && e.parameter) || {}); }
+function doGet(e) {
+  var p = (e && e.parameter) || {};
+  if (p.payload) { try { var b = JSON.parse(p.payload); b.token = b.token || p.token; return handle_(b); } catch (x) {} }
+  return handle_(p);
+}
 function doPost(e) {
   var b = {};
   try { b = JSON.parse(e.postData.contents); } catch (x) {}
