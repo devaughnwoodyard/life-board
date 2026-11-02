@@ -27,6 +27,9 @@ To-dos, notes and habits saved by the previous version come across on the first 
 
 Calendar colors: a time in the title (e.g. "Dentist 3:30pm") = **appointment** (yellow). A person's name in the title (e.g. "Lunch with Dana") = **with people** (red). Add names the app doesn't know in **Google sync → Names**; names of your event guests are learned automatically.
 
+## Moving training sessions
+Workouts tab: drag a session to another day or slot (on the phone, press and hold, then drag). Dropping onto another session swaps them. **⇅ Swap** flips a day's AM and PM. Editing a session's date or AM/PM does the same. Each change rewrites that day's AM/PM, bail rule and planned run miles (AA–AH) and Planned Hrs in the plan sheet within a few seconds; offline changes wait for the next sync. The weekly summary columns (AN onward) are fixed numbers and don't recalculate when a session moves to another week.
+
 ## Quick capture (voice or text)
 Tap the mic in the header, or **+** (**Ctrl/Cmd + J** on desktop):
 - `To do Friday, call the dentist` · `To do [Nov 14] book flights at 7pm` · `To do tomorrow, renew passport`

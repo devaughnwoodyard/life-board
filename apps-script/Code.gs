@@ -64,6 +64,7 @@ function handle_(b) {
     if (b.action === 'es') return out_(es_(b));
     if (b.action === 'ping') return out_({ ok: true });
     if (b.action === 'plan') return out_(plan_());
+    if (b.action === 'planMove') return out_(planMove_(b));
     if (b.action === 'getfile') return out_(getfile_(b));
     if (b.action === 'summarize') return out_(summarize_(b));
     if (b.action === 'icu') return out_(icu_(b));
@@ -239,6 +240,24 @@ function plan_() {
   });
   out.forEach(function (o) { o.acts = acts[o.date] || (o.act ? [o.act] : []); });
   return { ok: true, rows: out, synced: PropertiesService.getScriptProperties().getProperty('STRAVA_LAST') || '' };
+}
+
+// ---------- Moves made in the app (drag, swap AM/PM, edit) write back to the plan sheet ----------
+// b.days = [{ date, am:[sport, session, min], pm:[...], bail, mi }]: rewrites AA:AH and Planned Hrs (D) for each day.
+function planMove_(b) {
+  var id = PropertiesService.getScriptProperties().getProperty('PLAN_SHEET_ID') || PLAN_SHEET_ID;
+  var sh = SpreadsheetApp.openById(id).getSheets()[0], tz = Session.getScriptTimeZone();
+  var col = sh.getRange(1, 1, sh.getLastRow(), 1).getValues(), at = {};
+  col.forEach(function (x, i) { var d = x[0]; if (!d) return; var k = d instanceof Date ? Utilities.formatDate(d, tz, 'yyyy-MM-dd') : String(d).slice(0, 10); at[k] = i + 1; });
+  var done = [], missing = [];
+  (b.days || []).forEach(function (d) {
+    var r = at[d.date]; if (!r) { missing.push(d.date); return; }
+    var am = d.am || ['', '', ''], pm = d.pm || ['', '', ''];
+    sh.getRange(r, 27, 1, 8).setValues([[am[0] || '', am[1] || '', am[2] || '', pm[0] || '', pm[1] || '', pm[2] || '', d.bail || '', d.mi || '']]);
+    sh.getRange(r, 4).setValue(Math.round(((Number(am[2]) || 0) + (Number(pm[2]) || 0)) / 6) / 10);
+    done.push(d.date);
+  });
+  return { ok: true, saved: done, missing: missing };
 }
 
 // ---------- Download a note file saved earlier ----------

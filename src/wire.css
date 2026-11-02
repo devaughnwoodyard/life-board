@@ -65,3 +65,19 @@
 .quiz-options{display:grid;gap:8px;margin-top:14px}.quiz-option{text-align:left;padding:14px;border-radius:12px;background:#fff;border:1px solid var(--line);font-size:14px;min-height:48px}
 .quiz-option.right{border:2px solid #2fb36b;background:#f1fbf5}.quiz-option.wrong{border:2px solid #e5484d;background:#fdf2f2}
 .quiz-feedback{font-size:13px;line-height:1.5;margin-top:14px}
+
+/* moving sessions */
+.workout-day h3{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.swap-btn{font-size:10px;font-weight:600;color:var(--accent);background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px}
+.session[draggable="true"]{cursor:grab;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;border-radius:8px}
+.session.dragging{opacity:.35}
+.slot.drop-on{outline:2px dashed var(--accent);outline-offset:-2px;background:#e3eef7}
+.drag-ghost{position:fixed;left:0;top:0;z-index:200;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;box-shadow:0 12px 30px #1d2c3b33;opacity:.95}
+
+/* weekly planned vs actual by discipline */
+.disc{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:-6px 0 16px}
+.disc-h{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-weight:650;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.disc-row{display:grid;grid-template-columns:72px 1fr auto;align-items:baseline;gap:4px 10px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;font-variant-numeric:tabular-nums}
+.disc-row:first-of-type{border-top:0}.disc-row b{font-size:12px}.disc-row small{color:var(--muted);font-size:11px}
+.disc-mi{text-align:right;color:var(--accent);font-weight:600}
+.disc-bar{grid-column:1/-1;display:block;height:4px;border-radius:3px;background:var(--line);overflow:hidden}.disc-bar>i{display:block;height:100%;background:var(--accent)}

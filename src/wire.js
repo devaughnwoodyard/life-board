@@ -70,7 +70,7 @@ function markChanges() {
   hashes = cur; ls.set(HASH_KEY, hashes); ls.set(DIRTY_KEY, dirty);
 }
 const _save = save;
-save = function () { const ok = _save(); markChanges(); schedule(); return ok; };
+save = function () { try { planChanges(); } catch (e) { console.warn(e); } const ok = _save(); markChanges(); schedule(); return ok; };
 let timer = null, syncing = false, again = false;
 function schedule(ms = 2500) { if (!cfg.url) return; clearTimeout(timer); timer = setTimeout(() => sync(), ms); }
 
@@ -201,6 +201,7 @@ async function sync(manual) {
     cfg.since = res.now;
     if (res.cal) { calCache = res.cal; ls.set(CAL_KEY, calCache); learnNames(); }
     if (applyCalendar()) changed = true;
+    if (Object.keys(cfg.planQ || {}).length) setTimeout(pushPlan, 0);
     const hasPlan = (data.workouts || []).some(w => String(w.id).startsWith('gp-'));
     if (!hasPlan || Date.now() - (cfg.planAt || 0) > 30 * 60e3) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
     if (dedupeHabits()) changed = true;
@@ -306,12 +307,14 @@ async function loadPlan() {
       out.push({
         id, title: String(session).trim().slice(0, 160), date: p.date, slot, kind, target, effort: EFFORT(session, kind),
         actual: act ? Number(act.min) || target : (old.actual != null ? old.actual : null), actualEffort: act ? old.actualEffort || null : old.actualEffort || null,
-        notes: old.notes || (p.bail ? 'Bail rule: ' + p.bail : ''), plan: true, miles: mi || undefined, garmin: act ? { name: act.name || '', mi: act.mi || null, hr: act.hr || null } : undefined
+        notes: old.notes || (p.bail ? 'Bail rule: ' + p.bail : ''), plan: true, miles: mi || undefined, sport: String(sport), bail: p.bail || '', garmin: act ? { name: act.name || '', mi: act.mi || null, hr: act.hr || null } : undefined
       });
     });
   });
   if (!out.length) return false;
+  if (Object.keys(cfg.planQ || {}).length) return false;   // local moves not on the sheet yet: don't overwrite them
   data.workouts = (data.workouts || []).filter(w => !String(w.id).startsWith('gp-')).concat(out);
+  planSnap = snapPlan();
   cfg.planAt = Date.now(); cfg.garminAt = r.synced || ''; delete cfg.planError; saveCfg();
   return true;
 }
@@ -321,6 +324,99 @@ workoutScore = function () {
   const rows = data.workouts.filter(w => w.actual !== null || (w.plan && w.date < today));
   return rows.length ? Math.round(rows.reduce((s, w) => s + Math.min((w.actual || 0) / w.target, 1) * 100, 0) / rows.length) : 0;
 };
+
+/* ---------- 5b. Moving training sessions → plan sheet ---------- */
+const isPlan = w => w && String(w.id).startsWith('gp-');
+const snapPlan = () => Object.fromEntries((data.workouts || []).filter(isPlan).map(w => [w.id, { date: w.date, slot: w.slot, title: w.title, target: Number(w.target), kind: w.kind }]));
+let planSnap = ls.get('2b-plansnap', null) || snapPlan();
+function dayRow(d) {
+  const ws = data.workouts.filter(w => isPlan(w) && w.date === d);
+  const cell = sl => { const w = ws.find(x => x.slot === sl); return w ? [w.sport || w.kind, w.title, Number(w.target) || 0] : ['', '', '']; };
+  const run = ws.find(w => w.kind === 'Run' && w.miles), first = ws.find(w => w.slot === 'AM') || ws[0];
+  return { date: d, am: cell('AM'), pm: cell('PM'), bail: (first && first.bail) || (ws.find(w => w.bail) || {}).bail || '', mi: run ? run.miles : '' };
+}
+function planChanges() {
+  const cur = snapPlan(), dates = new Set(), changed = [];
+  Object.keys(planSnap || {}).forEach(id => {
+    const a = planSnap[id], b = cur[id];
+    if (!b) { dates.add(a.date); return; }
+    if (a.date !== b.date || a.slot !== b.slot || a.title !== b.title || a.target !== b.target || a.kind !== b.kind) { dates.add(a.date); dates.add(b.date); if (a.date !== b.date || a.slot !== b.slot) changed.push([id, a]); }
+  });
+  Object.keys(cur).forEach(id => { if (!planSnap[id]) dates.add(cur[id].date); });
+  // two plan sessions in one slot: the one already there moves to where the other came from
+  changed.forEach(([id, from]) => {
+    const w = data.workouts.find(x => x.id === id);
+    const o = data.workouts.find(x => isPlan(x) && x !== w && x.date === w.date && x.slot === w.slot && !changed.some(c => c[0] === x.id));
+    if (o) { o.date = from.date; o.slot = from.slot; dates.add(from.date); }
+  });
+  if (!dates.size) return;
+  data.workouts.filter(w => isPlan(w) && dates.has(w.date)).forEach(w => { const a = planSnap[w.id]; if (a && (a.date !== w.date || a.slot !== w.slot)) { w.actual = null; delete w.garmin; } });
+  cfg.planQ = cfg.planQ || {};
+  dates.forEach(d => { cfg.planQ[d] = dayRow(d); });
+  planSnap = snapPlan(); ls.set('2b-plansnap', planSnap); saveCfg();
+  setTimeout(pushPlan, 300);
+}
+let pushing = false;
+async function pushPlan() {
+  const q = cfg.planQ || {}, days = Object.values(q); if (!days.length || !cfg.url || pushing) return;
+  pushing = true;
+  try {
+    const r = await api({ action: 'planMove', days });
+    days.forEach(d => { if (cfg.planQ[d.date] === d) delete cfg.planQ[d.date]; });
+    cfg.planAt = 0; saveCfg();
+    notify((r.saved || []).length ? 'Training plan updated in Google Sheets.' : 'Those days aren’t in the plan sheet.');
+    sync();
+  } catch (e) {
+    notify(/unknown|action/i.test(e.message) ? 'Saved here. To update the sheet, paste the latest Code.gs and deploy a New version.' : 'Saved here; will update the sheet on the next sync.');
+  } finally { pushing = false; }
+}
+function moveSession(id, date, slot) {
+  const w = data.workouts.find(x => x.id === id); if (!w || (w.date === date && w.slot === slot)) return;
+  const from = { date: w.date, slot: w.slot };
+  const o = data.workouts.find(x => x !== w && x.date === date && x.slot === slot && isPlan(x) === isPlan(w));
+  w.date = date; w.slot = slot; if (o) { o.date = from.date; o.slot = from.slot; }
+  save(); render(); notify(o ? 'Swapped.' : 'Moved to ' + fmtDay(date) + ' ' + slot + '.');
+}
+function swapDay(d) {
+  const ws = data.workouts.filter(w => w.date === d); if (!ws.length) return;
+  ws.forEach(w => { w.slot = w.slot === 'AM' ? 'PM' : 'AM'; });
+  save(); render(); notify('Swapped AM and PM on ' + fmtDay(d) + '.');
+}
+// Drag: mouse = native drag and drop; touch = press and hold, then drag
+let drag = null;
+function slotAt(x, y) { const el = document.elementFromPoint(x, y); return el && el.closest('.slot[data-date]'); }
+function startDrag(sess, x, y) {
+  const r = sess.getBoundingClientRect(), g = sess.cloneNode(true);
+  g.className += ' drag-ghost'; g.style.width = r.width + 'px'; document.body.appendChild(g);
+  drag = { id: sess.dataset.wid, g, dx: x - r.left, dy: y - r.top, src: sess }; sess.classList.add('dragging'); moveDrag(x, y);
+  if (navigator.vibrate) navigator.vibrate(15);
+}
+function moveDrag(x, y) {
+  if (!drag) return; drag.g.style.transform = `translate(${x - drag.dx}px,${y - drag.dy}px)`;
+  document.querySelectorAll('.slot.drop-on').forEach(s => s.classList.remove('drop-on')); const s = slotAt(x, y); if (s) s.classList.add('drop-on');
+  if (y < 70) scrollBy(0, -12); else if (y > innerHeight - 110) scrollBy(0, 12);
+}
+function endDrag(x, y) {
+  if (!drag) return; const d = drag; drag = null; d.g.remove(); d.src.classList.remove('dragging');
+  document.querySelectorAll('.slot.drop-on').forEach(s => s.classList.remove('drop-on'));
+  const s = x == null ? null : slotAt(x, y); if (s) moveSession(d.id, s.dataset.date, s.dataset.slot);
+}
+let press = null;
+document.addEventListener('pointerdown', e => {
+  const sess = e.target.closest('.session[data-wid]'); if (!sess || e.target.closest('button') && e.pointerType === 'mouse') return;
+  if (e.pointerType === 'mouse') return;   // mouse uses native drag
+  press = { x: e.clientX, y: e.clientY, t: setTimeout(() => { startDrag(sess, press.x, press.y); }, 350) };
+});
+document.addEventListener('pointermove', e => { if (press && !drag && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) { clearTimeout(press.t); press = null; } if (press) { press.x = e.clientX; press.y = e.clientY; } if (drag) moveDrag(e.clientX, e.clientY); });
+document.addEventListener('pointerup', e => { if (press) { clearTimeout(press.t); press = null; } if (drag) { e.preventDefault(); endDrag(e.clientX, e.clientY); } });
+document.addEventListener('pointercancel', () => { if (press) { clearTimeout(press.t); press = null; } if (drag) endDrag(null); });
+document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
+document.addEventListener('click', e => { if (e.target.closest('.session.dragging')) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+document.addEventListener('contextmenu', e => { if (e.target.closest('.session[data-wid]')) e.preventDefault(); });
+document.addEventListener('dragstart', e => { const sess = e.target.closest && e.target.closest('.session[data-wid]'); if (!sess) return; e.dataTransfer.setData('text/x-wid', sess.dataset.wid); e.dataTransfer.effectAllowed = 'move'; sess.classList.add('dragging'); });
+document.addEventListener('dragend', e => { document.querySelectorAll('.session.dragging,.slot.drop-on').forEach(x => x.classList.remove('dragging', 'drop-on')); });
+document.addEventListener('dragover', e => { const s = e.target.closest && e.target.closest('.slot[data-date]'); if (s && [...e.dataTransfer.types].includes('text/x-wid')) { e.preventDefault(); document.querySelectorAll('.slot.drop-on').forEach(x => x !== s && x.classList.remove('drop-on')); s.classList.add('drop-on'); } });
+document.addEventListener('drop', e => { const s = e.target.closest && e.target.closest('.slot[data-date]'); const id = e.dataTransfer.getData('text/x-wid'); if (!s || !id) return; e.preventDefault(); e.stopImmediatePropagation(); s.classList.remove('drop-on'); moveSession(id, s.dataset.date, s.dataset.slot); }, true);
 
 /* ---------- 6. Quick capture: commands + voice ---------- */
 const WD = { sun: 0, mon: 1, tue: 2, tues: 2, wed: 3, thu: 4, thur: 4, thurs: 4, fri: 5, sat: 6 };
@@ -722,6 +818,26 @@ render = function () {
   // workouts: where the plan comes from
   const wc = document.querySelector('.week-control');
   if (page === 'workouts' && wc && cfg.url) wc.insertAdjacentHTML('afterend', `<p class="plan-src">Plan: Little Elm sheet${cfg.planError ? ' · not loaded: ' + esc(cfg.planError) : ''} · Garmin: ${cfg.garminAt ? 'synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected'}</p>`);
+  if (page === 'workouts') document.querySelectorAll('.workout-day').forEach(sec => {
+    const add = sec.querySelector('.slot-add'); const d = add && add.dataset.date; if (!d) return;
+    sec.querySelectorAll('.slot').forEach(sl => { const a = sl.querySelector('.slot-add'); if (a) { sl.dataset.date = a.dataset.date; sl.dataset.slot = a.dataset.slot; } });
+    const h = sec.querySelector('h3'); if (h && data.workouts.some(w => w.date === d)) h.insertAdjacentHTML('beforeend', `<button class="swap-btn" data-2b="swap-day" data-date="${d}" aria-label="Swap AM and PM">⇅ Swap</button>`);
+  });
+  document.querySelectorAll('.session').forEach(el => { const eb = el.querySelector('[data-act="workout-edit"]'); if (eb) { el.dataset.wid = eb.dataset.id; el.draggable = true; } });
+  if (page === 'workouts' && !document.querySelector('.disc')) {
+    const days = Array.from({ length: 7 }, (_, i) => add(week, i)), ws = data.workouts.filter(w => days.includes(w.date));
+    const rows = ['Swim', 'Bike', 'Run', 'Strength', 'Yoga'].map(k => {
+      const l = ws.filter(w => w.kind === k); if (!l.length) return '';
+      const pm = l.reduce((s, w) => s + (Number(w.target) || 0), 0), am = l.reduce((s, w) => s + (Number(w.actual) || 0), 0);
+      const pmi = l.reduce((s, w) => s + (Number(w.miles) || 0), 0), ami = l.reduce((s, w) => s + (Number(w.garmin && w.garmin.mi) || Number(w.actualMiles) || 0), 0);
+      const hm = m => m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') : m + 'm';
+      const pct = pm ? Math.min(100, Math.round(am / pm * 100)) : 0;
+      return `<div class="disc-row"><b>${k}</b><span>${hm(am)} <small>/ ${hm(pm)}</small></span><span class="disc-mi">${k === 'Run' ? (Math.round(ami * 10) / 10) + ' <small>/ ' + (Math.round(pmi * 10) / 10) + ' mi</small>' : ''}</span><i class="disc-bar"><i style="width:${pct}%"></i></i></div>`;
+    }).join('');
+    const st = document.querySelector('#page-content .stats');
+    if (st && rows) st.insertAdjacentHTML('afterend', `<section class="disc" aria-label="Planned vs actual by discipline"><div class="disc-h"><span>This week by discipline</span><span>actual / planned</span></div>${rows}</section>`);
+  }
+  if (page === 'workouts' && Object.keys(cfg.planQ || {}).length) document.querySelector('.week-control')?.insertAdjacentHTML('afterend', `<p class="plan-src">${Object.keys(cfg.planQ).length} day(s) waiting to save to the plan sheet</p>`);
   document.querySelectorAll('.session').forEach(el => {
     const b = el.querySelector('[data-act="workout-edit"]'); const w = b && data.workouts.find(x => x.id === b.dataset.id);
     if (w && w.garmin) { el.classList.add('from-garmin'); el.querySelector('small')?.insertAdjacentHTML('beforeend', ` · ✓ ${w.garmin.mi ? w.garmin.mi + ' mi' : ''}${w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}`); }
@@ -750,6 +866,7 @@ addEventListener('click', async e => {
       b.textContent = 'Added'; b.disabled = true;
       break;
     }
+    case 'swap-day': swapDay(b.dataset.date); break;
     case 'sp-mic': spMicToggle(); break;
     case 'sp-filter': phraseFilter = b.dataset.v; render(); break;
     case 'phrase': { const p = data.notes.find(x => x.id === b.dataset.id); if (p) { normPhrase(p); p.lastOpened = new Date().toISOString(); phraseDetail(p, false); } break; }
