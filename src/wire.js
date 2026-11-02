@@ -65,7 +65,8 @@ let timer = null, syncing = false, again = false;
 function schedule(ms = 2500) { if (!cfg.url) return; clearTimeout(timer); timer = setTimeout(() => sync(), ms); }
 
 async function api(body) {
-  if (!cfg.url || !cfg.token) throw new Error('Sync is not set up');
+  if (!cfg.url) throw new Error('Paste the web app URL (ends in /exec)');
+  if (!cfg.token) throw new Error('Paste your key from the setup() log');
   const r = await fetch(cfg.url, { method: 'POST', body: JSON.stringify(Object.assign({}, body, { token: cfg.token })) });
   const j = await r.json();
   if (!j.ok) throw new Error(j.error || 'Server error');
@@ -538,6 +539,8 @@ addEventListener('click', async e => {
       const url = document.getElementById('s-url').value.trim(), key = document.getElementById('s-key').value.trim();
       cfg.names = document.getElementById('s-names').value.trim(); learnNames();
       if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { toast('That should be the script.google.com …/exec link.'); return; }
+      if (url && !key) { toast('Paste your key too: it’s the long code after “Your 2nd Brain key:” in the Apps Script Execution log.'); document.getElementById('s-key').focus(); return; }
+      if (url && !/\/exec(\?|$)/.test(url)) { toast('Use the Web app URL that ends in /exec (not /dev).'); return; }
       if (url !== cfg.url || key !== cfg.token) { cfg.since = 0; cfg.planAt = 0; hashes = null; markChanges(); Object.assign(dirty, Object.fromEntries(COLLS.flatMap(c => (data[c] || []).filter(x => syncable(c, x)).map(x => [c + '|' + x.id, { u: Date.now() }])))); }
       cfg.url = url; cfg.token = key; saveCfg(); closeModal();
       if (!url) { toast('Saved.'); break; }
