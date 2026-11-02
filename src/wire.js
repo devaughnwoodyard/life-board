@@ -1029,6 +1029,16 @@ const q = new URLSearchParams(location.search);
 if (q.get('add')) { runCommand(q.get('add'), { from: 'link' }); history.replaceState(null, '', location.pathname); }
 else if (q.get('capture')) { setTimeout(() => captureSheet(true), 300); history.replaceState(null, '', location.pathname); }
 
+/* ---------- Keep the bottom tray on the real bottom edge ----------
+   Some in-app browsers (Google app, Gmail…) hide their toolbar without moving fixed elements. */
+function pinBottom() {
+  const vv = window.visualViewport; if (!vv) return;
+  const off = Math.round(vv.offsetTop + vv.height - innerHeight);
+  document.documentElement.style.setProperty('--vv-shift', (Math.abs(off) < 400 ? off : 0) + 'px');
+}
+if (window.visualViewport) { visualViewport.addEventListener('resize', pinBottom); visualViewport.addEventListener('scroll', pinBottom); }
+addEventListener('scroll', pinBottom, { passive: true }); addEventListener('resize', pinBottom); pinBottom();
+
 /* ---------- Pull down to sync everything ---------- */
 let refreshing = false;
 async function fullRefresh(manual) {

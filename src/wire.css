@@ -179,3 +179,9 @@ body[data-device="mobile"][data-page="workouts"] .stats small{font-size:9px}
 .ptr[data-state="busy"] .ptr-spin{animation:ptrspin .8s linear infinite}
 @keyframes ptrspin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.ptr[data-state="busy"] .ptr-spin{animation:none}}
+
+/* bottom tray follows the visible screen edge; short pages don't scroll under the browser toolbar */
+.app>.nav,body[data-device="mobile"] .app>.nav{translate:0 var(--vv-shift,0px)}
+#toast{translate:0 var(--vv-shift,0px)}
+.app{min-height:calc(100svh - 1px)!important}
+body{min-height:0!important}
