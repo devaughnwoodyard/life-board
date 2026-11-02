@@ -221,6 +221,23 @@ async function sync(manual) {
   }
 }
 addEventListener('online', () => sync());
+const BUILD = document.querySelector('meta[name="2b-build"]')?.content || '';
+let lastCheck = 0;
+async function checkUpdate() {
+  if (!BUILD || location.protocol !== 'https:' || Date.now() - lastCheck < 60e3) return; lastCheck = Date.now();
+  try {
+    const t = await (await fetch('./index.html?b=' + Date.now(), { cache: 'no-store' })).text();
+    const m = t.match(/name="2b-build" content="([0-9a-f]+)"/);
+    if (m && m[1] !== BUILD) {
+      if ($('#modal-root').children.length) { actionToast('A new version of 2nd Brain is ready.', 'Update', () => location.reload()); return; }
+      try { sessionStorage.setItem('2b-updated', m[1]); } catch (e) {}
+      location.reload();
+    }
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
+setTimeout(checkUpdate, 4000);
+try { if (sessionStorage.getItem('2b-updated') === BUILD) { sessionStorage.removeItem('2b-updated'); setTimeout(() => notify('Updated to the latest version.'), 600); } } catch (e) {}
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(); });
 setInterval(() => { if (document.visibilityState === 'visible') sync(); }, 5 * 60 * 1000);
 
@@ -850,10 +867,20 @@ function decorateNotes() {
   if (html) document.querySelectorAll('#page-content > .empty').forEach(e => e.remove());
 }
 
+const _modal = modal;
+modal = function (title, body, opts = {}) {
+  _modal(title, body, opts);
+  if (opts.form === false) return;
+  const t = document.querySelector('#modal-root .sheet-title'), close = t && t.querySelector('[data-act="close"]');
+  if (close && !t.querySelector('.top-save')) close.insertAdjacentHTML('beforebegin', `<button class="primary top-save" type="submit" form="editor">${opts.id ? 'Save' : '+ Add'}</button>`);
+};
 render = function () {
   // a single-folder view always shows as the folder list with that folder open
   if (page === 'notes' && noteFolder !== 'all' && !(noteTab === 'Spanish' && noteFolder === 'Phrases')) { openFolders.add(fKey(noteTab, noteFolder)); ls.set('2b-openf', [...openFolders]); noteFolder = 'all'; }
   _render();
+  document.body.dataset.page = page;
+  const qf = document.getElementById('quick-task');
+  if (qf && !qf.querySelector('.qf-add')) qf.insertAdjacentHTML('beforeend', '<button class="primary qf-add" type="submit" aria-label="Add to-do">+ Add</button>');
   const acts = document.querySelector('.header-actions');
   if (acts && !acts.querySelector('.sync-dot')) acts.insertAdjacentHTML('afterbegin', `<button class="icon-btn mic-btn" data-2b="capture-mic" aria-label="Voice capture">${ICONS.mic}</button><button class="icon-btn sync-dot" data-2b="sync-settings" aria-label="Google sync settings"><i></i></button>`);
   paintStatus();

@@ -108,3 +108,44 @@ body[data-device="mobile"] .fcards{grid-template-columns:1fr;gap:10px}
 .nrow-body{padding:0 4px 16px 20px}.nrow-body .reader{min-height:0;font-size:14px;padding:16px 18px;max-height:480px;overflow:auto}
 .nrow-act{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .fcard-new{color:var(--accent);font-size:12px;font-weight:600;padding:12px 4px 0}
+
+/* home tiles fill their row on mobile and desktop, even when a tile is short or empty */
+.app[data-v="0"] .mosaic{align-items:stretch!important}
+.app[data-v="0"] .tile,.app[data-v="0"] .tile[data-key="notes"]{align-self:stretch!important;height:100%}
+.tile .tile-items{flex:1;display:flex;flex-direction:column}
+.tile .tile-items>.empty{flex:1;display:grid;place-items:center;margin:0}
+.tile .session-preview{flex:1}.tile .session-preview>.muted{display:grid;place-items:center;flex:1;font-size:11px;min-height:80px}
+.tile .home-folders{justify-content:flex-start}
+
+/* save / add at the top of every editor */
+.sheet-title{position:sticky;top:-22px;z-index:2;background:var(--bg);margin:-22px -22px 16px;padding:18px 22px 12px;border-bottom:1px solid var(--line)}
+.sheet-title h2{flex:1}
+.top-save{padding:9px 16px;font-size:13px}
+.qf-add{flex:none;min-height:44px;padding:0 16px}
+
+/* page color themes: Home keeps the blue */
+body{transition:background .25s}
+body[data-page="todo"]{--accent:#c2570c;--soft:#fde9d9;--line:#f0dccb;background:radial-gradient(ellipse at 10% 5%,#fde3cd,transparent 55%),radial-gradient(ellipse at 90% 75%,#fff0e3,transparent 60%),#fdf6f0}
+body[data-page="notes"]{--accent:#2f7d4f;--soft:#dcf1e3;--line:#d3e6d9;background:radial-gradient(ellipse at 10% 5%,#d7efdf,transparent 55%),radial-gradient(ellipse at 90% 75%,#e9f6ec,transparent 60%),#f3f9f4}
+body[data-page="workouts"]{--accent:#b8343c;--soft:#f9dfe0;--line:#efd3d4;background:radial-gradient(ellipse at 10% 5%,#f9dcdd,transparent 55%),radial-gradient(ellipse at 90% 75%,#fdecec,transparent 60%),#fcf5f5}
+body[data-page="habits"]{--accent:#6b4fc8;--soft:#ebe5fb;--line:#e0d9f2;background:radial-gradient(ellipse at 10% 5%,#e6defa,transparent 55%),radial-gradient(ellipse at 90% 75%,#f2eefc,transparent 60%),#f8f6fd}
+body[data-page="calendar"]{--accent:#b7791f;--soft:#f8ecd6;--line:#ecdfc6;background:radial-gradient(ellipse at 10% 5%,#f7e7c8,transparent 55%),radial-gradient(ellipse at 90% 75%,#fbf1dd,transparent 60%),#fcf8f0}
+body:not([data-page="home"]) .app-header{background:color-mix(in srgb,var(--soft) 70%,#ffffffcc);border-bottom-color:var(--line)}
+body:not([data-page="home"]) .app>.nav button.active{background:var(--soft)!important;color:var(--accent)!important;box-shadow:inset 0 0 0 1px var(--line)!important}
+body:not([data-page="home"]) .page-head h1,body:not([data-page="home"]) .section-label{color:color-mix(in srgb,var(--accent) 55%,#203346)}
+body:not([data-page="home"]) .filters button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+body:not([data-page="home"]) .check.on,body:not([data-page="home"]) .cal-day.selected{background:var(--accent);border-color:var(--accent)}
+body:not([data-page="home"]) .cal-day.today{border-color:var(--accent)}
+body:not([data-page="home"]) .scoreline span{color:var(--accent)}
+body:not([data-page="home"]) .mark{background:var(--accent)}
+body:not([data-page="home"]) .list,body:not([data-page="home"]) .workout-day,body:not([data-page="home"]) .panel,body:not([data-page="home"]) .calendar-panel,body:not([data-page="home"]) .habit-row,body:not([data-page="home"]) .stats>div,body:not([data-page="home"]) .disc{border-color:var(--line)}
+body[data-page="workouts"] .slot{background:#fdf3f3;border-color:var(--line)}
+body[data-page="workouts"] .slot.drop-on{background:#f9dfe0}
+body[data-page="notes"] .fold-ic{background:var(--soft);fill:#bfe3cb}
+body[data-page="notes"] .fcard.open .fold-ic{background:var(--accent);fill:#ffffff40}
+body[data-page="notes"] .nrow-dot{background:#9cc8ab}body[data-page="notes"] .nrow.ex .nrow-dot{background:var(--accent)}
+body[data-page="habits"] .tick.on{border-color:var(--accent);color:var(--accent);background:var(--soft)}
+body[data-device="mobile"] .quick-form{flex-wrap:nowrap!important}
+body[data-device="mobile"] .quick-form input{flex:1 1 auto!important;min-width:0}
+body[data-device="mobile"] .quick-form select{width:92px!important;flex:none}
+body[data-device="mobile"] .qf-add{padding:0 12px}
