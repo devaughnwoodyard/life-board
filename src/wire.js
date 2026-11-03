@@ -236,7 +236,15 @@ async function checkUpdate() {
     }
   } catch (e) {}
 }
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkUpdate(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (!newDay()) checkUpdate(); } });
+// The app keeps "today" from when it opened; when the date changes (left open overnight), reload
+function newDay() {
+  if (day() === today) return false;
+  if ($('#modal-root').children.length) return false;   // don't lose an open editor; next check will catch it
+  try { const v = JSON.parse(sessionStorage.getItem('2b-view') || '{}'); v.week = monday(day()); v.selectedDate = day(); v.month = day().slice(0, 7); sessionStorage.setItem('2b-view', JSON.stringify(v)); } catch (e) {}
+  location.reload(); return true;
+}
+setInterval(() => { if (document.visibilityState === 'visible') newDay(); }, 60e3);
 setTimeout(checkUpdate, 4000);
 try { if (sessionStorage.getItem('2b-updated') === BUILD) { sessionStorage.removeItem('2b-updated'); setTimeout(() => notify('Updated to the latest version.'), 600); } } catch (e) {}
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sync(); });
@@ -921,6 +929,16 @@ function decorateNotes() {
   if (html) document.querySelectorAll('#page-content > .empty').forEach(e => e.remove());
 }
 
+// Remember when a to-do was checked off; Home keeps it for 5 minutes, then drops it
+const DONE_SHOW_MS = 5 * 60e3;
+const _toggleTask = toggleTask;
+toggleTask = function (id) {
+  const t = data.tasks.find(x => x.id === id);
+  if (t) { if (t.done) delete t.doneAt; else t.doneAt = Date.now(); }
+  _toggleTask(id);
+  if (t && t.done) setTimeout(() => { if (page === 'home' && !$('#modal-root').children.length) render(); }, DONE_SHOW_MS + 1000);
+};
+const recentlyDone = t => t.done && t.doneAt && Date.now() - t.doneAt < DONE_SHOW_MS;
 // To-do editor: no notes field, cursor in the title, roomier fields
 const _taskEditor = taskEditor;
 taskEditor = function (id, d) {
@@ -977,7 +995,7 @@ function cmdHome() {
   const kindKey = k => ({ Run: 'run', Bike: 'bike', Swim: 'swim', Strength: 'strength', Yoga: 'yoga' })[k] || 'other';
   const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.target} min${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
   const open = openTasksSorted();
-  const doneToday = data.tasks.filter(t => t.done && t.date === today);
+  const doneToday = data.tasks.filter(recentlyDone).sort((a, b) => b.doneAt - a.doneAt);
   const tl = open.slice(0, 6).concat(doneToday.slice(0, Math.max(0, 6 - open.length)));
   const tasks = tl.map(t => `<div class="cmd-task${t.done ? ' done' : ''}"><button class="check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button><button class="t" data-act="task-edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span><span class="ts${t.date && t.date < today && !t.done ? ' late' : ''}">${esc(t.category || 'Personal')} · ${esc(dueLabel(t))}</span></button></div>`).join('') + (open.length > 6 ? `<button class="cmd-more" data-act="nav" data-page="todo">+ ${open.length - 6} more</button>` : '');
   const nowHM = new Date().toTimeString().slice(0, 5);
