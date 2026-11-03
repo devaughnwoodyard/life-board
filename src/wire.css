@@ -332,3 +332,11 @@ body[data-device="mobile"] .quick-form{gap:6px!important}
 .cmd-task.done .ts{text-decoration:none}
 .ts.late,.dk-t small.late{color:#B3361A!important;font-weight:600}
 .cmd-more{font-size:12px;font-weight:600;color:var(--blue);padding:8px 0 2px}
+/* last synced */
+.ls{background:#fff;border:1px solid #E6E6E6;border-radius:12px;padding:12px 14px;margin-bottom:6px}
+.ls h3{font-size:14px;font-weight:800;color:var(--navy);margin:0 0 4px}
+.ls-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #F0F0F0}
+.ls-row:first-of-type{border-top:0}
+.ls-row>div{flex:1;min-width:0}.ls-row b{display:block;font-size:13px}.ls-row small{display:block;font-size:11px;color:#585858;margin-top:1px;overflow-wrap:anywhere}
+.ls-when{font-size:11.5px;font-weight:600;color:#3A3A3A;text-align:right;max-width:46%}
+.ls-dot{width:10px;height:10px;border-radius:50%;background:#9AA3B2;flex:none}.ls-dot.ok{background:#2FB36B}.ls-dot.err{background:#E5484D}

@@ -199,7 +199,8 @@ async function sync(manual) {
       else { list.push(r.d); changed = true; }
     });
     cfg.since = res.now;
-    if (res.cal) { calCache = res.cal; ls.set(CAL_KEY, calCache); learnNames(); }
+    if (res.cal) { calCache = res.cal; ls.set(CAL_KEY, calCache); learnNames(); cfg.calAt = Date.now(); cfg.calCount = res.cal.length; }
+    if (res.calError) cfg.calError = res.calError; else delete cfg.calError;
     if (applyCalendar()) changed = true;
     if (Object.keys(cfg.planQ || {}).length) setTimeout(pushPlan, 0);
     const hasPlan = (data.workouts || []).some(w => String(w.id).startsWith('gp-'));
@@ -862,8 +863,26 @@ async function pushOn(btn) {
 }
 
 /* ---------- 8. Sync settings ---------- */
+function agoText(t) {
+  if (!t) return 'never';
+  const ms = Date.now() - new Date(t).getTime(); if (isNaN(ms)) return 'never';
+  const m = Math.round(ms / 60000);
+  const rel = m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago';
+  return rel + ' · ' + new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function lastSyncBlock() {
+  const st = cfg.strava || {};
+  const row = (ok, name, when, note) => `<div class="ls-row"><span class="ls-dot ${ok}"></span><div><b>${name}</b><small>${esc(note)}</small></div><span class="ls-when">${esc(when)}</span></div>`;
+  const stravaOk = st.error ? 'err' : cfg.garminAt ? 'ok' : 'off';
+  return `<div class="ls"><h3>Last synced</h3>
+    ${row(cfg.calError ? 'err' : cfg.calAt ? 'ok' : 'off', 'Google Calendar', agoText(cfg.calAt), cfg.calError ? cfg.calError : cfg.calAt ? (cfg.calCount || 0) + ' events in range' : 'not yet')}
+    ${row(stravaOk, 'Strava (Garmin)', agoText(cfg.garminAt), st.error ? st.error : cfg.garminAt ? 'Script imports hourly; pull down to import now' : 'not connected yet')}
+    ${row(/^Synced/.test(cfg.status || '') ? 'ok' : cfg.url ? 'err' : 'off', 'Sheet: to-dos, notes, habits', agoText(cfg.lastOk), cfg.status || 'not connected')}
+    ${row(cfg.planError ? 'err' : cfg.planAt ? 'ok' : 'off', 'Training plan', agoText(cfg.planAt), cfg.planError || 'Little Elm plan sheet')}
+    <button type="button" class="secondary" style="width:100%;margin-top:10px" data-2b="ls-now">Sync everything now</button></div>`;
+}
 function syncSheet() {
-  modal('Google sync', `<p class="muted" style="font-size:12px;line-height:1.6">Connects this device to your 2nd Brain Google Sheet: to-dos, notes, habits, workouts and events sync across devices; Google Calendar and the Little Elm training plan (with Garmin results) come in; note files go to the 2nd Brain Drive folder.</p>
+  modal('Google sync', `${cfg.url ? lastSyncBlock() : ''}<p class="muted" style="font-size:12px;line-height:1.6">Connects this device to your 2nd Brain Google Sheet: to-dos, notes, habits, workouts and events sync across devices; Google Calendar and the Little Elm training plan (with Garmin results) come in; note files go to the 2nd Brain Drive folder.</p>
     <label for="s-url">Apps Script web app URL</label><input id="s-url" value="${esc(cfg.url || '')}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
     <label for="s-key">Key</label><input id="s-key" value="${esc(cfg.token || '')}" placeholder="From the setup() log" autocomplete="off">
     <label for="s-names">Names that mean “with people” on your calendar</label><input id="s-names" value="${esc(cfg.names || '')}" placeholder="e.g. Steph, Kofi, Dana">
@@ -1115,6 +1134,7 @@ addEventListener('click', async e => {
       break;
     }
     case 'swap-day': swapDay(b.dataset.date); break;
+    case 'ls-now': forceClose(); fullRefresh(true); break;
     case 'zoom': cfg.zoom = Number(b.dataset.v); saveCfg(); applyZoom(); forceClose(); render(); syncSheet(); break;
     case 'qa': qaSheet(); break;
     case 'qa-close': qaClose(); break;
