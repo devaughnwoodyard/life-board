@@ -953,6 +953,43 @@ function cmdHome() {
       <div><div class="cmd-k">SPANISH</div>${p0 ? `<b lang="es">${esc(p0.es)}</b><small>${ph.length} learning</small><button data-2b="quiz-start">Quiz me</button>` : '<b>No phrases yet</b><small>Add one in Notes › Spanish</small><button data-2b="sp-open">Add a phrase</button>'}</div></section>
   </div>`;
 }
+// Desktop Home: six big tiles, one per area
+const isDesk = () => innerWidth >= 900;
+function cmdHomeDesk() {
+  const t12 = hm => { if (!hm) return 'All day'; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
+  const head = (icon, title, count, pg, extra = '') => `<div class="dk-h"><span class="dk-ic">${svgI(CI[icon])}</span><h2>${title}</h2>${count != null ? `<span class="dk-c">${count}</span>` : ''}${extra}<button class="dk-open" data-act="nav" data-page="${pg}">Open ›</button></div>`;
+  // training
+  const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
+  const days = Array.from({ length: 7 }, (_, i) => add(monday(today), i)), wk = data.workouts.filter(w => days.includes(w.date));
+  const hmf = m => m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') : m + 'm';
+  const disc = ['Swim', 'Bike', 'Run', 'Strength'].map(k => { const l = wk.filter(w => w.kind === k); if (!l.length) return ''; const p = l.reduce((s, w) => s + (+w.target || 0), 0), a = l.reduce((s, w) => s + (+w.actual || 0), 0);
+    return `<div class="dk-disc">${sportIcon(k)}<b>${k}</b><span><span class="v-act">${hmf(a)}</span> <span class="v-sep">/</span> <span class="v-pln">${hmf(p)}</span></span><i class="dk-bar"><i style="width:${p ? Math.min(100, Math.round(a / p * 100)) : 0}%"></i></i></div>`; }).join('');
+  const train = `<section class="dk-tile">${head('train', "Training", workoutScore() + '%', 'workouts')}
+    <div class="dk-body">${ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(w.title)}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.target} min</span>${w.actual != null ? ` · <span class="v-act">${w.actual} min</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
+    <div class="dk-k">THIS WEEK · ACTUAL / PLANNED</div>${disc}</div></section>`;
+  // to do
+  const open = data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
+  const tt = taskToday();
+  const todo = `<section class="dk-tile">${head('todo', 'To do', `${tt.filter(t => t.done).length}/${tt.length}`, 'todo')}<div class="dk-body">${open.slice(0, 7).map(t => `<div class="cmd-task"><button class="check" data-act="task-toggle" data-id="${t.id}" aria-label="Complete ${esc(t.title)}"></button><button class="t" data-act="task-edit" data-id="${t.id}">${esc(t.title)}</button>${t.category === 'Work' ? '<span class="w">Work</span>' : ''}<span class="m">${t.date === today ? (t.time ? t12(t.time) : 'Today') : t.date ? esc(fmt(t.date)) : ''}</span></div>`).join('') || '<p class="cmd-empty">All clear.</p>'}${open.length > 7 ? `<button class="dk-more" data-act="nav" data-page="todo">+ ${open.length - 7} more</button>` : ''}</div><button class="dk-add" data-2b="qa-todo">+ Add a to-do</button></section>`;
+  // calendar
+  const evs = data.events.filter(e => e.date >= today).sort((a, b) => (a.date + (a.time || '00:00')).localeCompare(b.date + (b.time || '00:00'))).slice(0, 6);
+  const kc = e => e.kind === 'people' ? '#C12C01' : e.kind === 'appt' ? '#E3B23C' : '#8FA7B8';
+  const cal = `<section class="dk-tile">${head('cal', 'Calendar', data.events.filter(e => e.date === today).length + ' today', 'calendar')}<div class="dk-body">${evs.map(e => `<button class="dk-ev" data-act="event-edit" data-id="${e.id}"><span class="dk-tm">${e.date === today ? t12(e.time) : esc(fmt(e.date, { weekday: 'short' })) + '<br>' + t12(e.time)}</span><i style="background:${kc(e)}"></i><span><b>${esc(e.title)}</b><small>${e.kind === 'people' ? 'With ' + esc((e.people || []).join(', ')) : e.kind === 'appt' ? 'Appointment' : esc(e.cal || 'Event')}</small></span></button>`).join('') || '<p class="cmd-empty">Nothing coming up.</p>'}</div></section>`;
+  // notes
+  const groups = [...new Map(data.notes.filter(n => !isPhrase(n)).sort((a, b) => String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || ''))).map(n => [n.tab + '|' + n.folder, n])).values()].slice(0, 5);
+  const notes = `<section class="dk-tile">${head('notes', 'Notes', data.notes.filter(n => !isPhrase(n)).length, 'notes')}<div class="dk-body">${groups.map(n => { const c = data.notes.filter(x => x.tab === n.tab && x.folder === n.folder).length; return `<button class="dk-fold" data-act="folder-open" data-tab="${esc(n.tab)}" data-folder="${esc(n.folder)}">${FOLDER_SVG}<span><b>${esc(n.folder)}</b><small>${esc(n.tab)} · ${c} note${c === 1 ? '' : 's'}</small></span></button>`; }).join('') || '<p class="cmd-empty">No notes yet.</p>'}</div><button class="dk-add" data-2b="qa-note">+ New note</button></section>`;
+  // habits
+  const last7 = Array.from({ length: 7 }, (_, i) => add(today, i - 6));
+  const habits = `<section class="dk-tile">${head('hab', 'Habits', habitScore() + '%', 'habits', '<span class="dk-sub">last 7 full days</span>')}<div class="dk-body">${data.habits.map(h => `<div class="dk-hab"><button class="tick ${h.days.includes(today) ? 'on' : ''}" data-act="habit-tick" data-id="${h.id}" data-date="${today}" aria-pressed="${h.days.includes(today)}" aria-label="${esc(h.title)} today">${h.days.includes(today) ? '✓' : '○'}</button><span class="dk-hn"><b>${esc(h.title)}</b><small>${esc(h.goal || '')}</small></span><span class="dk-dots">${last7.map(d => `<i class="${h.days.includes(d) ? 'on' : ''}${d === today ? ' td' : ''}" title="${esc(fmt(d))}"></i>`).join('')}</span></div>`).join('')}</div></section>`;
+  // spanish
+  const all = phrases(), learning = all.filter(p => p.passes.length < 5), mastered = all.length - learning.length;
+  const nextP = learning.filter(p => p.en).sort((a, b) => (a.passes.includes(today) - b.passes.includes(today)) || a.passes.length - b.passes.length).slice(0, 3);
+  const sp = `<section class="dk-tile dk-sp">${head('notes', 'Spanish', learning.length + ' learning', 'notes', '').replace('data-page="notes"', 'data-page="notes" data-2b="sp-open"')}<div class="dk-body">${nextP.length ? nextP.map((p, i) => `<div class="dk-ph${i === 0 ? ' first' : ''}"><b lang="es">${esc(p.es)}</b><small>${esc(p.en)}</small></div>`).join('') : '<p class="cmd-empty">Add phrases in Notes › Spanish.</p>'}<div class="dk-k">${mastered} mastered · ${all.length} total</div></div><button class="dk-quiz" data-2b="quiz-start" ${nextP.length ? '' : 'disabled'}>Quiz me</button></section>`;
+  return cmdPills() + `<div class="dk-grid">${train}${todo}${cal}${notes}${habits}${sp}</div>`;
+}
+let wasDesk = isDesk();
+addEventListener('resize', () => { if (isDesk() !== wasDesk) { wasDesk = isDesk(); document.body.dataset.device = innerWidth < 700 ? 'mobile' : 'desktop'; if (!$('#modal-root').children.length) render(); } });
+
 function qaSheet() {
   qaClose();
   const recent = [...new Map(data.notes.filter(n => !isPhrase(n)).sort((a, b) => String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || ''))).map(n => [n.tab + '|' + n.folder, n])).values()].slice(0, 3);
@@ -969,7 +1006,7 @@ render = function () {
   _render();
   document.body.dataset.page = page;
   cmdHeader(); cmdNav();
-  if (page === 'home') { const pc = document.getElementById('page-content'); if (pc) pc.innerHTML = cmdHome(); }
+  if (page === 'home') { const pc = document.getElementById('page-content'); if (pc) pc.innerHTML = isDesk() ? cmdHomeDesk() : cmdHome(); }
   try { sessionStorage.setItem('2b-view', JSON.stringify({ page, noteTab, week, month, selectedDate, taskFilter, y: page === lastPage ? scrollY : 0 })); } catch (e) {}
   lastPage = page;
   const qf = document.getElementById('quick-task');
