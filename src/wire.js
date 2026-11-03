@@ -962,6 +962,16 @@ taskEditor = function (id, d) {
   root.classList.add('task-sheet');
   const ta = root.querySelector('textarea[name="notes"]'); if (ta) { root.querySelector('label[for="' + ta.id + '"]')?.remove(); ta.remove(); }
   root.querySelectorAll('.row2').forEach(r => { const kids = [...r.children]; r.innerHTML = ''; for (let i = 0; i < kids.length; i += 2) { const g = document.createElement('div'); g.className = 'fld'; g.append(kids[i]); if (kids[i + 1]) g.append(kids[i + 1]); r.append(g); } });
+  if (!id && d === undefined) { const df = root.querySelector('#f-date'); if (df) df.value = ''; }
+  // selects become pill toggles (the select stays in the form, hidden, so saving works as before)
+  [['category', { Personal: 'Personal', Work: 'Work' }], ['repeat', { none: 'Once', daily: 'Daily', weekly: 'Weekly' }]].forEach(([name, labels]) => {
+    const sel = root.querySelector('select[name="' + name + '"]'); if (!sel) return;
+    const pills = document.createElement('div'); pills.className = 'tpills'; pills.setAttribute('role', 'radiogroup');
+    [...sel.options].sort((x, y) => (x.value === 'Personal' ? -1 : 0) - (y.value === 'Personal' ? -1 : 0)).forEach(o => { const bt = document.createElement('button'); bt.type = 'button'; bt.textContent = labels[o.value] || o.textContent; bt.setAttribute('role', 'radio'); bt.setAttribute('aria-checked', String(o.selected)); if (o.selected) bt.classList.add('on');
+      bt.onclick = () => { sel.value = o.value; pills.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === bt); x.setAttribute('aria-checked', String(x === bt)); }); }; pills.append(bt); });
+    sel.hidden = true; sel.after(pills); sel.closest('.row2')?.classList.add('row1');
+  });
+  const lb = root.querySelector('label[for="f-date"]'); if (lb) lb.textContent = 'Date'; const lt = root.querySelector('label[for="f-time"]'); if (lt) lt.textContent = 'Time';
   const t = root.querySelector('#f-title'); if (t) { t.placeholder = 'What needs doing?'; t.setAttribute('autocomplete', 'off'); setTimeout(() => t.focus(), 30); }
 };
 const _modal = modal;
@@ -1057,14 +1067,16 @@ let wasDesk = isDesk();
 addEventListener('resize', () => { if (isDesk() !== wasDesk) { wasDesk = isDesk(); document.body.dataset.device = innerWidth < 700 ? 'mobile' : 'desktop'; if (!$('#modal-root').children.length) render(); } });
 
 function qaSheet() {
+  if (document.querySelector('.qa-dial')) { qaClose(); return; }
   qaClose();
-  const recent = [...new Map(data.notes.filter(n => !isPhrase(n)).sort((a, b) => String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || ''))).map(n => [n.tab + '|' + n.folder, n])).values()].slice(0, 3);
-  document.body.insertAdjacentHTML('beforeend', `<div class="qa-scrim" data-2b="qa-close"></div><div class="qa-sheet" role="dialog" aria-label="Add"><div class="qa-grab"></div><h3>Add</h3>
-    <div class="qa-tiles"><button class="qa-tile" data-2b="qa-todo"><span>${svgI(CI.todo)}</span><b>To-do</b><small>Today, a day, or a time</small></button><button class="qa-tile" data-2b="qa-note"><span>${svgI(CI.notes)}</span><b>Note</b><small>Work, Personal, Spanish</small></button></div>
-    ${recent.length ? `<div class="qa-lbl">RECENT FOLDERS</div><div class="qa-chips">${recent.map(n => `<button data-2b="qa-folder" data-tab="${esc(n.tab)}" data-folder="${esc(n.folder)}">${esc(n.tab)} › ${esc(n.folder)}</button>`).join('')}<button data-2b="qa-phrase">Spanish › Phrase</button></div>` : `<div class="qa-lbl">SPANISH</div><div class="qa-chips"><button data-2b="qa-phrase">Add a phrase</button></div>`}
-    <button class="qa-voice" data-2b="qa-voice"><span>${ICONS.mic}</span>Speak or type a command: “To do Friday, call the dentist”</button></div>`);
+  const fab = document.getElementById('cmd-fab'); fab && fab.classList.add('open');
+  document.body.insertAdjacentHTML('beforeend', `<div class="qa-scrim" data-2b="qa-close"></div><div class="qa-dial" role="menu" aria-label="Add">
+    <button class="qa-act a1" role="menuitem" data-2b="qa-todo"><span>${svgI(CI.todo)}</span><b>To-do</b></button>
+    <button class="qa-act a2" role="menuitem" data-2b="qa-note"><span>${svgI(CI.notes)}</span><b>Note</b></button>
+    <button class="qa-act a3" role="menuitem" data-2b="qa-voice"><span>${ICONS.mic}</span><b>Speak</b></button></div>`);
+  requestAnimationFrame(() => document.querySelector('.qa-dial')?.classList.add('in'));
 }
-function qaClose() { document.querySelectorAll('.qa-scrim,.qa-sheet').forEach(x => x.remove()); }
+function qaClose() { document.querySelectorAll('.qa-scrim,.qa-sheet,.qa-dial').forEach(x => x.remove()); document.getElementById('cmd-fab')?.classList.remove('open'); }
 
 render = function () {
   // a single-folder view always shows as the folder list with that folder open
