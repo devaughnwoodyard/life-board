@@ -260,43 +260,52 @@ body[data-device="desktop"] .cmd-home{grid-template-columns:repeat(2,minmax(0,1f
 .qf-add{flex:none;min-height:44px;padding:0 14px}
 /* home tiles stretch (desktop grid) */
 
-/* desktop home: six big tiles */
-.dk-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(300px,1fr));gap:16px;height:calc(100vh - 220px);min-height:640px;margin-top:10px}
-.dk-tile{background:#fff;border:1px solid #E6E6E6;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:18px 18px 14px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-.dk-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.dk-ic{width:34px;height:34px;border-radius:10px;background:var(--b50);color:var(--navy);display:grid;place-items:center;flex:none}
-.dk-ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.dk-h h2{font-size:18px;font-weight:800;color:var(--navy);margin:0;letter-spacing:-.2px}
-.dk-c{font-size:12px;font-weight:700;color:var(--navy);background:var(--b25);border:1px solid var(--b100);border-radius:100px;padding:3px 10px}
-.dk-sub{font-size:11px;color:#585858}
-.dk-open{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--blue);padding:6px 4px}
-.dk-body{flex:1;min-height:0;overflow:auto}
-.dk-k{font-size:10.5px;font-weight:700;color:#585858;letter-spacing:.5px;margin:12px 0 4px}
-.dk-disc{display:grid;grid-template-columns:auto 72px 1fr;gap:4px 8px;align-items:center;padding:6px 0;font-size:13px}
-.dk-disc .sport-ic{width:14px;height:14px;padding:4px;border-radius:7px}
-.dk-disc b{font-size:12.5px}
-.dk-bar{grid-column:1/-1;display:block;height:4px;border-radius:2px;background:#EFEFEF;overflow:hidden}.dk-bar>i{display:block;height:4px;background:var(--act)}
-.dk-add{align-self:flex-start;font-size:13px;font-weight:700;color:var(--blue);padding:10px 0 2px}
-.dk-more{font-size:12px;font-weight:600;color:var(--blue);padding:8px 0}
-.dk-ev{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:9px 0;border-top:1px solid #EFEFEF}
-.dk-ev:first-child{border-top:0}
-.dk-tm{width:62px;font-size:11px;font-weight:700;color:#585858;line-height:1.35;flex:none}
-.dk-ev i{width:4px;height:32px;border-radius:2px;flex:none}
-.dk-ev b{display:block;font-size:14px;font-weight:600}.dk-ev small{display:block;font-size:11.5px;color:#585858;margin-top:1px}
-.dk-fold{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px;border-radius:10px}
-.dk-fold:hover{background:var(--b25)}
-.dk-fold .fold-ic{width:34px;height:34px;padding:8px}
-.dk-fold b{display:block;font-size:14.5px}.dk-fold small{display:block;font-size:11.5px;color:#585858;margin-top:1px}
-.dk-hab{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid #EFEFEF}
-.dk-hab:first-child{border-top:0}
-.dk-hab .tick{width:36px;height:36px;flex:none}
-.dk-hn{flex:1;min-width:0}.dk-hn b{display:block;font-size:14px}.dk-hn small{display:block;font-size:11px;color:#585858}
-.dk-dots{display:flex;gap:4px}.dk-dots i{width:10px;height:10px;border-radius:3px;background:#E6E9EE}.dk-dots i.on{background:var(--g600)}.dk-dots i.td{outline:2px solid var(--b100);outline-offset:1px}
-.dk-ph{padding:10px 0;border-top:1px solid #EFEFEF}.dk-ph:first-child{border-top:0}
-.dk-ph b{display:block;font-size:15px;font-weight:700}.dk-ph small{display:block;font-size:12px;color:#585858;margin-top:2px}
-.dk-ph.first b{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-.3px}
-.dk-quiz{height:44px;border-radius:100px;background:var(--navy);color:#fff;font-size:14px;font-weight:700;margin-top:8px}
-.dk-quiz:disabled{opacity:.5}
+/* desktop home: four equal tiles, all visible */
+.dk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:14px;height:calc(100vh - 210px);min-height:520px;margin-top:8px}
+.dk-tile{background:#fff;border:1px solid #E6E6E6;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:14px 16px 10px;display:flex;flex-direction:column;min-height:0;overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.dk-tile:hover{border-color:#C6DCFB;box-shadow:0 6px 18px rgba(1,52,111,.08)}
+.dk-h{display:flex;align-items:center;gap:9px;margin-bottom:6px;flex:none}
+.dk-ic{width:28px;height:28px;border-radius:8px;background:var(--b50);color:var(--navy);display:grid;place-items:center;flex:none}
+.dk-ic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dk-h h2{font-size:15px;font-weight:800;color:var(--navy);margin:0}
+.dk-c{font-size:11px;font-weight:700;color:var(--navy);background:var(--b25);border:1px solid var(--b100);border-radius:100px;padding:2px 8px}
+.dk-sub{font-size:10.5px;color:#585858}
+.dk-open{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--blue)}
+.dk-body{flex:1;min-height:0;overflow:hidden}
+.dk-k{font-size:9.5px;font-weight:700;color:#585858;letter-spacing:.5px;margin:8px 0 2px}
+.dk-row{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid #F0F0F0;min-height:38px}
+.dk-k+.dk-row,.dk-body>.dk-row:first-child{border-top:0}
+.dk-row .sport-ic{width:14px;height:14px;padding:5px;border-radius:7px;margin:0}
+.dk-row .fold-ic,.dk-row>svg{width:26px;height:26px;padding:6px;border-radius:8px;background:var(--b50);fill:#CFE2F1;stroke:var(--blue);stroke-width:1.7;stroke-linejoin:round;flex:none;box-sizing:border-box}
+.dk-t{flex:1;min-width:0}.dk-t b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dk-t small{display:block;font-size:11px;color:#585858;margin-top:1px}
+.dk-m{font-size:11px;color:#585858;white-space:nowrap}
+.cmd-task-w{font-size:9.5px;font-weight:700;color:var(--navy);border:1px solid var(--blue);border-radius:9px;padding:1px 6px}
+.dk-row .check{width:20px;height:20px;flex:none}
+.dk-row .tick{width:28px;height:28px;flex:none;font-size:11px}
+.dk-discs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}
+.dk-disc{display:grid;grid-template-columns:auto 62px 1fr;gap:3px 7px;align-items:center;padding:4px 0;font-size:12px}
+.dk-disc .sport-ic{width:12px;height:12px;padding:4px;border-radius:6px;margin:0}
+.dk-disc b{font-size:11.5px}.dk-disc .v-act,.dk-disc .v-pln{font-size:12px}
+.dk-bar{grid-column:1/-1;display:block;height:3px;border-radius:2px;background:#EFEFEF;overflow:hidden}.dk-bar>i{display:block;height:3px;background:var(--act)}
+.dk-dots{display:flex;gap:3px}.dk-dots i{width:9px;height:9px;border-radius:3px;background:#E6E9EE}.dk-dots i.on{background:var(--g600)}.dk-dots i.td{outline:2px solid var(--b100);outline-offset:1px}
+.dk-sp{display:flex;align-items:center;gap:10px;margin-top:8px;padding:9px 10px;border-radius:10px;background:var(--b25);border:1px solid var(--b100)}
+.dk-quiz{height:30px;padding:0 14px;border-radius:100px;background:var(--navy);color:#fff;font-size:12px;font-weight:700;flex:none}
+.dk-add{align-self:flex-start;font-size:12px;font-weight:700;color:var(--blue);padding:6px 0 2px;flex:none}
+.dk-more{font-size:11.5px;color:#585858;padding:4px 0}
 body[data-page="home"] #page-content{max-width:1320px}
-@media(max-width:1100px){.dk-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:minmax(300px,auto);height:auto}}
+@media(max-height:760px){.dk-row{min-height:32px;padding:4px 0}.dk-t small{display:none}}
 body[data-page="home"] .cmd-hd{max-width:1288px}
+
+/* header: no wordmark, whole bar goes Home, date opens Calendar */
+.app-header{cursor:pointer}
+.cmd-tt{cursor:pointer;padding:4px 6px!important}
+.cmd-tt b{display:inline-flex;align-items:center;gap:6px}
+.cmd-cal svg{width:14px;height:14px;fill:none;stroke:#C6DCFB;stroke-width:2;stroke-linecap:round;vertical-align:-1px}
+.cmd-wm,.cmd-dv{display:none!important}
+/* tab bar: five tabs, Home in the middle; + floats above */
+.app>.nav button.cmd-tab{flex:1}
+.cmd-fab{position:fixed;z-index:30;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:28px;background:var(--navy);color:#fff;display:grid;place-items:center;box-shadow:0 8px 22px rgba(0,0,0,.24);translate:0 var(--vv-shift,0px)}
+.cmd-fab svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+body[data-device="desktop"] .cmd-fab{right:28px;bottom:28px}
+body[data-device="desktop"] .app>.nav{width:520px!important}
+.cmd-add{display:none!important}
