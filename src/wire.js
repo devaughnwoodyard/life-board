@@ -1224,6 +1224,12 @@ render = function () {
     b.parentElement.classList.add('k-' + (e.kind || 'event'));
     const s = b.querySelector('small'); if (s) s.textContent = (e.kind === 'appt' ? 'Appointment' + ((e.people || []).length ? ' · with ' + e.people.join(', ') : '') : e.kind === 'people' ? 'With ' + (e.people || []).join(', ') : e.gcal ? e.cal : 'Event') + (e.end ? ' · until ' + e.end : '');
   });
+  // month grid: tint each day by its top event kind (appointment > people > other)
+  document.querySelectorAll('.cal-day[data-date]').forEach(c => {
+    const evs = data.events.filter(x => x.date === c.dataset.date); if (!evs.length) return;
+    const ks = evs.map(x => x.gcal ? (x.kind || 'event') : (k => k.appt ? 'appt' : k.people.length ? 'people' : 'event')(eventKind(x)));
+    c.classList.add('ck-' + (ks.includes('appt') ? 'appt' : ks.includes('people') ? 'people' : 'event'));
+  });
   if (page === 'calendar' && !document.querySelector('.cal-legend')) document.querySelector('.calendar-panel')?.insertAdjacentHTML('beforeend', '<p class="cal-legend"><i class="k-appt"></i> appointment <i class="k-people"></i> with people <i class="k-event"></i> other</p>');
   // notes: Granola import next to +
   const nc = document.querySelector('.notes-controls');
