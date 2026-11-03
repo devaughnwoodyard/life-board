@@ -508,3 +508,5 @@ textarea.grow{resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;o
 .qa-dial.in .a5{transform:translate(-132px,-88px)}
 .qa-dial.in .a2{transform:translate(-74px,-150px)}
 .qa-dial.in .a3{transform:translate(0,-162px)}
+/* hide the + while any editor/sheet is open */
+body:has(#modal-root > *) #cmd-fab{display:none!important}
