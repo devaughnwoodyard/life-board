@@ -868,7 +868,7 @@ function syncSheet() {
     <label for="s-key">Key</label><input id="s-key" value="${esc(cfg.token || '')}" placeholder="From the setup() log" autocomplete="off">
     <label for="s-names">Names that mean “with people” on your calendar</label><input id="s-names" value="${esc(cfg.names || '')}" placeholder="e.g. Steph, Kofi, Dana">
     <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}${cfg.url ? '<br>Garmin activities: ' + (cfg.garminAt ? 'last synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not synced yet') + (cfg.strava && cfg.strava.error ? '<br><b>Strava:</b> ' + esc(cfg.strava.error) : cfg.strava && !cfg.strava.keys ? '<br><b>Strava:</b> add STRAVA_ID and STRAVA_SECRET in Script Properties' : '') : ''}</p>
-    <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">${cfg.url ? '<button type="button" class="danger" data-2b="s-off">Disconnect</button><button type="button" class="secondary" data-2b="s-plan">Reload training plan</button><button type="button" class="secondary" data-2b="s-strava">Sync Garmin now</button>' : ''}<button type="button" class="primary" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button></div>${notifBlock()}`, { kind: '2b-sync', form: false });
+    <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">${cfg.url ? '<button type="button" class="danger" data-2b="s-off">Disconnect</button><button type="button" class="secondary" data-2b="s-plan">Reload training plan</button><button type="button" class="secondary" data-2b="s-strava">Sync Garmin now</button>' : ''}<button type="button" class="primary" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button></div><div class="notif"><h3>Display size (desktop)</h3><div class="qa-chips" style="margin-top:8px">${[['0.85', 'Smaller'], ['1', 'Default'], ['1.15', 'Larger'], ['1.3', 'Largest']].map(([v, l]) => `<button type="button" data-2b="zoom" data-v="${v}" style="${String(cfg.zoom || 1) === v ? 'background:#01346F;color:#fff;border-color:#01346F' : ''}">${l}</button>`).join('')}</div></div>${notifBlock()}`, { kind: '2b-sync', form: false });
 }
 function paintStatus() {
   const el = document.getElementById('s-status'); if (el) el.textContent = cfg.status || '';
@@ -902,6 +902,16 @@ function decorateNotes() {
   if (html) document.querySelectorAll('#page-content > .empty').forEach(e => e.remove());
 }
 
+// To-do editor: no notes field, cursor in the title, roomier fields
+const _taskEditor = taskEditor;
+taskEditor = function (id, d) {
+  _taskEditor(id, d);
+  const root = document.querySelector('#modal-root .sheet'); if (!root) return;
+  root.classList.add('task-sheet');
+  const ta = root.querySelector('textarea[name="notes"]'); if (ta) { root.querySelector('label[for="' + ta.id + '"]')?.remove(); ta.remove(); }
+  root.querySelectorAll('.row2').forEach(r => { const kids = [...r.children]; r.innerHTML = ''; for (let i = 0; i < kids.length; i += 2) { const g = document.createElement('div'); g.className = 'fld'; g.append(kids[i]); if (kids[i + 1]) g.append(kids[i + 1]); r.append(g); } });
+  const t = root.querySelector('#f-title'); if (t) { t.placeholder = 'What needs doing?'; t.setAttribute('autocomplete', 'off'); setTimeout(() => t.focus(), 30); }
+};
 const _modal = modal;
 modal = function (title, body, opts = {}) {
   _modal(title, body, opts);
@@ -1098,6 +1108,7 @@ addEventListener('click', async e => {
       break;
     }
     case 'swap-day': swapDay(b.dataset.date); break;
+    case 'zoom': cfg.zoom = Number(b.dataset.v); saveCfg(); applyZoom(); forceClose(); render(); syncSheet(); break;
     case 'qa': qaSheet(); break;
     case 'qa-close': qaClose(); break;
     case 'qa-todo': qaClose(); taskEditor(''); break;
@@ -1159,6 +1170,20 @@ if (q.get('add')) { runCommand(q.get('add'), { from: 'link' }); history.replaceS
 else if (q.get('page') && ['workouts', 'todo', 'notes', 'habits', 'calendar', 'home'].includes(q.get('page'))) { page = q.get('page'); history.replaceState(null, '', location.pathname); try { sessionStorage.removeItem('2b-view'); } catch (e) {} }
 else if (q.get('quiz')) { page = 'notes'; noteTab = 'Spanish'; noteFolder = 'all'; history.replaceState(null, '', location.pathname); try { sessionStorage.removeItem('2b-view'); } catch (e) {} setTimeout(() => startQuiz(), 600); }
 else if (q.get('capture')) { setTimeout(() => captureSheet(true), 300); history.replaceState(null, '', location.pathname); }
+
+/* ---------- Desktop scale: on Windows-style scaled displays (125/150/175%), draw 1 app px = 1 screen px ---------- */
+function appZoom() {
+  const dpr = window.devicePixelRatio || 1;
+  if (innerWidth < 900) return 1;
+  const auto = dpr % 1 !== 0 ? Math.max(0.6, Math.min(1, 1 / dpr)) : 1;
+  return Math.max(0.5, Math.min(1.4, auto * (Number(cfg.zoom) || 1)));
+}
+function applyZoom() {
+  const z = appZoom(), cur = parseFloat(document.documentElement.style.zoom) || 1;
+  if (Math.abs(z - cur) > 0.001) document.documentElement.style.zoom = z === 1 ? '' : String(z);
+  document.documentElement.style.setProperty('--app-h', Math.round(innerHeight / (parseFloat(document.documentElement.style.zoom) || 1)) + 'px');
+}
+applyZoom(); addEventListener('resize', applyZoom);
 
 /* ---------- Keep the bottom tray on the real bottom edge ----------
    Some in-app browsers (Google app, Gmail…) hide their toolbar without moving fixed elements. */
