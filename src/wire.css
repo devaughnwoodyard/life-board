@@ -356,3 +356,24 @@ body[data-device="mobile"][data-page="workouts"] .plan-src{font-size:10px;margin
 body[data-device="mobile"][data-page="workouts"] .stats{margin:4px 0 8px!important}
 body[data-device="mobile"][data-page="workouts"] .stats>div{padding:8px 10px!important}
 body[data-device="mobile"][data-page="workouts"] .stats b{font-size:18px!important}
+
+/* weekly discipline dials */
+.disc.dials,body[data-device="mobile"] .disc.dials{display:block!important;padding:10px 10px 8px!important;margin:4px 0 12px!important}
+.dials .disc-h{display:flex;justify-content:space-between;margin-bottom:6px}
+.dial-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.dial{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.dial-ring{position:relative;width:58px;height:58px}
+.dial-ring svg{width:58px;height:58px;transform:rotate(-90deg)}
+.dial-ring .trk{fill:none;stroke:#EEF1F5;stroke-width:6}
+.dial-ring .val{fill:none;stroke:var(--act);stroke-width:6;stroke-linecap:round}
+.dial-ring .sport-ic{position:absolute;left:50%;top:41%;transform:translate(-50%,-50%);width:13px!important;height:13px!important;padding:3px!important;margin:0!important;background:none!important}
+.dial-pct{position:absolute;left:0;right:0;top:56%;font-size:10px;font-weight:800;color:var(--act)}
+.dial.none .dial-pct{color:#9AA3AE}
+.dial b{font-size:11px;font-weight:700;margin-top:4px;color:#2D2D2D}
+.dial-v{font-size:10.5px;white-space:nowrap;line-height:1.35}
+.dial-v .v-act,.dial-v .v-pln{font-size:10.5px}.dial-v .v-sep{margin:0 2px}
+.dial.none{opacity:.55}
+body[data-device="desktop"] .dial-ring,body[data-device="desktop"] .dial-ring svg{width:76px;height:76px}
+body[data-device="desktop"] .dial b{font-size:13px}body[data-device="desktop"] .dial-v,body[data-device="desktop"] .dial-v span{font-size:12px}
+body[data-device="desktop"] .dial-ring .sport-ic{width:17px!important;height:17px!important}
+body[data-device="desktop"] .dial-pct{font-size:12px}

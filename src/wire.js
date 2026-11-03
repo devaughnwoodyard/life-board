@@ -1073,17 +1073,20 @@ render = function () {
   document.querySelectorAll('.session').forEach(el => { const eb = el.querySelector('[data-act="workout-edit"]'); if (eb) { el.dataset.wid = eb.dataset.id; el.draggable = true; } });
   if (page === 'workouts' && !document.querySelector('.disc')) {
     const days = Array.from({ length: 7 }, (_, i) => add(week, i)), ws = data.workouts.filter(w => days.includes(w.date));
-    const rows = ['Swim', 'Bike', 'Run', 'Strength', 'Yoga'].map(k => {
-      const l = ws.filter(w => w.kind === k); if (!l.length) return '';
+    const hm = m => { m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : '') : m + 'm'; };
+    const r1 = x => Math.round(x * 10) / 10;
+    const R = 25, C = 2 * Math.PI * R;
+    const dials = ['Swim', 'Bike', 'Run', 'Strength', 'Yoga'].map(k => {
+      const l = ws.filter(w => w.kind === k);
       const pm = l.reduce((s, w) => s + (Number(w.target) || 0), 0), am = l.reduce((s, w) => s + (Number(w.actual) || 0), 0);
       const pmi = l.reduce((s, w) => s + (Number(w.miles) || 0), 0), ami = l.reduce((s, w) => s + (Number(w.garmin && w.garmin.mi) || Number(w.actualMiles) || 0), 0);
-      const hm = m => m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') : m + 'm';
-      const pct = pm ? Math.min(100, Math.round(am / pm * 100)) : 0;
-      const r1 = x => Math.round(x * 10) / 10;
-      return `<div class="disc-row"><b>${k}</b><span><span class="v-act">${hm(am)}</span> <span class="v-sep">/</span> <span class="v-pln">${hm(pm)}</span></span><span class="disc-mi">${k === 'Run' ? `<span class="v-act">${r1(ami)}</span> <span class="v-sep">/</span> <span class="v-pln">${r1(pmi)} mi</span>` : ''}</span><i class="disc-bar"><i style="width:${pct}%"></i></i></div>`;
+      const pct = pm ? Math.min(1, am / pm) : 0;
+      return `<div class="dial${pm ? '' : ' none'}" aria-label="${k}: ${Math.round(am)} of ${pm} minutes">
+        <div class="dial-ring"><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="${R}" class="trk"></circle>${pct > 0 ? `<circle cx="30" cy="30" r="${R}" class="val" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"></circle>` : ''}</svg>${sportIcon(k)}<span class="dial-pct">${pm ? Math.round(pct * 100) + '%' : '–'}</span></div>
+        <b>${k}</b><span class="dial-v">${pm ? `<span class="v-act">${hm(am)}</span><span class="v-sep">/</span><span class="v-pln">${hm(pm)}</span>` : '<span class="v-sep">not planned</span>'}</span>${k === 'Run' && pmi ? `<span class="dial-v"><span class="v-act">${r1(ami)}</span><span class="v-sep">/</span><span class="v-pln">${r1(pmi)} mi</span></span>` : ''}</div>`;
     }).join('');
     const st = document.querySelector('#page-content .stats');
-    if (st && rows) st.insertAdjacentHTML('afterend', `<section class="disc" aria-label="Planned vs actual by discipline"><div class="disc-h"><span>This week by discipline</span><span>actual / planned</span></div>${rows}</section>`);
+    if (st && ws.length) st.insertAdjacentHTML('afterend', `<section class="disc dials" aria-label="This week, actual vs planned by discipline"><div class="disc-h"><span>This week by discipline</span><span>actual / planned</span></div><div class="dial-row">${dials}</div></section>`);
   }
   if (page === 'workouts' && Object.keys(cfg.planQ || {}).length) document.querySelector('.week-control')?.insertAdjacentHTML('afterend', `<p class="plan-src">${Object.keys(cfg.planQ).length} day(s) waiting to save to the plan sheet</p>`);
   if (page === 'workouts') {
