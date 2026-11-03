@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const CFG_KEY = '2b-sync', HASH_KEY = '2b-hash', DIRTY_KEY = '2b-dirty', CAL_KEY = '2b-cal', OLD_KEY = 'second-brain-v1';
-const COLLS = ['tasks', 'notes', 'habits', 'workouts', 'events'];
+const COLLS = ['tasks', 'notes', 'habits', 'workouts', 'events', 'checkins'];
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const ls = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
@@ -603,7 +603,7 @@ function startMic() {
   base = ta.value ? ta.value.replace(/\s*$/, ' ') : '';
   rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = !isIOS; rec.maxAlternatives = 1;
   rec.onstart = () => setMic(true, 'Listening… try “To do Friday, call the dentist”.');
-  rec.onresult = e => { let txt = ''; for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript; ta.value = base + normalizeSpoken(txt); };
+  rec.onresult = e => { let txt = ''; for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript; ta.value = base + normalizeSpoken(txt); autoGrow(ta); };
   rec.onerror = e => {
     const msg = e.error === 'not-allowed' ? 'Microphone is blocked. Allow it in Settings › Safari › Microphone (or the site settings), or use the keyboard mic.'
       : e.error === 'service-not-allowed' ? 'Voice isn’t available here. Tap in the box and use the keyboard’s mic key instead.'
@@ -622,6 +622,7 @@ function captureSheet(autoMic) {
     <div class="cap-more"><button type="button" class="secondary" data-2b="cap-forms">More: event, workout, note, habit…</button></div></div>`, { kind: '2b-capture', form: false });
   const ta = document.getElementById('cap-text');
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); capGo(); } });
+  ta.addEventListener('input', () => autoGrow(ta));
   if (autoMic) startMic(); else setTimeout(() => ta.focus(), 60);
 }
 function capGo() {
@@ -919,6 +920,39 @@ function paintStatus() {
 
 /* ---------- 9. Decorate the rendered page ---------- */
 const _render = render;
+/* ---------- Check-in: physical, emotional, mental (1–5) + mood (1–10), about four taps ---------- */
+if (!Array.isArray(data.checkins)) data.checkins = [];
+const CI_SCALE = ['Rough', 'Low', 'OK', 'Good', 'Great'];
+let ciDraft = {};
+function checkinSheet() {
+  ciDraft = {};
+  const row = (key, label) => `<div class="ci-q"><b>${label}</b><div class="ci-opts" data-key="${key}">${CI_SCALE.map((l, i) => `<button type="button" data-2b="ci-pick" data-key="${key}" data-v="${i + 1}" aria-pressed="false">${l}</button>`).join('')}</div></div>`;
+  modal('Check in', `<p class="ci-sub">How are you doing right now?</p>${row('physical', 'Physically')}${row('emotional', 'Emotionally')}${row('mental', 'Mentally')}
+    <div class="ci-q"><b>Mood <small>1–10 · tap to save</small></b><div class="ci-mood">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-2b="ci-mood" data-v="${i + 1}">${i + 1}</button>`).join('')}</div></div>`, { kind: '2b-checkin', form: false });
+}
+function saveCheckin(mood) {
+  const c = { id: uid(), at: new Date().toISOString(), date: today, physical: ciDraft.physical || null, emotional: ciDraft.emotional || null, mental: ciDraft.mental || null, mood };
+  data.checkins.push(c); save(); forceClose(); render();
+  undoToast(`Checked in · mood ${mood}/10.`, () => { data.checkins = data.checkins.filter(x => x !== c); save(); render(); });
+}
+function checkinCard() {
+  const all = data.checkins.slice().sort((a, b) => String(b.at).localeCompare(String(a.at)));
+  const days = Array.from({ length: 14 }, (_, i) => add(today, i - 13));
+  const avg = (l, k) => { const v = l.map(c => c[k]).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
+  const wk = all.filter(c => c.date > add(today, -7)), prevWk = all.filter(c => c.date <= add(today, -7) && c.date > add(today, -14));
+  const dimAvg = k => { const a = avg(wk, k); if (a == null) return '<span class="ci-na">–</span>'; const pa = avg(prevWk, k); const tr = pa == null ? '' : a > pa + 0.25 ? '<em class="up">▲</em>' : a < pa - 0.25 ? '<em class="dn">▼</em>' : '<em>•</em>';
+    return `<b>${CI_SCALE[Math.round(a) - 1]}</b>${tr}`; };
+  const moodW = avg(wk, 'mood'), moodP = avg(prevWk, 'mood');
+  const label = (c, k) => c[k] ? CI_SCALE[c[k] - 1] : '–';
+  return `<section class="ci-card"><div class="ci-h"><b>Check-ins</b><button data-2b="checkin">+ Check in</button></div>
+    <div class="ci-sum"><div><small>Mood · 7 days</small><b>${moodW == null ? '–' : moodW.toFixed(1)}</b>${moodW != null && moodP != null ? `<em class="${moodW >= moodP ? 'up' : 'dn'}">${moodW >= moodP ? '▲' : '▼'} ${Math.abs(moodW - moodP).toFixed(1)}</em>` : ''}</div>
+      <div><small>Physical</small>${dimAvg('physical')}</div><div><small>Emotional</small>${dimAvg('emotional')}</div><div><small>Mental</small>${dimAvg('mental')}</div></div>
+    <div class="ci-k">MOOD · LAST 14 DAYS</div>
+    <div class="ci-bars">${days.map(d => { const l = all.filter(c => c.date === d); const m = l.length ? l.reduce((s, c) => s + c.mood, 0) / l.length : null; return `<div class="ci-bar${d === today ? ' td' : ''}" title="${esc(fmt(d))}${m ? ': ' + m.toFixed(1) : ''}"><small>${m ? Math.round(m) : ''}</small><i style="height:${m ? m * 10 : 0}%"></i><span>${fmt(d, { weekday: 'narrow' })}</span></div>`; }).join('')}</div>
+    <div class="ci-k">LOG</div>${all.length ? `<div class="ci-log">${all.slice(0, 8).map(c => `<div class="ci-row"><span class="ci-when">${esc(new Date(c.at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span><span class="ci-m">${c.mood}</span><span class="ci-d">${label(c, 'physical')} · ${label(c, 'emotional')} · ${label(c, 'mental')}</span></div>`).join('')}</div>` : '<p class="ci-last">No check-ins yet. Tap + and Check in.</p>'}
+  </section>`;
+}
+
 /* ---------- 8b. Notes: folder cards that open into a list, notes that expand in place ---------- */
 const openFolders = new Set(ls.get('2b-openf', [])), openNotes = new Set();
 const FOLDER_SVG = '<svg class="fold-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
@@ -954,6 +988,20 @@ toggleTask = function (id) {
   if (t && t.done) setTimeout(() => { if (page === 'home' && !$('#modal-root').children.length) render(); }, DONE_SHOW_MS + 1000);
 };
 const recentlyDone = t => t.done && t.doneAt && Date.now() - t.doneAt < DONE_SHOW_MS;
+// Text boxes that wrap and grow as you type (Enter saves)
+function autoGrow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight + 2, 480) + 'px'; }
+function growify(input, onEnter) {
+  if (!input || input.tagName === 'TEXTAREA') { if (input) autoGrow(input); return input; }
+  const ta = document.createElement('textarea');
+  ['id', 'name', 'placeholder', 'maxlength', 'aria-label', 'autocomplete'].forEach(a => { if (input.hasAttribute(a)) ta.setAttribute(a, input.getAttribute(a)); });
+  if (input.required) ta.required = true;
+  ta.value = input.value; ta.rows = 1; ta.className = (input.className + ' grow').trim(); ta.setAttribute('enterkeyhint', 'done');
+  input.replaceWith(ta);
+  ta.addEventListener('input', () => autoGrow(ta));
+  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); onEnter ? onEnter(ta) : ta.form && ta.form.requestSubmit(); } });
+  requestAnimationFrame(() => autoGrow(ta));
+  return ta;
+}
 // To-do editor: no notes field, cursor in the title, roomier fields
 const _taskEditor = taskEditor;
 taskEditor = function (id, d) {
@@ -963,6 +1011,16 @@ taskEditor = function (id, d) {
   const ta = root.querySelector('textarea[name="notes"]'); if (ta) { root.querySelector('label[for="' + ta.id + '"]')?.remove(); ta.remove(); }
   root.querySelectorAll('.row2').forEach(r => { const kids = [...r.children]; r.innerHTML = ''; for (let i = 0; i < kids.length; i += 2) { const g = document.createElement('div'); g.className = 'fld'; g.append(kids[i]); if (kids[i + 1]) g.append(kids[i + 1]); r.append(g); } });
   if (!id && d === undefined) { const df = root.querySelector('#f-date'); if (df) df.value = ''; }
+  // iPhone's picker "Reset" goes back to the default value: make that blank, and add a visible Clear
+  ['f-date', 'f-time'].forEach(fid => {
+    const el = root.querySelector('#' + fid); if (!el) return;
+    const keep = el.value; el.removeAttribute('value'); el.defaultValue = ''; el.value = keep;
+    const lab = root.querySelector('label[for="' + fid + '"]'); if (!lab) return;
+    const clr = document.createElement('button'); clr.type = 'button'; clr.className = 'f-clear'; clr.textContent = 'Clear'; clr.hidden = !el.value;
+    clr.onclick = () => { el.value = ''; clr.hidden = true; if (fid === 'f-date') { const tm = root.querySelector('#f-time'); if (tm) { tm.value = ''; } root.querySelectorAll('.f-clear').forEach(c => c.hidden = true); } };
+    el.addEventListener('input', () => { clr.hidden = !el.value; }); el.addEventListener('change', () => { clr.hidden = !el.value; });
+    lab.classList.add('with-clear'); lab.append(clr);
+  });
   // selects become pill toggles (the select stays in the form, hidden, so saving works as before)
   [['category', { Personal: 'Personal', Work: 'Work' }], ['repeat', { none: 'Once', daily: 'Daily', weekly: 'Weekly' }]].forEach(([name, labels]) => {
     const sel = root.querySelector('select[name="' + name + '"]'); if (!sel) return;
@@ -971,8 +1029,14 @@ taskEditor = function (id, d) {
       bt.onclick = () => { sel.value = o.value; pills.querySelectorAll('button').forEach(x => { x.classList.toggle('on', x === bt); x.setAttribute('aria-checked', String(x === bt)); }); }; pills.append(bt); });
     sel.hidden = true; sel.after(pills); sel.closest('.row2')?.classList.add('row1');
   });
-  const lb = root.querySelector('label[for="f-date"]'); if (lb) lb.textContent = 'Date'; const lt = root.querySelector('label[for="f-time"]'); if (lt) lt.textContent = 'Time';
-  const t = root.querySelector('#f-title'); if (t) { t.placeholder = 'What needs doing?'; t.setAttribute('autocomplete', 'off'); setTimeout(() => t.focus(), 30); }
+  const lb = root.querySelector('label[for="f-date"]'); if (lb && lb.firstChild) lb.firstChild.nodeValue = 'Date'; const lt = root.querySelector('label[for="f-time"]'); if (lt && lt.firstChild) lt.firstChild.nodeValue = 'Time';
+  const t = growify(root.querySelector('#f-title')); if (t) { t.placeholder = 'What needs doing?'; t.setAttribute('autocomplete', 'off'); setTimeout(() => t.focus(), 30); }
+};
+const _noteEditor = noteEditor;
+noteEditor = function (id) {
+  _noteEditor(id);
+  const t = growify(document.querySelector('#modal-root #note-title'), ta => document.getElementById('rich-body')?.focus());
+  if (t && !id) setTimeout(() => t.focus(), 30);
 };
 const _modal = modal;
 modal = function (title, body, opts = {}) {
@@ -1073,7 +1137,8 @@ function qaSheet() {
   document.body.insertAdjacentHTML('beforeend', `<div class="qa-scrim" data-2b="qa-close"></div><div class="qa-dial" role="menu" aria-label="Add">
     <button class="qa-act a1" role="menuitem" data-2b="qa-todo"><span>${svgI(CI.todo)}</span><b>To-do</b></button>
     <button class="qa-act a2" role="menuitem" data-2b="qa-note"><span>${svgI(CI.notes)}</span><b>Note</b></button>
-    <button class="qa-act a3" role="menuitem" data-2b="qa-voice"><span>${ICONS.mic}</span><b>Speak</b></button></div>`);
+    <button class="qa-act a3" role="menuitem" data-2b="qa-checkin"><span>${svgI('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>')}</span><b>Check in</b></button>
+    <button class="qa-act a4" role="menuitem" data-2b="qa-voice"><span>${ICONS.mic}</span><b>Speak</b></button></div>`);
   requestAnimationFrame(() => document.querySelector('.qa-dial')?.classList.add('in'));
 }
 function qaClose() { document.querySelectorAll('.qa-scrim,.qa-sheet,.qa-dial').forEach(x => x.remove()); document.getElementById('cmd-fab')?.classList.remove('open'); }
@@ -1088,6 +1153,7 @@ render = function () {
   try { sessionStorage.setItem('2b-view', JSON.stringify({ page, noteTab, week, month, selectedDate, taskFilter, y: page === lastPage ? scrollY : 0 })); } catch (e) {}
   lastPage = page;
   const qf = document.getElementById('quick-task');
+  if (qf) growify(qf.querySelector('input[name="title"]'));
   if (qf && !qf.querySelector('.qf-add')) qf.insertAdjacentHTML('beforeend', '<button class="primary qf-add" type="submit" aria-label="Add to-do">+ Add</button>');
   const acts = document.querySelector('.header-actions');
   if (acts && !acts.querySelector('.sync-dot')) acts.insertAdjacentHTML('afterbegin', `<button class="icon-btn mic-btn" data-2b="capture-mic" aria-label="Voice capture">${ICONS.mic}</button><button class="icon-btn sync-dot" data-2b="sync-settings" aria-label="Google sync settings"><i></i></button>`);
@@ -1144,6 +1210,7 @@ render = function () {
     const w = data.workouts.find(x => x.id === el.dataset.id), sp = el.querySelector('span'); if (!w || !sp) return;
     sp.innerHTML = `<span class="v-pln">${w.target} min</span> · ${w.actual == null ? 'Log session' : `<span class="v-act">${w.actual} min done</span>`}`;
   });
+  if (page === 'habits' && !document.querySelector('.ci-card')) document.getElementById('page-content')?.insertAdjacentHTML('beforeend', checkinCard());
   if (page === 'habits') { const sm = document.querySelector('#page-content .stats > div small'); if (sm) sm.textContent = 'Last 7 full days (today not counted)'; }
   document.querySelectorAll('.scoreline span[title^="Trailing"]').forEach(x => x.title = 'Habit efficiency: last 7 full days, not counting today');
   decorateSportIcons();
@@ -1186,6 +1253,9 @@ addEventListener('click', async e => {
     case 'zoom': cfg.zoom = Number(b.dataset.v); saveCfg(); applyZoom(); forceClose(); render(); syncSheet(); break;
     case 'qa': qaSheet(); break;
     case 'qa-close': qaClose(); break;
+    case 'qa-checkin': case 'checkin': qaClose(); forceClose(); checkinSheet(); break;
+    case 'ci-pick': { ciDraft[b.dataset.key] = Number(b.dataset.v); b.parentElement.querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); break; }
+    case 'ci-mood': saveCheckin(Number(b.dataset.v)); break;
     case 'qa-todo': qaClose(); taskEditor(''); break;
     case 'qa-note': qaClose(); { const keep = noteFolder; noteFolder = 'all'; noteEditor(); noteFolder = keep; } break;
     case 'qa-folder': qaClose(); { const keepT = noteTab, keepF = noteFolder; noteTab = b.dataset.tab; noteFolder = b.dataset.folder; noteEditor(); noteTab = keepT; noteFolder = keepF; } break;
