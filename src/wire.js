@@ -832,6 +832,35 @@ function renderQuiz(p) {
     ${q.answered ? `<p class="quiz-feedback">${ok ? `<b>Correct.</b> ${p.passes.length}/5 correct review days.${p.passes.length === 5 ? ' Mastered.' : ''}` : `<b>Keep practicing.</b> ${esc(p.en)}. It comes back later in this quiz.`}</p><div class="form-actions"><button class="primary" data-2b="quiz-next">${q.queue.length === 1 && ok ? 'Finish' : 'Next phrase'}</button></div>` : ''}`, { kind: '2b-quiz', form: false });
 }
 
+/* ---------- 7c. Notifications ---------- */
+const VAPID_PUBLIC = 'BMTtoJTgXJnW9IevbDYMgIHf0NUafZcxQVCG1eYbXA6dNXayjP3-kocBhIkkfG4tmlZpcStT0yRbBipgnlozL_g';
+const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushReady = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function notifBlock() {
+  if (!cfg.url) return '';
+  const on = cfg.push && typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  const why = !standalone() ? 'Open 2nd Brain from its home-screen icon (Safari › Share › Add to Home Screen) to turn these on.' : !pushReady() ? 'This iPhone needs iOS 16.4 or newer for notifications.' : '';
+  return `<div class="notif"><h3>Notifications</h3><p class="cap-status">Workout of the day at 3 AM · Spanish recap at 3 PM.</p>
+    ${why ? `<p class="cap-status"><b>${esc(why)}</b></p>` : `<label for="n-worker">Cloudflare Worker URL</label><input id="n-worker" value="${esc(cfg.pushWorker || '')}" placeholder="https://2nd-brain-push.yourname.workers.dev" autocomplete="off">
+    <div class="form-actions" style="justify-content:flex-start">${on ? '<button type="button" class="secondary" data-2b="n-test">Send a test</button>' : ''}<button type="button" class="primary" data-2b="n-on">${on ? 'Update' : 'Turn on notifications'}</button></div>`}</div>`;
+}
+async function pushOn(btn) {
+  const w = (document.getElementById('n-worker').value.match(/https:\/\/[^\s"'<>]+?\.workers\.dev/) || [''])[0];
+  if (!w) { notify('Paste the Worker URL from Cloudflare (ends in .workers.dev).'); return; }
+  btn.disabled = true; btn.textContent = 'Turning on…';
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('Notifications are blocked. Settings › Notifications › 2nd Brain › Allow.');
+    const reg = await navigator.serviceWorker.ready;
+    const key = Uint8Array.from(atob(VAPID_PUBLIC.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - VAPID_PUBLIC.length % 4) % 4)), c => c.charCodeAt(0));
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    const r = await api({ action: 'pushSub', sub: sub.toJSON(), worker: w, device: navigator.platform || '' });
+    cfg.push = true; cfg.pushWorker = w; saveCfg(); forceClose();
+    notify(r.sent ? 'Notifications are on. A test is on its way.' : 'Saved, but the test didn’t send: ' + (r.error || 'unknown'));
+  } catch (e) { notify('Notifications: ' + e.message); btn.disabled = false; btn.textContent = 'Turn on notifications'; }
+}
+
 /* ---------- 8. Sync settings ---------- */
 function syncSheet() {
   modal('Google sync', `<p class="muted" style="font-size:12px;line-height:1.6">Connects this device to your 2nd Brain Google Sheet: to-dos, notes, habits, workouts and events sync across devices; Google Calendar and the Little Elm training plan (with Garmin results) come in; note files go to the 2nd Brain Drive folder.</p>
@@ -839,7 +868,7 @@ function syncSheet() {
     <label for="s-key">Key</label><input id="s-key" value="${esc(cfg.token || '')}" placeholder="From the setup() log" autocomplete="off">
     <label for="s-names">Names that mean “with people” on your calendar</label><input id="s-names" value="${esc(cfg.names || '')}" placeholder="e.g. Steph, Kofi, Dana">
     <p class="cap-status">App build: <b>${esc(document.querySelector('meta[name="2b-build"]')?.content || 'dev')}</b></p><p class="cap-status" id="s-status">${esc(cfg.status || 'Not connected yet.')}${cfg.planError ? '<br>Plan: ' + esc(cfg.planError) : ''}${cfg.url ? '<br>Garmin activities: ' + (cfg.garminAt ? 'last synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not synced yet') + (cfg.strava && cfg.strava.error ? '<br><b>Strava:</b> ' + esc(cfg.strava.error) : cfg.strava && !cfg.strava.keys ? '<br><b>Strava:</b> add STRAVA_ID and STRAVA_SECRET in Script Properties' : '') : ''}</p>
-    <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">${cfg.url ? '<button type="button" class="danger" data-2b="s-off">Disconnect</button><button type="button" class="secondary" data-2b="s-plan">Reload training plan</button><button type="button" class="secondary" data-2b="s-strava">Sync Garmin now</button>' : ''}<button type="button" class="primary" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button></div>`, { kind: '2b-sync', form: false });
+    <div class="form-actions" style="justify-content:flex-start;flex-wrap:wrap">${cfg.url ? '<button type="button" class="danger" data-2b="s-off">Disconnect</button><button type="button" class="secondary" data-2b="s-plan">Reload training plan</button><button type="button" class="secondary" data-2b="s-strava">Sync Garmin now</button>' : ''}<button type="button" class="primary" data-2b="s-save">${cfg.url ? 'Save and sync now' : 'Connect'}</button></div>${notifBlock()}`, { kind: '2b-sync', form: false });
 }
 function paintStatus() {
   const el = document.getElementById('s-status'); if (el) el.textContent = cfg.status || '';
@@ -979,6 +1008,8 @@ addEventListener('click', async e => {
       break;
     }
     case 'swap-day': swapDay(b.dataset.date); break;
+    case 'n-on': await pushOn(b); break;
+    case 'n-test': { b.disabled = true; try { const r = await api({ action: 'pushTest' }); notify(r.sent ? 'Test sent.' : 'Test failed: ' + r.error); } catch (err) { notify('Test failed: ' + err.message); } b.disabled = false; break; }
     case 'folder-toggle': { const k = fKey(b.dataset.tab, b.dataset.folder); if (openFolders.has(k)) openFolders.delete(k); else { openFolders.add(k); const st = new Date().toISOString(); data.notes.filter(n => n.tab === b.dataset.tab && n.folder === b.dataset.folder).forEach(n => n.lastOpened = st); _save(); } ls.set('2b-openf', [...openFolders]); render(); break; }
     case 'note-toggle': { const id = b.dataset.id; if (openNotes.has(id)) openNotes.delete(id); else { openNotes.add(id); const n = data.notes.find(x => x.id === id); if (n) { n.lastOpened = new Date().toISOString(); _save(); } } render(); break; }
     case 'note-in-folder': { const keep = noteFolder; noteTab = b.dataset.tab; noteFolder = b.dataset.folder; noteEditor(); noteFolder = keep; break; }
@@ -1027,6 +1058,8 @@ addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLower
 // Home-screen shortcut: ?capture=1 opens capture with the mic; ?add=text runs a command directly
 const q = new URLSearchParams(location.search);
 if (q.get('add')) { runCommand(q.get('add'), { from: 'link' }); history.replaceState(null, '', location.pathname); }
+else if (q.get('page') && ['workouts', 'todo', 'notes', 'habits', 'calendar', 'home'].includes(q.get('page'))) { page = q.get('page'); history.replaceState(null, '', location.pathname); try { sessionStorage.removeItem('2b-view'); } catch (e) {} }
+else if (q.get('quiz')) { page = 'notes'; noteTab = 'Spanish'; noteFolder = 'all'; history.replaceState(null, '', location.pathname); try { sessionStorage.removeItem('2b-view'); } catch (e) {} setTimeout(() => startQuiz(), 600); }
 else if (q.get('capture')) { setTimeout(() => captureSheet(true), 300); history.replaceState(null, '', location.pathname); }
 
 /* ---------- Keep the bottom tray on the real bottom edge ----------

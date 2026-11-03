@@ -1,7 +1,7 @@
-// 2nd Brain service worker — build 24654f33
+// 2nd Brain service worker — build 24e86e6f
 // App shell: network-first for the page (so updates land when online), cache fallback offline.
 // Fonts: stale-while-revalidate.
-const CACHE = 'lifeboard-24654f33';
+const CACHE = 'lifeboard-24e86e6f';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
@@ -46,4 +46,18 @@ self.addEventListener('fetch', e => {
       return res;
     })));
   }
+});
+
+// Notifications (3 AM workout, 3 PM Spanish recap) sent by your Apps Script through the Cloudflare Worker
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || '2nd Brain', { body: d.body || '', icon: './icons/icon-192.png', badge: './icons/icon-192.png', tag: d.tag || undefined, data: { url: d.url || './' } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) { if ('focus' in c) { c.navigate ? c.navigate(url) : null; return c.focus(); } }
+    return clients.openWindow(url);
+  }));
 });

@@ -185,3 +185,6 @@ body[data-device="mobile"][data-page="workouts"] .stats small{font-size:9px}
 #toast{translate:0 var(--vv-shift,0px)}
 .app{min-height:calc(100svh - 1px)!important}
 body{min-height:0!important}
+
+/* notifications block in sync settings */
+.notif{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}.notif h3{font-size:15px;margin-bottom:2px}

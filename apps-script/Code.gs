@@ -65,6 +65,8 @@ function handle_(b) {
     if (b.action === 'ping') return out_({ ok: true });
     if (b.action === 'plan') return out_(plan_());
     if (b.action === 'planMove') return out_(planMove_(b));
+    if (b.action === 'pushSub') return out_(pushSub_(b));
+    if (b.action === 'pushTest') return out_(pushTest_(b));
     if (b.action === 'strava') { var n = syncStrava(); return out_({ ok: true, added: n, strava: stravaState_() }); }
     if (b.action === 'getfile') return out_(getfile_(b));
     if (b.action === 'summarize') return out_(summarize_(b));
@@ -467,4 +469,68 @@ function syncStravaInner_(p) {
   p.setProperty('STRAVA_AFTER', String(newest));
   p.setProperty('STRAVA_LAST', new Date().toISOString());
   return rows.length;
+}
+
+
+// ---------- Notifications (Web Push through your Cloudflare Worker) ----------
+// The app sends its subscription here (pushSub); daily triggers send the 3 AM workout and the 3 PM Spanish recap.
+var PUSH_KEY = '';   // same as SEND_KEY in push-worker.js (or Script Property PUSH_KEY)
+function pushKey_() { return String(PUSH_KEY || PropertiesService.getScriptProperties().getProperty('PUSH_KEY') || '').trim(); }
+function pushSubs_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('PUSH_SUBS') || '[]'); } catch (e) { return []; } }
+function pushSub_(b) {
+  var p = PropertiesService.getScriptProperties();
+  if (!b.sub || !/^https:\/\//.test(b.sub.endpoint || '') || !b.sub.keys) return { ok: false, error: 'No subscription from the app' };
+  if (b.worker) { if (!/^https:\/\/[^\s/]+\.workers\.dev\/?$/.test(b.worker)) return { ok: false, error: 'The Worker URL should look like https://name.yourname.workers.dev' }; p.setProperty('PUSH_URL', b.worker.replace(/\/$/, '')); }
+  if (!p.getProperty('PUSH_URL')) return { ok: false, error: 'Paste your Worker URL' };
+  if (!pushKey_()) return { ok: false, error: 'PUSH_KEY is missing in Code.gs' };
+  var subs = pushSubs_().filter(function (x) { return x.endpoint !== b.sub.endpoint; });
+  subs.unshift({ endpoint: b.sub.endpoint, keys: b.sub.keys, device: String(b.device || '').slice(0, 60), at: new Date().toISOString() });
+  p.setProperty('PUSH_SUBS', JSON.stringify(subs.slice(0, 5)));
+  pushTriggers_();
+  var r = pushAll_({ title: 'Notifications are on ✓', body: 'Workout of the day at 3 AM, Spanish recap at 3 PM.', url: './', tag: 'test' });
+  return { ok: r.sent > 0, sent: r.sent, error: r.sent ? '' : r.errors.join('; ') };
+}
+function pushTest_() { var r = pushAll_({ title: '2nd Brain test', body: 'If you see this, notifications work.', url: './', tag: 'test' }); return { ok: r.sent > 0, sent: r.sent, error: r.errors.join('; ') }; }
+function pushTriggers_() {
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (/^push(Workout|Spanish)$/.test(t.getHandlerFunction())) ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('pushWorkout').timeBased().everyDays(1).atHour(3).nearMinute(0).create();
+  ScriptApp.newTrigger('pushSpanish').timeBased().everyDays(1).atHour(15).nearMinute(0).create();
+}
+function pushAll_(payload) {
+  var p = PropertiesService.getScriptProperties(), url = p.getProperty('PUSH_URL'), subs = pushSubs_(), keep = [], sent = 0, errors = [];
+  if (!url || !subs.length) return { sent: 0, errors: ['Notifications are not set up'] };
+  subs.forEach(function (sub) {
+    var r = UrlFetchApp.fetch(url + '/send', { method: 'post', contentType: 'application/json', muteHttpExceptions: true, payload: JSON.stringify({ key: pushKey_(), sub: sub, payload: payload }) });
+    var j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) { j = { error: r.getContentText().slice(0, 200) }; }
+    if (j.ok) { sent++; keep.push(sub); }
+    else if (j.status === 404 || j.status === 410) { /* phone unsubscribed: drop it */ }
+    else { keep.push(sub); errors.push(j.error || j.text || ('HTTP ' + r.getResponseCode())); }
+  });
+  p.setProperty('PUSH_SUBS', JSON.stringify(keep));
+  return { sent: sent, errors: errors };
+}
+function todayStr_() { return Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+// 3 AM: today's training from the plan sheet
+function pushWorkout() {
+  var day = todayStr_(), row = (plan_().rows || []).filter(function (r) { return r.date === day; })[0];
+  var line = function (slot, c) { return c && c[1] ? slot + ' · ' + String(c[1]).split(' | ').join(' + ') + (c[2] ? ' (' + String(c[2]).split('+').join(' + ') + ' min)' : '') : ''; };
+  var lines = row ? [line('AM', row.am), line('PM', row.pm)].filter(String) : [];
+  var body = lines.length ? lines.join('\n') + (row.bail ? '\nBail: ' + row.bail : '') : 'No sessions planned today. Rest or mobility.';
+  return pushAll_({ title: lines.length ? "Today's training" : 'Rest day', body: body.slice(0, 600), url: './?page=workouts', tag: 'workout-' + day });
+}
+// 3 PM: Spanish recap from your phrases (Spanish notes with es/en)
+function pushSpanish() {
+  var v = sheet_(DATA).getDataRange().getValues(), day = todayStr_(), ph = [];
+  for (var r = 1; r < v.length; r++) {
+    if (v[r][0] !== 'notes' || !v[r][4]) continue;
+    var d; try { d = JSON.parse(v[r][4]); } catch (e) { continue; }
+    if (d.tab !== 'Spanish' || !(d.es || d.source === 'phrase')) continue;
+    ph.push({ es: d.es || d.title, en: d.en || '', passes: (d.passes || []).length, today: (d.reviews || []).some(function (x) { return x.day === day; }), entered: d.entered || '' });
+  }
+  if (!ph.length) return pushAll_({ title: 'Spanish recap', body: 'No phrases yet. Add one: “Spanish le llegas means do you get it”.', url: './?quiz=1', tag: 'spanish-' + day });
+  var learning = ph.filter(function (x) { return x.passes < 5; }), done = ph.filter(function (x) { return x.today; }).length;
+  var due = learning.filter(function (x) { return !x.today; }).sort(function (a, b) { return a.passes - b.passes || String(a.entered).localeCompare(String(b.entered)); }).slice(0, 3);
+  var body = (done ? 'Reviewed ' + done + ' today. ' : 'No review yet today. ') + learning.length + ' learning · ' + (ph.length - learning.length) + ' mastered.';
+  if (due.length) body += '\n' + due.map(function (x) { return x.es + (x.en ? ' = ' + x.en : ''); }).join('\n') + '\nTap to quiz yourself.';
+  return pushAll_({ title: 'Spanish recap', body: body.slice(0, 600), url: './?quiz=1', tag: 'spanish-' + day });
 }

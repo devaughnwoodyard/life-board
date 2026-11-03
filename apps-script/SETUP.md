@@ -63,3 +63,10 @@ After that, every hour the script copies new activities into the plan sheet's **
 4. Paste the latest Code.gs, **Deploy → Manage deployments → ✏️ → New version**.
 5. In the app: sync dot → **Send plan to Garmin** (or run `sendPlanToGarmin` in the editor). Re-run any time the plan changes; it updates the same workouts.
 On the watch: Run/Bike/Swim → Training → **Today's workout** (or Calendar). Runs use HR zones, rides use watts, swims and lifts are timed.
+
+## Notifications (3 AM workout, 3 PM Spanish recap)
+Needs the home-screen app (Safari › Share › Add to Home Screen), iOS 16.4+.
+1. Free account at https://dash.cloudflare.com → **Workers & Pages → Create → Create Worker** → name it `2nd-brain-push` → **Deploy** → **Edit code** → replace everything with your `push-worker.js` (with SEND_KEY / VAPID keys filled in) → **Deploy**. Copy the `https://2nd-brain-push.<you>.workers.dev` URL.
+2. Code.gs needs `PUSH_KEY` = the Worker's SEND_KEY (or Script Property PUSH_KEY). Paste, Save, Deploy a New version.
+3. In the home-screen app: sync dot → **Notifications** → paste the Worker URL → **Turn on notifications** → Allow. A test arrives right away.
+Times follow the Apps Script time zone (Project Settings › Time zone); Google runs each within its hour (3:00–3:59 AM, 3:00–3:59 PM). Tapping the workout opens Workouts; the Spanish recap opens a quiz.
