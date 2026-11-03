@@ -503,3 +503,8 @@ textarea.grow{resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;o
 .cal-day.ck-appt{background:#FCE7A8}.cal-day.ck-people{background:#F8C9CA}.cal-day.ck-event{background:#CFE2F8}
 .cal-day.selected.ck-appt,.cal-day.selected.ck-people,.cal-day.selected.ck-event{box-shadow:inset 0 -5px 0 0 var(--ck)}
 .cal-day.ck-appt{--ck:#E3B23C}.cal-day.ck-people{--ck:#D9484D}.cal-day.ck-event{--ck:#8DB8EA}
+/* fan: To-do dropped lower so its label clears Event */
+.qa-dial.in .a1{transform:translate(-150px,12px)}
+.qa-dial.in .a5{transform:translate(-132px,-88px)}
+.qa-dial.in .a2{transform:translate(-74px,-150px)}
+.qa-dial.in .a3{transform:translate(0,-162px)}
