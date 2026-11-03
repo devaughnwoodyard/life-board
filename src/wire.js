@@ -54,7 +54,7 @@ try { dedupeHabits(); } catch (e) {}
 
 /* ---------- 2. Change tracking + sync ---------- */
 const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return h.toString(36); };
-const syncable = (c, x) => x && x.id != null && !(c === 'workouts' && String(x.id).startsWith('gp-')) && !(c === 'events' && x.gcal);
+const syncable = (c, x) => x && x.id != null && !(c === 'workouts' && /^g[pa]-/.test(String(x.id))) && !(c === 'events' && x.gcal);
 function snapshot() {
   const out = {};
   COLLS.forEach(c => { out[c] = {}; (data[c] || []).forEach(x => { if (syncable(c, x)) out[c][x.id] = hash(JSON.stringify(x)); }); });
@@ -320,29 +320,45 @@ const ACT_KIND = s => /run/i.test(s) ? 'Run' : /ride|bike|cycl/i.test(s) ? 'Bike
 const EFFORT = (s, kind) => /threshold|tempo|goal hm|vo2|sweet spot|race|hill/i.test(s) ? 8 : /long/i.test(s) ? 6 : kind === 'Strength' ? 6 : kind === 'Yoga' ? 2 : 4;
 async function loadPlan() {
   const r = await api({ action: 'plan' });
-  const prev = {}; (data.workouts || []).forEach(w => { if (String(w.id).startsWith('gp-')) prev[w.id] = w; });
+  const prev = {}, prevByTitle = {}; (data.workouts || []).forEach(w => { if (String(w.id).startsWith('gp-')) { prev[w.id] = w; prevByTitle[w.date + '|' + w.title] = w; } });
   const out = [];
   (r.rows || []).forEach(p => {
-    const acts = (p.acts || (p.act ? [p.act] : [])).map(a => Object.assign({ kind: ACT_KIND(String(a.sport || '')) }, a));
+    const acts = (p.acts || (p.act ? [p.act] : [])).map((a, i) => Object.assign({ kind: ACT_KIND(String(a.sport || '')) || 'Other', i }, a));
+    acts.forEach(a => { a.slot = a.start ? (a.start < '12:00' ? 'AM' : 'PM') : ''; });
+    const day = [];
     [['AM', p.am], ['PM', p.pm]].forEach(([slot, s]) => {
       const sports = String((s || [])[0] || '').split(/\s*\+\s*/), sessions = String((s || [])[1] || '').split(/\s+\|\s+/), minsL = String((s || [])[2] == null ? '' : s[2]).split('+');
       const parts = sessions.length > 1 && sports.length === sessions.length ? sessions.map((x, i) => [sports[i], x, minsL[i], i]) : [[(s || [])[0], (s || [])[1], (s || [])[2], 0]];
       parts.forEach(([sport, session, mins, si]) => {
-      const kind = KIND(sport || ''); if (!kind || !session) return;
-      const ai = acts.findIndex(a => a.kind === kind && !a.used); const act = ai >= 0 ? acts[ai] : null; if (act) act.used = true;
-      const id = 'gp-' + p.date + '-' + slot.toLowerCase() + (si ? '-' + si : ''), old = prev[id] || {};
-      const target = Number(mins) || 30, mi = kind === 'Run' && Number(p.mi) ? Number(p.mi) : 0;
-      out.push({
-        id, title: String(session).trim().slice(0, 160), date: p.date, slot, kind, target, effort: EFFORT(session, kind),
-        actual: act ? Math.round(Number(act.min)) || target : (old.actual != null ? old.actual : null), actualEffort: act ? old.actualEffort || null : old.actualEffort || null,
-        notes: old.notes || (p.bail ? 'Bail rule: ' + p.bail : ''), plan: true, miles: mi || undefined, sport: String(sport), bail: p.bail || '', garmin: act ? { name: act.name || '', mi: act.mi || null, hr: act.hr || null } : undefined
+        const kind = KIND(sport || ''); if (!kind || !session) return;
+        const id = 'gp-' + p.date + '-' + slot.toLowerCase() + (si ? '-' + si : '');
+        const old = prev[id] || prevByTitle[p.date + '|' + String(session).trim()] || {};
+        const target = Number(mins) || 30, mi = kind === 'Run' && Number(p.mi) ? Number(p.mi) : 0;
+        day.push({ id, title: String(session).trim().slice(0, 160), date: p.date, slot, kind, target, effort: EFFORT(session, kind), old, actual: null,
+          notes: old.notes || (p.bail ? 'Bail rule: ' + p.bail : ''), plan: true, miles: mi || undefined, sport: String(sport), bail: p.bail || '' });
       });
-      });
+    });
+    // 1) same sport, same slot  2) same sport, either slot
+    const take = (w, a) => { a.used = true; w.act = a; };
+    day.forEach(w => { const a = acts.find(x => !x.used && x.kind === w.kind && x.slot === w.slot); if (a) take(w, a); });
+    day.forEach(w => { if (w.act) return; const a = acts.find(x => !x.used && x.kind === w.kind); if (a) take(w, a); });
+    day.forEach(w => {
+      const a = w.act, old = w.old; delete w.act; delete w.old;
+      w.actual = a ? Math.round(Number(a.min)) || w.target : (old.actual != null && !old.garmin ? old.actual : null);
+      w.actualEffort = old.actualEffort || null;
+      if (a) w.garmin = { name: a.name || '', mi: a.mi || null, hr: a.hr || null, start: a.start || '' };
+      out.push(w);
+    });
+    // 3) anything not on the plan still counts, in the slot it happened
+    acts.filter(a => !a.used).forEach(a => {
+      const slot = a.slot || (day.some(w => w.slot === 'AM') && !day.some(w => w.slot === 'PM') ? 'PM' : 'AM');
+      out.push({ id: 'ga-' + p.date + '-' + (a.sid || a.i), title: a.name || a.sport || 'Activity', date: p.date, slot, kind: a.kind, sport: String(a.sport || ''), target: 0,
+        actual: Math.round(Number(a.min)) || 0, effort: 4, unplanned: true, garmin: { name: a.name || '', mi: a.mi || null, hr: a.hr || null, start: a.start || '' }, notes: 'Not on the plan' });
     });
   });
   if (!out.length) return false;
   if (Object.keys(cfg.planQ || {}).length) return false;   // local moves not on the sheet yet: don't overwrite them
-  data.workouts = (data.workouts || []).filter(w => !String(w.id).startsWith('gp-')).concat(out);
+  data.workouts = (data.workouts || []).filter(w => !/^g[pa]-/.test(String(w.id))).concat(out);
   planSnap = snapPlan();
   cfg.planAt = Date.now(); cfg.garminAt = r.synced || ''; cfg.strava = r.strava || null; delete cfg.planError; saveCfg();
   return true;
@@ -350,7 +366,7 @@ async function loadPlan() {
 
 // Efficiency counts planned sessions that came and went without a Garmin activity as 0%.
 workoutScore = function () {
-  const rows = data.workouts.filter(w => w.actual !== null || (w.plan && w.date < today));
+  const rows = data.workouts.filter(w => !w.unplanned && w.target > 0 && (w.actual !== null || (w.plan && w.date < today)));
   return rows.length ? Math.round(rows.reduce((s, w) => s + Math.min((w.actual || 0) / w.target, 1) * 100, 0) / rows.length) : 0;
 };
 
@@ -392,7 +408,6 @@ function planChanges() {
   });
   Object.keys(cur).forEach(id => { if (!planSnap[id]) dates.add(cur[id].date); });
   if (!dates.size) return;
-  data.workouts.filter(w => isPlan(w) && dates.has(w.date)).forEach(w => { const a = planSnap[w.id]; if (a && (a.date !== w.date || a.slot !== w.slot)) { w.actual = null; delete w.garmin; } });
   cfg.planQ = cfg.planQ || {};
   dates.forEach(d => { cfg.planQ[d] = dayRow(d); });
   planSnap = snapPlan(); ls.set('2b-plansnap', planSnap); saveCfg();
@@ -428,7 +443,7 @@ function moveSession(id, date, slot) {
   });
 }
 function swapDay(d) {
-  const ws = data.workouts.filter(w => w.date === d); if (!ws.length) return;
+  const ws = data.workouts.filter(w => w.date === d && !w.unplanned); if (!ws.length) return;
   ws.forEach(w => { w.slot = w.slot === 'AM' ? 'PM' : 'AM'; });
   save(); render(); notify('Swapped AM and PM on ' + fmtDay(d) + '.');
 }
@@ -993,7 +1008,7 @@ function cmdHome() {
   const t12 = hm => { if (!hm) return 'All day'; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
   const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
   const kindKey = k => ({ Run: 'run', Bike: 'bike', Swim: 'swim', Strength: 'strength', Yoga: 'yoga' })[k] || 'other';
-  const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.target} min${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
+  const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.target + ' min'}${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
   const open = openTasksSorted();
   const doneToday = data.tasks.filter(recentlyDone).sort((a, b) => b.doneAt - a.doneAt);
   const tl = open.slice(0, 6).concat(doneToday.slice(0, Math.max(0, 6 - open.length)));
@@ -1022,7 +1037,7 @@ function cmdHomeDesk() {
   const disc = ['Swim', 'Bike', 'Run', 'Strength', 'Yoga'].map(k => { const l = wk.filter(w => w.kind === k); if (!l.length) return ''; const p = l.reduce((s, w) => s + (+w.target || 0), 0), a = l.reduce((s, w) => s + (+w.actual || 0), 0);
     return `<div class="dk-disc">${sportIcon(k)}<b>${k}</b><span><span class="v-act">${hmf(a)}</span> <span class="v-sep">/</span> <span class="v-pln">${hmf(p)}</span></span><i class="dk-bar"><i style="width:${p ? Math.min(100, Math.round(a / p * 100)) : 0}%"></i></i></div>`; }).join('');
   const train = `<section class="dk-tile" data-act="nav" data-page="workouts">${head('train', 'Training', workoutScore() + '%')}<div class="dk-body">
-    <div class="dk-k">TODAY</div>${ws.map(w => `<div class="dk-row">${sportIcon(w.kind)}<span class="dk-t"><b>${esc(short(w.title))}</b><small><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.target} min</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min</span>` : ''}</small></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</div>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
+    <div class="dk-k">TODAY</div>${ws.map(w => `<div class="dk-row">${sportIcon(w.kind)}<span class="dk-t"><b>${esc(short(w.title))}</b><small><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min</span>` : ''}</small></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</div>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
     <div class="dk-k">THIS WEEK · ACTUAL / PLANNED</div><div class="dk-discs">${disc}</div></div></section>`;
   // to do
   const open = data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
@@ -1098,10 +1113,10 @@ render = function () {
       const l = ws.filter(w => w.kind === k);
       const pm = l.reduce((s, w) => s + (Number(w.target) || 0), 0), am = l.reduce((s, w) => s + (Number(w.actual) || 0), 0);
       const pmi = l.reduce((s, w) => s + (Number(w.miles) || 0), 0), ami = l.reduce((s, w) => s + (Number(w.garmin && w.garmin.mi) || Number(w.actualMiles) || 0), 0);
-      const pct = pm ? Math.min(1, am / pm) : 0;
-      return `<div class="dial${pm ? '' : ' none'}" aria-label="${k}: ${Math.round(am)} of ${pm} minutes">
-        <div class="dial-ring"><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="${R}" class="trk"></circle>${pct > 0 ? `<circle cx="30" cy="30" r="${R}" class="val" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"></circle>` : ''}</svg>${sportIcon(k)}<span class="dial-pct">${pm ? Math.round(pct * 100) + '%' : '–'}</span></div>
-        <b>${k}</b><span class="dial-v">${pm ? `<span class="v-act">${hm(am)}</span><span class="v-sep">/</span><span class="v-pln">${hm(pm)}</span>` : '<span class="v-sep">not planned</span>'}</span>${k === 'Run' && pmi ? `<span class="dial-v"><span class="v-act">${r1(ami)}</span><span class="v-sep">/</span><span class="v-pln">${r1(pmi)} mi</span></span>` : ''}</div>`;
+      const pct = pm ? Math.min(1, am / pm) : am > 0 ? 1 : 0;
+      return `<div class="dial${pm || am ? '' : ' none'}" aria-label="${k}: ${Math.round(am)} of ${pm} minutes">
+        <div class="dial-ring"><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="${R}" class="trk"></circle>${pct > 0 ? `<circle cx="30" cy="30" r="${R}" class="val" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"></circle>` : ''}</svg>${sportIcon(k)}<span class="dial-pct">${pm ? Math.round(pct * 100) + '%' : am ? '+' : '–'}</span></div>
+        <b>${k}</b><span class="dial-v">${pm ? `<span class="v-act">${hm(am)}</span><span class="v-sep">/</span><span class="v-pln">${hm(pm)}</span>` : am ? `<span class="v-act">${hm(am)}</span><span class="v-sep">unplanned</span>` : '<span class="v-sep">not planned</span>'}</span>${k === 'Run' && pmi ? `<span class="dial-v"><span class="v-act">${r1(ami)}</span><span class="v-sep">/</span><span class="v-pln">${r1(pmi)} mi</span></span>` : ''}</div>`;
     }).join('');
     const st = document.querySelector('#page-content .stats');
     if (st && ws.length) st.insertAdjacentHTML('afterend', `<section class="disc dials" aria-label="This week, actual vs planned by discipline"><div class="disc-h"><span>This week by discipline</span><span>actual / planned</span></div><div class="dial-row">${dials}</div></section>`);
@@ -1126,7 +1141,7 @@ render = function () {
     if (w && sm) {
       const pct = w.actual != null && w.target ? Math.round(Math.min(w.actual / w.target, 1) * 100) : null;
       const act = w.actual != null ? [w.actual + ' min', w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', pct != null ? pct + '%' : ''].filter(Boolean).join(' · ') : '';
-      sm.innerHTML = `${esc(w.kind)} · <span class="v-pln">${w.target} min${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${act ? `<br><span class="v-act">${w.garmin ? '✓ ' : ''}${esc(act)}</span>` : ''}`;
+      sm.innerHTML = `${esc(w.kind)} · <span class="v-pln">${w.unplanned ? 'Unplanned' : w.target + ' min'}${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${act ? `<br><span class="v-act">${w.garmin ? '✓ ' : ''}${esc(act)}</span>` : ''}`;
     }
     if (w && w.garmin) el.classList.add('from-garmin');
   });

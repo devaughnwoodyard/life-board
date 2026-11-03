@@ -237,9 +237,13 @@ function plan_() {
   }
   // Every synced activity (Garmin → Strava → this sheet), so days with two sessions count both.
   var acts = {}, a = SpreadsheetApp.openById(id).getSheetByName('Activities');
-  if (a && a.getLastRow() > 1) a.getRange(2, 1, a.getLastRow() - 1, 6).getValues().forEach(function (x) {
+  if (a && a.getLastRow() > 1) a.getRange(2, 1, a.getLastRow() - 1, 10).getValues().forEach(function (x) {
     var day = x[0] instanceof Date ? Utilities.formatDate(x[0], tz, 'yyyy-MM-dd') : String(x[0]).slice(0, 10);
-    (acts[day] = acts[day] || []).push({ sport: String(x[1]), min: Number(x[3]) || 0, mi: Number(x[4]) || 0, hr: x[5] });
+    // start as 24h "HH:mm" in the script's time zone (the sheet stores "6:05 AM" text, or a time value)
+    var st = '';
+    if (x[2] instanceof Date) st = Utilities.formatDate(x[2], tz, 'HH:mm');
+    else { var m = String(x[2] || '').match(/(\d{1,2}):(\d{2})\s*([AaPp])?/); if (m) { var h = Number(m[1]) % 12; if (/p/i.test(m[3] || '')) h += 12; if (!m[3]) h = Number(m[1]); st = (h < 10 ? '0' : '') + h + ':' + m[2]; } }
+    (acts[day] = acts[day] || []).push({ sport: String(x[1]), start: st, min: Number(x[3]) || 0, mi: Number(x[4]) || 0, hr: x[5], name: String(x[8] || ''), sid: String(x[9] || '') });
   });
   out.forEach(function (o) { o.acts = acts[o.date] || (o.act ? [o.act] : []); });
   return { ok: true, rows: out, synced: PropertiesService.getScriptProperties().getProperty('STRAVA_LAST') || '', strava: stravaState_() };
