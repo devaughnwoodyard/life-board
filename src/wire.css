@@ -309,3 +309,6 @@ body[data-page="home"] .cmd-hd{max-width:1288px}
 body[data-device="desktop"] .cmd-fab{right:28px;bottom:28px}
 body[data-device="desktop"] .app>.nav{width:520px!important}
 .cmd-add{display:none!important}
+#page-content{width:100%;box-sizing:border-box}
+.dk-row .sport-ic{width:16px!important;height:16px!important;padding:6px!important;border-radius:8px!important;box-sizing:content-box!important}
+.dk-disc .sport-ic{width:13px!important;height:13px!important;padding:4px!important;box-sizing:content-box!important}
