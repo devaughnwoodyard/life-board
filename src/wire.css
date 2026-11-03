@@ -320,3 +320,8 @@ body[data-device="desktop"] .app>.nav{width:520px!important}
 .task-sheet .row2{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
 .task-sheet .fld{display:flex;flex-direction:column;min-width:0}
 .task-sheet .fld input,.task-sheet .fld select{width:100%;box-sizing:border-box}
+/* To Do quick add: room for "Personal" */
+.quick-form select{width:auto!important;min-width:118px;flex:none;padding:0 30px 0 12px!important;font-size:15px!important;height:44px}
+body[data-device="mobile"] .quick-form{gap:6px!important}
+.task-sheet select{padding-right:30px!important}
+.cmd-tap{cursor:pointer}.cmd-start{color:var(--blue)!important;font-weight:600}
