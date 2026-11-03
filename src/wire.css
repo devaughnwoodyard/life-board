@@ -482,3 +482,9 @@ textarea.grow{resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;o
 .mention button.new{color:var(--blue);border-style:dashed}
 .mention span{font-size:12px;color:#585858;padding:6px 2px}
 .agenda-item.k-people>button{border-left-color:#d9484d!important}.agenda-item.k-appt>button{border-left-color:#e3b23c!important}
+/* fan: four actions on a wider quarter circle (To-do, Event, Note, Check in) */
+.qa-dial.in .a1{transform:translate(-190px,0)}
+.qa-dial.in .a5{transform:translate(-165px,-95px)}
+.qa-dial.in .a2{transform:translate(-95px,-165px)}
+.qa-dial.in .a3{transform:translate(0,-190px)}
+.qa-act.a3 span{background:#fff;color:#C12C01}

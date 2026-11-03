@@ -1198,8 +1198,7 @@ function qaSheet() {
     <button class="qa-act a1" role="menuitem" data-2b="qa-todo"><span>${svgI(CI.todo)}</span><b>To-do</b></button>
     <button class="qa-act a5" role="menuitem" data-2b="qa-event"><span>${svgI(CI.cal)}</span><b>Event</b></button>
     <button class="qa-act a2" role="menuitem" data-2b="qa-note"><span>${svgI(CI.notes)}</span><b>Note</b></button>
-    <button class="qa-act a3" role="menuitem" data-2b="qa-checkin"><span>${svgI('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>')}</span><b>Check in</b></button>
-    <button class="qa-act a4" role="menuitem" data-2b="qa-voice"><span>${ICONS.mic}</span><b>Speak</b></button></div>`);
+    <button class="qa-act a3" role="menuitem" data-2b="qa-checkin"><span>${svgI('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>')}</span><b>Check in</b></button></div>`);
   requestAnimationFrame(() => document.querySelector('.qa-dial')?.classList.add('in'));
 }
 function qaClose() { document.querySelectorAll('.qa-scrim,.qa-sheet,.qa-dial').forEach(x => x.remove()); document.getElementById('cmd-fab')?.classList.remove('open'); }
