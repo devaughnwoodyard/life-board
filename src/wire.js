@@ -928,6 +928,13 @@ const CI = {
 const svgI = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
 const TABS = [['todo', 'To Do', 'todo'], ['notes', 'Notes', 'notes'], ['home', 'Home', 'home'], ['workouts', 'Train', 'train'], ['habits', 'Habits', 'hab']];
 const short = t => String(t || '').split(/[:(]/)[0].trim() || t;
+const hm12 = hm => { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
+function dueLabel(t) {
+  if (!t.date) return 'No date';
+  const d = t.date === today ? 'Today' : t.date === add(today, 1) ? 'Tomorrow' : t.date < today ? 'Overdue · ' + fmt(t.date) : t.date < add(today, 7) ? fmt(t.date, { weekday: 'short', month: 'short', day: 'numeric' }) : fmt(t.date);
+  return d + (t.time ? ' · ' + hm12(t.time) : '');
+}
+const openTasksSorted = () => data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
 const PAGE_NAME = { home: 'Monday', todo: 'To Do', calendar: 'Calendar', workouts: 'Training', notes: 'Notes', habits: 'Habits' };
 function cmdHeader() {
   const h = document.querySelector('.app-header'); if (!h) return;
@@ -950,10 +957,10 @@ function cmdHome() {
   const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
   const kindKey = k => ({ Run: 'run', Bike: 'bike', Swim: 'swim', Strength: 'strength', Yoga: 'yoga' })[k] || 'other';
   const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.target} min${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
-  const open = data.tasks.filter(t => !t.done && t.date && t.date <= today).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  const open = openTasksSorted();
   const doneToday = data.tasks.filter(t => t.done && t.date === today);
-  const tl = open.concat(doneToday).slice(0, 6);
-  const tasks = tl.map(t => `<div class="cmd-task${t.done ? ' done' : ''}"><button class="check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button><button class="t" data-act="task-edit" data-id="${t.id}">${esc(t.title)}</button>${t.category === 'Work' ? '<span class="w">Work</span>' : ''}${t.time ? `<span class="m">${esc(t12(t.time))}</span>` : t.date < today ? `<span class="m">${esc(fmt(t.date))}</span>` : ''}</div>`).join('');
+  const tl = open.slice(0, 6).concat(doneToday.slice(0, Math.max(0, 6 - open.length)));
+  const tasks = tl.map(t => `<div class="cmd-task${t.done ? ' done' : ''}"><button class="check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button><button class="t" data-act="task-edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span><span class="ts${t.date && t.date < today && !t.done ? ' late' : ''}">${esc(t.category || 'Personal')} · ${esc(dueLabel(t))}</span></button></div>`).join('') + (open.length > 6 ? `<button class="cmd-more" data-act="nav" data-page="todo">+ ${open.length - 6} more</button>` : '');
   const nowHM = new Date().toTimeString().slice(0, 5);
   const next = data.events.filter(e => e.date === today && (!e.time || e.time >= nowHM)).sort((a, b) => (a.time || '00').localeCompare(b.time || '00'))[0]
     || data.events.filter(e => e.date > today).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))[0];
@@ -983,7 +990,7 @@ function cmdHomeDesk() {
   // to do
   const open = data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
   const tt = taskToday(), N = 6;
-  const todo = `<section class="dk-tile"${open.length ? ' data-act="nav" data-page="todo"' : ' data-2b="qa-todo"'}>${head('todo', 'To do', `${tt.filter(t => t.done).length}/${tt.length}`)}<div class="dk-body">${open.slice(0, N).map(t => `<div class="dk-row"><button class="check" data-act="task-toggle" data-id="${t.id}" aria-label="Complete ${esc(t.title)}"></button><span class="dk-t"><b>${esc(t.title)}</b></span>${t.category === 'Work' ? '<span class="cmd-task-w">Work</span>' : ''}<span class="dk-m">${t.date === today ? (t.time ? t12(t.time) : 'Today') : t.date ? esc(fmt(t.date)) : ''}</span></div>`).join('') || '<p class="cmd-empty cmd-start">All clear. Click to write a to-do.</p>'}${open.length > N ? `<p class="dk-more">+ ${open.length - N} more</p>` : ''}</div><button class="dk-add" data-2b="qa-todo">+ Add a to-do</button></section>`;
+  const todo = `<section class="dk-tile"${open.length ? ' data-act="nav" data-page="todo"' : ' data-2b="qa-todo"'}>${head('todo', 'To do', `${tt.filter(t => t.done).length}/${tt.length}`)}<div class="dk-body">${open.slice(0, N).map(t => `<div class="dk-row"><button class="check" data-act="task-toggle" data-id="${t.id}" aria-label="Complete ${esc(t.title)}"></button><span class="dk-t"><b>${esc(t.title)}</b><small class="${t.date && t.date < today ? 'late' : ''}">${esc(t.category || 'Personal')} · ${esc(dueLabel(t))}</small></span></div>`).join('') || '<p class="cmd-empty cmd-start">All clear. Click to write a to-do.</p>'}${open.length > N ? `<p class="dk-more">+ ${open.length - N} more</p>` : ''}</div><button class="dk-add" data-2b="qa-todo">+ Add a to-do</button></section>`;
   // notes (+ Spanish quiz shortcut)
   const groups = [...new Map(data.notes.filter(n => !isPhrase(n)).sort((a, b) => String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || ''))).map(n => [n.tab + '|' + n.folder, n])).values()].slice(0, 4);
   const learning = phrases().filter(p => p.passes.length < 5 && p.en);

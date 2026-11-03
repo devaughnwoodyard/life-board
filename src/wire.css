@@ -325,3 +325,10 @@ body[data-device="desktop"] .app>.nav{width:520px!important}
 body[data-device="mobile"] .quick-form{gap:6px!important}
 .task-sheet select{padding-right:30px!important}
 .cmd-tap{cursor:pointer}.cmd-start{color:var(--blue)!important;font-weight:600}
+/* to-do rows on Home: title + category · date · time */
+.cmd-task button.t{display:flex;flex-direction:column;gap:2px}
+.cmd-task .tt{font-size:14px}
+.cmd-task .ts{font-size:11.5px;color:#585858}
+.cmd-task.done .ts{text-decoration:none}
+.ts.late,.dk-t small.late{color:#B3361A!important;font-weight:600}
+.cmd-more{font-size:12px;font-weight:600;color:var(--blue);padding:8px 0 2px}
