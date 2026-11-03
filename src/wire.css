@@ -488,3 +488,14 @@ textarea.grow{resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;o
 .qa-dial.in .a2{transform:translate(-95px,-165px)}
 .qa-dial.in .a3{transform:translate(0,-190px)}
 .qa-act.a3 span{background:#fff;color:#C12C01}
+/* event tiles: filled by kind — appointment yellow > with people red > other blue */
+.agenda-item>button[data-act="event-edit"]{border-radius:10px;padding:8px 10px;border-left-width:4px!important}
+.agenda-item.k-appt>button{background:#FFF6DC;border-left-color:#E3B23C!important}
+.agenda-item.k-people>button{background:#FDE7E7;border-left-color:#D9484D!important}
+.agenda-item.k-event>button{background:#E8F1FC;border-left-color:#005CBC!important}
+.cal-legend i.k-event{background:#005CBC}
+/* fan: tighter to the + */
+.qa-dial.in .a1{transform:translate(-142px,0)}
+.qa-dial.in .a5{transform:translate(-123px,-71px)}
+.qa-dial.in .a2{transform:translate(-71px,-123px)}
+.qa-dial.in .a3{transform:translate(0,-142px)}

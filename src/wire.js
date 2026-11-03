@@ -302,15 +302,14 @@ function myNamesInTitle(title) {
   });
   return out;
 }
+// Colour priority: appointment (yellow) > with people (red) > everything else (blue)
 function eventKind(e) {
-  const mine = myNamesInTitle(e.title);
-  if (mine.length) return { appt: false, people: mine };
-  if (TIME_IN_TITLE.test(e.title)) return { appt: true, people: [] };
-  const who = namesInTitle(e.title);
-  if (who.length) return { appt: false, people: who };
-  if ((e.people || []).length) return { appt: false, people: e.people };
-  if (APPT_WORDS.test(e.title)) return { appt: true, people: [] };
-  return { appt: false, people: [] };
+  const t = e.title || '';
+  let people = myNamesInTitle(t);
+  if (!people.length) people = namesInTitle(t);
+  if (!people.length) people = (e.people || []).slice();
+  const appt = TIME_IN_TITLE.test(t) || APPT_WORDS.test(t);
+  return { appt, people };
 }
 const addMin = (hm, m) => { if (!hm || !m) return ''; const [h, mi] = hm.split(':').map(Number); const t = h * 60 + mi + m; return String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
 // Google events live in data.events next to local ones (marked gcal, never synced back)
@@ -1223,9 +1222,9 @@ render = function () {
     let e = data.events.find(x => x.id === b.dataset.id); if (!e) return;
     if (!e.gcal) { const k = eventKind(e); e = Object.assign({}, e, { kind: k.appt ? 'appt' : k.people.length ? 'people' : '', people: k.people }); }
     b.parentElement.classList.add('k-' + (e.kind || 'event'));
-    const s = b.querySelector('small'); if (s) s.textContent = (e.kind === 'people' ? 'With ' + (e.people || []).join(', ') : e.kind === 'appt' ? 'Appointment' : e.gcal ? e.cal : 'Event') + (e.end ? ' · until ' + e.end : '');
+    const s = b.querySelector('small'); if (s) s.textContent = (e.kind === 'appt' ? 'Appointment' + ((e.people || []).length ? ' · with ' + e.people.join(', ') : '') : e.kind === 'people' ? 'With ' + (e.people || []).join(', ') : e.gcal ? e.cal : 'Event') + (e.end ? ' · until ' + e.end : '');
   });
-  if (page === 'calendar' && !document.querySelector('.cal-legend')) document.querySelector('.calendar-panel')?.insertAdjacentHTML('beforeend', '<p class="cal-legend"><i class="k-people"></i> with people <i class="k-appt"></i> appointment <i></i> other</p>');
+  if (page === 'calendar' && !document.querySelector('.cal-legend')) document.querySelector('.calendar-panel')?.insertAdjacentHTML('beforeend', '<p class="cal-legend"><i class="k-appt"></i> appointment <i class="k-people"></i> with people <i class="k-event"></i> other</p>');
   // notes: Granola import next to +
   const nc = document.querySelector('.notes-controls');
   if (nc && !nc.querySelector('[data-2b="granola"]')) nc.insertAdjacentHTML('beforeend', `<button class="icon-btn" data-2b="granola" aria-label="Import Granola notes" title="Import Granola notes">${ICONS.book}</button>`);
