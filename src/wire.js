@@ -1049,6 +1049,47 @@ taskEditor = function (id, d) {
   const lb = root.querySelector('label[for="f-date"]'); if (lb && lb.firstChild) lb.firstChild.nodeValue = 'Date'; const lt = root.querySelector('label[for="f-time"]'); if (lt && lt.firstChild) lt.firstChild.nodeValue = 'Time';
   const t = growify(root.querySelector('#f-title')); if (t) { t.placeholder = 'What needs doing?'; t.setAttribute('autocomplete', 'off'); setTimeout(() => t.focus(), 30); }
 };
+// Event editor: @ a name to pull from your saved names; new @names get saved
+const savedNames = () => (cfg.names || '').split(/[,\n;]/).map(x => x.trim()).filter(Boolean);
+function attachMentions(ta) {
+  const box = document.createElement('div'); box.className = 'mention'; box.hidden = true; ta.after(box);
+  let cur = null;
+  const token = () => { const v = ta.value.slice(0, ta.selectionStart); const m = v.match(/@([A-Za-z][\w'’-]*)?$/); return m ? { q: m[1] || '', start: v.length - m[0].length } : null; };
+  const pick = name => { const t = cur; if (!t) return; const before = ta.value.slice(0, t.start), after = ta.value.slice(ta.selectionStart);
+    ta.value = before + name + (after.startsWith(' ') ? '' : ' ') + after; const pos = (before + name + ' ').length; ta.setSelectionRange(pos, pos); box.hidden = true; cur = null;
+    if (!savedNames().some(n => n.toLowerCase() === name.toLowerCase())) { setNames(savedNames().concat(name).join(', ')); learnNames(); save(); notify(name + ' added to your people.'); }
+    ta.dispatchEvent(new Event('input')); ta.focus(); };
+  const show = () => {
+    cur = token(); if (!cur) { box.hidden = true; return; }
+    const q = cur.q.toLowerCase(), list = savedNames().filter(n => n.toLowerCase().startsWith(q)).slice(0, 6);
+    const isNew = cur.q.length >= 2 && !list.length;
+    box.innerHTML = list.map(n => `<button type="button" data-n="${esc(n)}">${esc(n)}</button>`).join('') + (isNew ? `<button type="button" class="new" data-n="${esc(cur.q.charAt(0).toUpperCase() + cur.q.slice(1))}">+ Add “${esc(cur.q.charAt(0).toUpperCase() + cur.q.slice(1))}” as a person</button>` : '') + (!list.length && !isNew ? '<span>Type a name</span>' : '');
+    box.hidden = false;
+  };
+  box.addEventListener('mousedown', e => e.preventDefault());
+  box.addEventListener('click', e => { const bt = e.target.closest('button[data-n]'); if (bt) pick(bt.dataset.n); });
+  ta.addEventListener('input', show); ta.addEventListener('click', show);
+  ta.addEventListener('keydown', e => { if (!box.hidden && (e.key === 'Enter' || e.key === 'Tab')) { const f = box.querySelector('button[data-n]'); if (f) { e.preventDefault(); e.stopImmediatePropagation(); pick(f.dataset.n); } } if (e.key === 'Escape' && !box.hidden) { e.stopPropagation(); box.hidden = true; } }, true);
+  ta.addEventListener('blur', () => setTimeout(() => { box.hidden = true; }, 150));
+}
+const _eventEditor = eventEditor;
+eventEditor = function (id) {
+  _eventEditor(id);
+  const root = document.querySelector('#modal-root .sheet'); if (!root) return;
+  root.classList.add('task-sheet', 'event-sheet');
+  const t = growify(root.querySelector('#f-title')); if (!t) return;
+  t.placeholder = 'What’s happening? Type @ to add a person';
+  attachMentions(t);
+  if (!id) setTimeout(() => t.focus(), 40);
+};
+// On save: any leftover @Name becomes Name, and new names join your list
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'editor' || !document.querySelector('#modal-root .event-sheet')) return;
+  const t = e.target.querySelector('[name="title"]'); if (!t) return;
+  const found = []; t.value = t.value.replace(/@([A-Za-z][\w'’-]*)/g, (m, n) => { const nm = n.charAt(0).toUpperCase() + n.slice(1); found.push(nm); return nm; });
+  const have = savedNames(), add2 = found.filter(n => !have.some(h => h.toLowerCase() === n.toLowerCase()));
+  if (add2.length) { setNames(have.concat(add2).join(', ')); learnNames(); }
+}, true);
 const _noteEditor = noteEditor;
 noteEditor = function (id) {
   _noteEditor(id);
@@ -1105,8 +1146,10 @@ function cmdHome() {
   const tl = open.slice(0, 6).concat(doneToday.slice(0, Math.max(0, 6 - open.length)));
   const tasks = tl.map(t => `<div class="cmd-task${t.done ? ' done' : ''}"><button class="check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button><button class="t" data-act="task-edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span><span class="ts${t.date && t.date < today && !t.done ? ' late' : ''}">${esc(t.category || 'Personal')} · ${esc(dueLabel(t))}</span></button></div>`).join('') + (open.length > 6 ? `<button class="cmd-more" data-act="nav" data-page="todo">+ ${open.length - 6} more</button>` : '');
   const nowHM = new Date().toTimeString().slice(0, 5);
-  const next = data.events.filter(e => e.date === today && (!e.time || e.time >= nowHM)).sort((a, b) => (a.time || '00').localeCompare(b.time || '00'))[0]
+  const withKind = e => { if (e.gcal) return e; const k = eventKind(e); return Object.assign({}, e, { kind: k.appt ? 'appt' : k.people.length ? 'people' : '', people: k.people }); };
+  let next = data.events.filter(e => e.date === today && (!e.time || e.time >= nowHM)).sort((a, b) => (a.time || '00').localeCompare(b.time || '00'))[0]
     || data.events.filter(e => e.date > today).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))[0];
+  if (next) next = withKind(next);
   const ph = phrases().filter(p => p.passes.length < 5 && p.en);
   const p0 = ph.sort((a, b) => a.passes.length - b.passes.length)[0];
   return cmdPills() + `<div class="cmd-home">
@@ -1178,9 +1221,10 @@ render = function () {
   paintStatus();
   // calendar: red = with people, yellow = appointment
   document.querySelectorAll('.agenda-item > button[data-act="event-edit"]').forEach(b => {
-    const e = data.events.find(x => x.id === b.dataset.id); if (!e || !e.gcal) return;
+    let e = data.events.find(x => x.id === b.dataset.id); if (!e) return;
+    if (!e.gcal) { const k = eventKind(e); e = Object.assign({}, e, { kind: k.appt ? 'appt' : k.people.length ? 'people' : '', people: k.people }); }
     b.parentElement.classList.add('k-' + (e.kind || 'event'));
-    const s = b.querySelector('small'); if (s) s.textContent = (e.kind === 'people' ? 'With ' + (e.people || []).join(', ') : e.kind === 'appt' ? 'Appointment' : e.cal) + (e.end ? ' · until ' + e.end : '');
+    const s = b.querySelector('small'); if (s) s.textContent = (e.kind === 'people' ? 'With ' + (e.people || []).join(', ') : e.kind === 'appt' ? 'Appointment' : e.gcal ? e.cal : 'Event') + (e.end ? ' · until ' + e.end : '');
   });
   if (page === 'calendar' && !document.querySelector('.cal-legend')) document.querySelector('.calendar-panel')?.insertAdjacentHTML('beforeend', '<p class="cal-legend"><i class="k-people"></i> with people <i class="k-appt"></i> appointment <i></i> other</p>');
   // notes: Granola import next to +

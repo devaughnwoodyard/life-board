@@ -475,3 +475,10 @@ textarea.grow{resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;o
 .qa-dial.in .a2{transform:translate(-122px,-122px)}
 .qa-dial.in .a3{transform:translate(-66px,-159px)}
 .qa-dial.in .a4{transform:translate(0,-172px)}
+/* @mention suggestions */
+.mention{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mention button{font-size:13px;font-weight:600;color:var(--navy);background:#fff;border:1.5px solid var(--b100);border-radius:100px;padding:7px 12px;min-height:36px}
+.mention button:first-child{border-color:var(--navy)}
+.mention button.new{color:var(--blue);border-style:dashed}
+.mention span{font-size:12px;color:#585858;padding:6px 2px}
+.agenda-item.k-people>button{border-left-color:#d9484d!important}.agenda-item.k-appt>button{border-left-color:#e3b23c!important}
