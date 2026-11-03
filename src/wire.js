@@ -292,7 +292,18 @@ function namesInTitle(title) {
   const m = String(title).match(/\b(?:with|w\/)\s+([A-Z][a-z]+)/); if (m && !found.includes(m[1])) found.push(m[1]);
   return found;
 }
+// Names you typed in the dot menu ("Names that mean with people"): any case, whole word, possessive OK, multi-word OK
+function myNamesInTitle(title) {
+  const t = String(title || ''), out = [];
+  (cfg.names || '').split(/[,\n;]/).map(x => x.trim()).filter(Boolean).forEach(n => {
+    const re = new RegExp('(^|[^A-Za-z])' + n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+') + '(?:[\'’]s)?(?![A-Za-z])', 'i');
+    if (re.test(t) && !out.includes(n)) out.push(n);
+  });
+  return out;
+}
 function eventKind(e) {
+  const mine = myNamesInTitle(e.title);
+  if (mine.length) return { appt: false, people: mine };
   if (TIME_IN_TITLE.test(e.title)) return { appt: true, people: [] };
   const who = namesInTitle(e.title);
   if (who.length) return { appt: false, people: who };
@@ -1281,7 +1292,7 @@ addEventListener('click', async e => {
     case 'sync-settings': forceClose(); syncSheet(); break;
     case 's-save': {
       const url = (document.getElementById('s-url').value.match(/https:\/\/script\.google(?:usercontent)?\.com\/[^\s`'"<>]+?\/exec/) || [document.getElementById('s-url').value.trim()])[0], key = document.getElementById('s-key').value.replace(/[^A-Za-z0-9_-]/g, '');
-      cfg.names = document.getElementById('s-names').value.trim(); learnNames();
+      cfg.names = document.getElementById('s-names').value.trim(); learnNames(); if (applyCalendar()) { _save(); render(); }
       if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { notify('That should be the script.google.com …/exec link.'); return; }
       if (url && !key) { notify('Paste your key too: the long code after “Your 2nd Brain key:” in the Apps Script Execution log.'); document.getElementById('s-key').focus(); return; }
       if (url && !/\/exec(\?|$)/.test(url)) { notify('Use the Web app URL that ends in /exec (not /dev).'); return; }
