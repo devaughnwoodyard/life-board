@@ -30,7 +30,9 @@ head = ('<meta name="apple-mobile-web-app-capable" content="yes">'
         '<meta name="apple-mobile-web-app-title" content="2nd Brain">'
         '<link rel="manifest" href="manifest.webmanifest">'
         '<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">'
-        '<link rel="icon" href="icons/icon-192.png">')
+        '<link rel="icon" href="icons/icon-192.png">'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+        '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">')
 must("</head>", head + "</head>")
 app = app.replace('<title>2nd Brain</title>' + head, head, 1)
 app = app.rstrip()

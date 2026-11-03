@@ -909,11 +909,67 @@ modal = function (title, body, opts = {}) {
   const t = document.querySelector('#modal-root .sheet-title'), close = t && t.querySelector('[data-act="close"]');
   if (close && !t.querySelector('.top-save')) close.insertAdjacentHTML('beforebegin', `<button class="primary top-save" type="submit" form="editor">${opts.id ? 'Save' : '+ Add'}</button>`);
 };
+/* ---------- Command layout: header, home, tab bar, quick-add sheet ---------- */
+const CI = {
+  cal: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>', home: '<path d="M3 11l9-7 9 7v9H5v-9"/>', todo: '<path d="M5 12l4 4 10-10"/>',
+  notes: '<path d="M4 5h16v14H4zM8 9h8M8 13h6"/>', train: '<path d="M3 17l6-6 4 4 8-8"/>', hab: '<circle cx="12" cy="12" r="8"/>', plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>'
+};
+const svgI = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+const TABS = [['calendar', 'Calendar', 'cal'], ['home', 'Home', 'home'], ['todo', 'To Do', 'todo'], null, ['notes', 'Notes', 'notes'], ['workouts', 'Train', 'train'], ['habits', 'Habits', 'hab']];
+const PAGE_NAME = { home: 'Monday', todo: 'To Do', calendar: 'Calendar', workouts: 'Training', notes: 'Notes', habits: 'Habits' };
+function cmdHeader() {
+  const h = document.querySelector('.app-header'); if (!h) return;
+  const wd = fmt(today, { weekday: 'long' }), d = fmt(today, { month: 'short', day: 'numeric' });
+  h.innerHTML = `<div class="cmd-hd"><button class="cmd-wm" data-act="nav" data-page="home">2ND BRAIN</button><span class="cmd-dv"></span><button class="cmd-tt" data-act="nav" data-page="calendar" aria-label="Open calendar"><small>${page === 'home' ? esc(wd) : esc(PAGE_NAME[page] || '')}</small><b>${esc(d)}</b></button>
+    <div class="cmd-r"><button class="cmd-ib" data-act="search" aria-label="Search everything">${svgI(CI.search)}</button><button class="sync-dot" data-2b="sync-settings" aria-label="Google sync"><i></i></button><button class="cmd-av" data-2b="sync-settings" aria-label="Settings and sync">${esc((cfg.initial || 'D').slice(0, 1))}</button></div></div>`;
+}
+function cmdNav() {
+  const n = document.querySelector('.app>.nav'); if (!n) return;
+  n.innerHTML = TABS.map(t => t ? `<button class="cmd-tab${page === t[0] ? ' active' : ''}" data-act="nav" data-page="${t[0]}" aria-current="${page === t[0] ? 'page' : 'false'}">${svgI(CI[t[2]])}${t[1]}</button>` : `<button class="cmd-add" data-2b="qa" aria-label="Add a to-do or note">${svgI(CI.plus)}</button>`).join('');
+}
+function cmdPills() {
+  const tt = taskToday();
+  return `<div class="cmd-pills"><span class="cmd-pill" title="To-dos done today">${svgI(CI.todo)}${tt.filter(t => t.done).length}/${tt.length}</span><span class="cmd-pill">Training ${workoutScore()}%</span><span class="cmd-pill">Habits ${habitScore()}%</span></div>`;
+}
+function cmdHome() {
+  const t12 = hm => { if (!hm) return 'All day'; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
+  const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
+  const kindKey = k => ({ Run: 'run', Bike: 'bike', Swim: 'swim', Strength: 'strength', Yoga: 'yoga' })[k] || 'other';
+  const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(w.title)}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.target} min${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${w.actual != null ? ` · <span class="v-act">${w.actual} min${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
+  const open = data.tasks.filter(t => !t.done && t.date && t.date <= today).sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  const doneToday = data.tasks.filter(t => t.done && t.date === today);
+  const tl = open.concat(doneToday).slice(0, 6);
+  const tasks = tl.map(t => `<div class="cmd-task${t.done ? ' done' : ''}"><button class="check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button><button class="t" data-act="task-edit" data-id="${t.id}">${esc(t.title)}</button>${t.category === 'Work' ? '<span class="w">Work</span>' : ''}${t.time ? `<span class="m">${esc(t12(t.time))}</span>` : t.date < today ? `<span class="m">${esc(fmt(t.date))}</span>` : ''}</div>`).join('');
+  const nowHM = new Date().toTimeString().slice(0, 5);
+  const next = data.events.filter(e => e.date === today && (!e.time || e.time >= nowHM)).sort((a, b) => (a.time || '00').localeCompare(b.time || '00'))[0]
+    || data.events.filter(e => e.date > today).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))[0];
+  const ph = phrases().filter(p => p.passes.length < 5 && p.en);
+  const p0 = ph.sort((a, b) => a.passes.length - b.passes.length)[0];
+  return cmdPills() + `<div class="cmd-home">
+    <section class="cmd-card"><div class="cmd-h"><h2>Today's training</h2><button data-act="nav" data-page="workouts">Week</button></div>${sess || '<p class="cmd-empty">No sessions planned today.</p>'}</section>
+    <section class="cmd-card"><div class="cmd-h"><h2>To do</h2><button data-act="nav" data-page="todo">All</button></div>${tasks || '<p class="cmd-empty">Nothing due today. Tap + to add one.</p>'}</section>
+    <section class="cmd-card cmd-split"><div><div class="cmd-k">UP NEXT</div>${next ? `<b>${esc(next.title)}</b><small>${next.date === today ? t12(next.time) : esc(fmtDay(next.date))}${next.kind === 'people' ? ' · with people' : next.kind === 'appt' ? ' · appointment' : ''}</small>` : '<b>Nothing scheduled</b><small>Your calendar is clear</small>'}<button data-act="nav" data-page="calendar">Calendar</button></div><i></i>
+      <div><div class="cmd-k">SPANISH</div>${p0 ? `<b lang="es">${esc(p0.es)}</b><small>${ph.length} learning</small><button data-2b="quiz-start">Quiz me</button>` : '<b>No phrases yet</b><small>Add one in Notes › Spanish</small><button data-2b="sp-open">Add a phrase</button>'}</div></section>
+  </div>`;
+}
+function qaSheet() {
+  qaClose();
+  const recent = [...new Map(data.notes.filter(n => !isPhrase(n)).sort((a, b) => String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || ''))).map(n => [n.tab + '|' + n.folder, n])).values()].slice(0, 3);
+  document.body.insertAdjacentHTML('beforeend', `<div class="qa-scrim" data-2b="qa-close"></div><div class="qa-sheet" role="dialog" aria-label="Add"><div class="qa-grab"></div><h3>Add</h3>
+    <div class="qa-tiles"><button class="qa-tile" data-2b="qa-todo"><span>${svgI(CI.todo)}</span><b>To-do</b><small>Today, a day, or a time</small></button><button class="qa-tile" data-2b="qa-note"><span>${svgI(CI.notes)}</span><b>Note</b><small>Work, Personal, Spanish</small></button></div>
+    ${recent.length ? `<div class="qa-lbl">RECENT FOLDERS</div><div class="qa-chips">${recent.map(n => `<button data-2b="qa-folder" data-tab="${esc(n.tab)}" data-folder="${esc(n.folder)}">${esc(n.tab)} › ${esc(n.folder)}</button>`).join('')}<button data-2b="qa-phrase">Spanish › Phrase</button></div>` : `<div class="qa-lbl">SPANISH</div><div class="qa-chips"><button data-2b="qa-phrase">Add a phrase</button></div>`}
+    <button class="qa-voice" data-2b="qa-voice"><span>${ICONS.mic}</span>Speak or type a command: “To do Friday, call the dentist”</button></div>`);
+}
+function qaClose() { document.querySelectorAll('.qa-scrim,.qa-sheet').forEach(x => x.remove()); }
+
 render = function () {
   // a single-folder view always shows as the folder list with that folder open
   if (page === 'notes' && noteFolder !== 'all' && !(noteTab === 'Spanish' && noteFolder === 'Phrases')) { openFolders.add(fKey(noteTab, noteFolder)); ls.set('2b-openf', [...openFolders]); noteFolder = 'all'; }
   _render();
   document.body.dataset.page = page;
+  cmdHeader(); cmdNav();
+  if (page === 'home') { const pc = document.getElementById('page-content'); if (pc) pc.innerHTML = cmdHome(); }
   try { sessionStorage.setItem('2b-view', JSON.stringify({ page, noteTab, week, month, selectedDate, taskFilter, y: page === lastPage ? scrollY : 0 })); } catch (e) {}
   lastPage = page;
   const qf = document.getElementById('quick-task');
@@ -1008,6 +1064,13 @@ addEventListener('click', async e => {
       break;
     }
     case 'swap-day': swapDay(b.dataset.date); break;
+    case 'qa': qaSheet(); break;
+    case 'qa-close': qaClose(); break;
+    case 'qa-todo': qaClose(); taskEditor(''); break;
+    case 'qa-note': qaClose(); { const keep = noteFolder; noteFolder = 'all'; noteEditor(); noteFolder = keep; } break;
+    case 'qa-folder': qaClose(); { const keepT = noteTab, keepF = noteFolder; noteTab = b.dataset.tab; noteFolder = b.dataset.folder; noteEditor(); noteTab = keepT; noteFolder = keepF; } break;
+    case 'qa-phrase': case 'sp-open': qaClose(); forceClose(); noteTab = 'Spanish'; noteFolder = 'all'; go('notes'); setTimeout(() => document.getElementById('sp-es')?.focus(), 80); break;
+    case 'qa-voice': qaClose(); forceClose(); captureSheet(true); break;
     case 'n-on': await pushOn(b); break;
     case 'n-test': { b.disabled = true; try { const r = await api({ action: 'pushTest' }); notify(r.sent ? 'Test sent.' : 'Test failed: ' + r.error); } catch (err) { notify('Test failed: ' + err.message); } b.disabled = false; break; }
     case 'folder-toggle': { const k = fKey(b.dataset.tab, b.dataset.folder); if (openFolders.has(k)) openFolders.delete(k); else { openFolders.add(k); const st = new Date().toISOString(); data.notes.filter(n => n.tab === b.dataset.tab && n.folder === b.dataset.folder).forEach(n => n.lastOpened = st); _save(); } ls.set('2b-openf', [...openFolders]); render(); break; }
@@ -1054,6 +1117,7 @@ document.addEventListener('submit', e => {
   if (addPhrase(es, en)) { render(); setTimeout(() => document.getElementById('sp-es')?.focus(), 30); }
 }, true);
 // Desktop: Ctrl/Cmd + J opens quick capture
+addEventListener('keydown', e => { if (e.key === 'Escape') qaClose(); });
 addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); forceClose(); captureSheet(false); } });
 // Home-screen shortcut: ?capture=1 opens capture with the mic; ?add=text runs a command directly
 const q = new URLSearchParams(location.search);
