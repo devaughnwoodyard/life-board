@@ -463,3 +463,15 @@ textarea.grow{resize:none;overflow:hidden;line-height:1.4;white-space:pre-wrap;o
 .qa-dial.in .a2{transform:translate(-126px,-76px)}
 .qa-dial.in .a3{transform:translate(-72px,-130px)}
 .qa-dial.in .a4{transform:translate(0,-150px)}
+/* fan with five actions: To-do, Event, Note, Check in, Speak */
+.qa-dial.in .a1{transform:translate(-156px,0)}
+.qa-dial.in .a5{transform:translate(-142px,-70px)}
+.qa-dial.in .a2{transform:translate(-106px,-128px)}
+.qa-dial.in .a3{transform:translate(-50px,-166px)}
+.qa-dial.in .a4{transform:translate(0,-214px)}
+.qa-act.a5 span{color:#7A5A00}
+.qa-dial.in .a1{transform:translate(-172px,0)}
+.qa-dial.in .a5{transform:translate(-159px,-66px)}
+.qa-dial.in .a2{transform:translate(-122px,-122px)}
+.qa-dial.in .a3{transform:translate(-66px,-159px)}
+.qa-dial.in .a4{transform:translate(0,-172px)}

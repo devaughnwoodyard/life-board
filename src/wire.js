@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const CFG_KEY = '2b-sync', HASH_KEY = '2b-hash', DIRTY_KEY = '2b-dirty', CAL_KEY = '2b-cal', OLD_KEY = 'second-brain-v1';
-const COLLS = ['tasks', 'notes', 'habits', 'workouts', 'events', 'checkins'];
+const COLLS = ['tasks', 'notes', 'habits', 'workouts', 'events', 'checkins', 'prefs'];
 const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const ls = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
@@ -199,6 +199,7 @@ async function sync(manual) {
       else { list.push(r.d); changed = true; }
     });
     cfg.since = res.now;
+    { const np = namesPref(); if (np && np.value !== cfg.names) { cfg.names = np.value; saveCfg(); learnNames(); } }
     if (res.cal) { calCache = res.cal; ls.set(CAL_KEY, calCache); learnNames(); cfg.calAt = Date.now(); cfg.calCount = res.cal.length; }
     if (res.calError) cfg.calError = res.calError; else delete cfg.calError;
     if (applyCalendar()) changed = true;
@@ -933,6 +934,11 @@ function paintStatus() {
 const _render = render;
 /* ---------- Check-in: physical, emotional, mental (1–5) + mood (1–10), about four taps ---------- */
 if (!Array.isArray(data.checkins)) data.checkins = [];
+if (!Array.isArray(data.prefs)) data.prefs = [];
+function namesPref() { return data.prefs.find(x => x.id === 'names'); }
+function setNames(v) { let p = namesPref(); if (!p) { p = { id: 'names', value: '' }; data.prefs.push(p); } if (p.value !== v) { p.value = v; p.updated = new Date().toISOString(); } cfg.names = v; saveCfg(); }
+// first run on a device that already had names: share them
+(function () { const p = namesPref(); if (p && p.value != null) cfg.names = p.value; else if (cfg.names) setNames(cfg.names); })();
 const CI_SCALE = ['Rough', 'Low', 'OK', 'Good', 'Great'];
 let ciDraft = {};
 function checkinSheet() {
@@ -1147,6 +1153,7 @@ function qaSheet() {
   const fab = document.getElementById('cmd-fab'); fab && fab.classList.add('open');
   document.body.insertAdjacentHTML('beforeend', `<div class="qa-scrim" data-2b="qa-close"></div><div class="qa-dial" role="menu" aria-label="Add">
     <button class="qa-act a1" role="menuitem" data-2b="qa-todo"><span>${svgI(CI.todo)}</span><b>To-do</b></button>
+    <button class="qa-act a5" role="menuitem" data-2b="qa-event"><span>${svgI(CI.cal)}</span><b>Event</b></button>
     <button class="qa-act a2" role="menuitem" data-2b="qa-note"><span>${svgI(CI.notes)}</span><b>Note</b></button>
     <button class="qa-act a3" role="menuitem" data-2b="qa-checkin"><span>${svgI('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>')}</span><b>Check in</b></button>
     <button class="qa-act a4" role="menuitem" data-2b="qa-voice"><span>${ICONS.mic}</span><b>Speak</b></button></div>`);
@@ -1264,6 +1271,7 @@ addEventListener('click', async e => {
     case 'zoom': cfg.zoom = Number(b.dataset.v); saveCfg(); applyZoom(); forceClose(); render(); syncSheet(); break;
     case 'qa': qaSheet(); break;
     case 'qa-close': qaClose(); break;
+    case 'qa-event': qaClose(); forceClose(); selectedDate = today; eventEditor(); setTimeout(() => document.querySelector('#modal-root #f-title')?.focus(), 40); break;
     case 'qa-checkin': case 'checkin': qaClose(); forceClose(); checkinSheet(); break;
     case 'ci-pick': { ciDraft[b.dataset.key] = Number(b.dataset.v); b.parentElement.querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); break; }
     case 'ci-mood': saveCheckin(Number(b.dataset.v)); break;
@@ -1292,7 +1300,7 @@ addEventListener('click', async e => {
     case 'sync-settings': forceClose(); syncSheet(); break;
     case 's-save': {
       const url = (document.getElementById('s-url').value.match(/https:\/\/script\.google(?:usercontent)?\.com\/[^\s`'"<>]+?\/exec/) || [document.getElementById('s-url').value.trim()])[0], key = document.getElementById('s-key').value.replace(/[^A-Za-z0-9_-]/g, '');
-      cfg.names = document.getElementById('s-names').value.trim(); learnNames(); if (applyCalendar()) { _save(); render(); }
+      setNames(document.getElementById('s-names').value.trim()); learnNames(); if (applyCalendar()) render(); save();
       if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { notify('That should be the script.google.com …/exec link.'); return; }
       if (url && !key) { notify('Paste your key too: the long code after “Your 2nd Brain key:” in the Apps Script Execution log.'); document.getElementById('s-key').focus(); return; }
       if (url && !/\/exec(\?|$)/.test(url)) { notify('Use the Web app URL that ends in /exec (not /dev).'); return; }
