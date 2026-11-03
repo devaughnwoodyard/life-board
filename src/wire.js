@@ -1208,7 +1208,7 @@ async function fullRefresh(manual) {
   if (refreshing) return; refreshing = true; ptrState('busy');
   try {
     checkUpdate();
-    if (!cfg.url) { if (manual) notify('Connect Google sync first (the dot in the header).'); return; }
+    if (!cfg.url) { if (manual) { syncSheet(); notify('This copy isn’t connected yet: paste your URL and key.'); } return; }
     let garmin = '';
     try { const r = await api({ action: 'strava' }); cfg.strava = r.strava; garmin = r.strava && r.strava.error ? 'Strava: ' + r.strava.error : r.added ? r.added + ' new Garmin activit' + (r.added === 1 ? 'y' : 'ies') : ''; } catch (e) { garmin = ''; }
     cfg.planAt = 0; saveCfg();
