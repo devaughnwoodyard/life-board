@@ -1286,7 +1286,12 @@ render = function () {
     if (w && sm) {
       const pct = w.actual != null && w.target ? Math.round(Math.min(w.actual / w.target, 1) * 100) : null;
       const act = w.actual != null ? [w.actual + ' min', w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', pct != null ? pct + '%' : ''].filter(Boolean).join(' · ') : '';
-      sm.innerHTML = `${esc(w.kind)} · <span class="v-pln">${w.unplanned ? 'Unplanned' : w.target + ' min'}${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${act ? `<br><span class="v-act">${w.garmin ? '✓ ' : ''}${esc(act)}</span>` : ''}`;
+      // Plan and Logged get equal boxes so the actual reads as loudly as the plan
+      const sub = [w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', pct != null ? pct + '%' : ''].filter(Boolean).join(' · ');
+      sm.className = 'pl-wrap';
+      sm.innerHTML = `<span class="pl-kind">${esc(w.kind)}</span><span class="pl-grid">
+        <span class="pl-box pl-plan"><i>PLAN</i><b>${w.unplanned ? '—' : w.target + '<em>min</em>'}</b><u>${w.unplanned ? 'unplanned' : w.miles ? w.miles + ' mi' : '&nbsp;'}</u></span>
+        <span class="pl-box pl-log${w.actual == null ? ' empty' : ''}"><i>LOGGED</i><b>${w.actual == null ? '—' : Math.round(w.actual) + '<em>min</em>'}</b><u>${w.actual == null ? 'not yet' : esc(sub) || '&nbsp;'}</u></span></span>`;
     }
     if (w && w.garmin) el.classList.add('from-garmin');
   });

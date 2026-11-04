@@ -1,7 +1,7 @@
-// 2nd Brain service worker — build 9a4e1004
+// 2nd Brain service worker — build 2710b99b
 // App shell: network-first for the page (so updates land when online), cache fallback offline.
 // Fonts: stale-while-revalidate.
-const CACHE = 'lifeboard-9a4e1004';
+const CACHE = 'lifeboard-2710b99b';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
