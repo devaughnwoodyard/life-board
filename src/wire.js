@@ -391,6 +391,7 @@ const SPORT_SVG = {
   Other: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>'
 };
 const sportIcon = k => `<svg class="sport-ic sport-${(SPORT_SVG[k] ? k : 'Other').toLowerCase()}" viewBox="0 0 24 24" aria-hidden="true">${SPORT_SVG[k] || SPORT_SVG.Other}</svg>`;
+const openPast = new Set();
 function decorateSportIcons() {
   const kindOf = id => { const w = data.workouts.find(x => x.id === id); return w && w.kind; };
   document.querySelectorAll('.session').forEach(el => { const id = el.dataset.wid || el.querySelector('[data-act="workout-edit"]')?.dataset.id; const b = el.querySelector('b'); if (id && b && !b.querySelector('.sport-ic')) b.insertAdjacentHTML('afterbegin', sportIcon(kindOf(id))); });
@@ -1246,6 +1247,13 @@ render = function () {
     const add = sec.querySelector('.slot-add'); const d = add && add.dataset.date; if (!d) return;
     sec.querySelectorAll('.slot').forEach(sl => { const a = sl.querySelector('.slot-add'); if (a) { sl.dataset.date = a.dataset.date; sl.dataset.slot = a.dataset.slot; } });
     const h = sec.querySelector('h3'); if (h && data.workouts.some(w => w.date === d)) h.insertAdjacentHTML('beforeend', `<button class="swap-btn" data-2b="swap-day" data-date="${d}" aria-label="Swap AM and PM">⇅ Swap</button>`);
+    // past days fold up into a one-line summary; tap the header to open
+    if (d < today && h) {
+      const ws = data.workouts.filter(w => w.date === d), pl = ws.reduce((t, w) => t + (Number(w.target) || 0), 0), ac = ws.reduce((t, w) => t + (Number(w.actual) || 0), 0);
+      h.insertAdjacentHTML('beforeend', `<span class="day-sum">${ws.length ? `<span class="v-act">${Math.round(ac)}</span> / <span class="v-pln">${pl} min</span>` : 'Rest'}<i>${openPast.has(d) ? '▴' : '▾'}</i></span>`);
+      h.dataset['2b'] = 'day-fold'; h.dataset.date = d; h.setAttribute('role', 'button'); h.setAttribute('aria-expanded', openPast.has(d));
+      if (!openPast.has(d)) sec.classList.add('folded');
+    }
   });
   document.querySelectorAll('.session').forEach(el => { const eb = el.querySelector('[data-act="workout-edit"]'); if (eb) { el.dataset.wid = eb.dataset.id; el.draggable = true; } });
   if (page === 'workouts' && !document.querySelector('.disc')) {
@@ -1293,6 +1301,7 @@ render = function () {
         <span class="pl-box pl-plan"><i>PLAN</i><b>${w.unplanned ? '—' : w.target + '<em>min</em>'}</b><u>${w.unplanned ? 'unplanned' : w.miles ? w.miles + ' mi' : '&nbsp;'}</u></span>
         <span class="pl-box pl-log${w.actual == null ? ' empty' : ''}"><i>LOGGED</i><b>${w.actual == null ? '—' : Math.round(w.actual) + '<em>min</em>'}</b><u>${w.actual == null ? 'not yet' : esc(sub) || '&nbsp;'}</u></span></span>`;
     }
+    const tb = el.querySelector(':scope > b'); if (w && tb && !tb.querySelector('.st')) { const ic = tb.querySelector('.sport-ic'); tb.innerHTML = (ic ? ic.outerHTML : '') + `<span class="st">${esc(w.title)}</span>`; tb.title = w.title; }
     if (w && w.garmin) el.classList.add('from-garmin');
   });
 };
@@ -1320,6 +1329,7 @@ addEventListener('click', async e => {
       break;
     }
     case 'swap-day': swapDay(b.dataset.date); break;
+    case 'day-fold': if (e.target.closest('.swap-btn')) break; { const d = b.dataset.date; openPast.has(d) ? openPast.delete(d) : openPast.add(d); render(); } break;
     case 'ls-now': forceClose(); fullRefresh(true); break;
     case 'zoom': cfg.zoom = Number(b.dataset.v); saveCfg(); applyZoom(); forceClose(); render(); syncSheet(); break;
     case 'qa': qaSheet(); break;
