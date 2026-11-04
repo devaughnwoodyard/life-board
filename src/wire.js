@@ -1140,7 +1140,7 @@ function cmdHome() {
   const t12 = hm => { if (!hm) return 'All day'; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
   const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
   const kindKey = k => ({ Run: 'run', Bike: 'bike', Swim: 'swim', Strength: 'strength', Yoga: 'yoga' })[k] || 'other';
-  const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.target + ' min'}${w.miles ? ' · ' + w.miles + ' mi' : ''}</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
+  const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
   const open = openTasksSorted();
   const doneToday = data.tasks.filter(recentlyDone).sort((a, b) => b.doneAt - a.doneAt);
   const tl = open.slice(0, 6).concat(doneToday.slice(0, Math.max(0, 6 - open.length)));
@@ -1171,7 +1171,7 @@ function cmdHomeDesk() {
   const disc = ['Swim', 'Bike', 'Run', 'Strength', 'Yoga'].map(k => { const l = wk.filter(w => w.kind === k); if (!l.length) return ''; const p = l.reduce((s, w) => s + (+w.target || 0), 0), a = l.reduce((s, w) => s + (+w.actual || 0), 0);
     return `<div class="dk-disc">${sportIcon(k)}<b>${k}</b><span><span class="v-act">${hmf(a)}</span> <span class="v-sep">/</span> <span class="v-pln">${hmf(p)}</span></span><i class="dk-bar"><i style="width:${p ? Math.min(100, Math.round(a / p * 100)) : 0}%"></i></i></div>`; }).join('');
   const train = `<section class="dk-tile" data-act="nav" data-page="workouts">${head('train', 'Training', workoutScore() + '%')}<div class="dk-body">
-    <div class="dk-k">TODAY</div>${ws.map(w => `<div class="dk-row">${sportIcon(w.kind)}<span class="dk-t"><b>${esc(short(w.title))}</b><small><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${Math.round(w.actual)} min</span>` : ''}</small></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</div>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
+    <div class="dk-k">TODAY</div>${ws.map(w => `<div class="dk-row">${sportIcon(w.kind)}<span class="dk-t"><b>${esc(short(w.title))}</b><small><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}</span>` : ''}</small></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</div>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
     <div class="dk-k">THIS WEEK · ACTUAL / PLANNED</div><div class="dk-discs">${disc}</div></div></section>`;
   // to do
   const open = data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
@@ -1294,12 +1294,18 @@ render = function () {
     if (w && sm) {
       const pct = w.actual != null && w.target ? Math.round(Math.min(w.actual / w.target, 1) * 100) : null;
       const act = w.actual != null ? [w.actual + ' min', w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', pct != null ? pct + '%' : ''].filter(Boolean).join(' · ') : '';
-      // Plan and Logged get equal boxes so the actual reads as loudly as the plan
-      const sub = [w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', pct != null ? pct + '%' : ''].filter(Boolean).join(' · ');
+      // Plan and Logged get equal boxes; runs show miles instead of minutes
+      const gmi = w.garmin && w.garmin.mi ? Number(w.garmin.mi) : null, run = w.kind === 'Run';
+      const mpct = run && w.miles && gmi != null ? Math.round(Math.min(gmi / w.miles, 1) * 100) : pct;
+      const big = (v, u) => (Math.round(v * 10) / 10) + '<em>' + u + '</em>';
+      const planBig = w.unplanned ? '—' : run && w.miles ? big(Number(w.miles), 'mi') : w.target + '<em>min</em>';
+      const planSub = w.unplanned ? 'unplanned' : run && w.miles ? w.target + ' min' : w.miles ? w.miles + ' mi' : '&nbsp;';
+      const logBig = w.actual == null ? '—' : run && gmi != null ? big(gmi, 'mi') : Math.round(w.actual) + '<em>min</em>';
+      const sub = [run && gmi != null ? Math.round(w.actual) + ' min' : gmi != null ? gmi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', mpct != null ? mpct + '%' : ''].filter(Boolean).join(' · ');
       sm.className = 'pl-wrap';
       sm.innerHTML = `<span class="pl-kind">${esc(w.kind)}</span><span class="pl-grid">
-        <span class="pl-box pl-plan"><i>PLAN</i><b>${w.unplanned ? '—' : w.target + '<em>min</em>'}</b><u>${w.unplanned ? 'unplanned' : w.miles ? w.miles + ' mi' : '&nbsp;'}</u></span>
-        <span class="pl-box pl-log${w.actual == null ? ' empty' : ''}"><i>LOGGED</i><b>${w.actual == null ? '—' : Math.round(w.actual) + '<em>min</em>'}</b><u>${w.actual == null ? 'not yet' : esc(sub) || '&nbsp;'}</u></span></span>`;
+        <span class="pl-box pl-plan"><i>PLAN</i><b>${planBig}</b><u>${planSub}</u></span>
+        <span class="pl-box pl-log${w.actual == null ? ' empty' : ''}"><i>LOGGED</i><b>${logBig}</b><u>${w.actual == null ? 'not yet' : esc(sub) || '&nbsp;'}</u></span></span>`;
     }
     const tb = el.querySelector(':scope > b'); if (w && tb && !tb.querySelector('.st')) { const ic = tb.querySelector('.sport-ic'); tb.innerHTML = (ic ? ic.outerHTML : '') + `<span class="st">${esc(w.title)}</span>`; tb.title = w.title; }
     if (w && w.garmin) el.classList.add('from-garmin');
