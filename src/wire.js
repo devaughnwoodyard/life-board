@@ -402,21 +402,36 @@ function decorateSportIcons() {
 
 /* ---------- 5b. Moving training sessions → plan sheet ---------- */
 const isPlan = w => w && String(w.id).startsWith('gp-');
-const snapPlan = () => Object.fromEntries((data.workouts || []).filter(isPlan).map(w => [w.id, { date: w.date, slot: w.slot, title: w.title, target: Number(w.target), kind: w.kind }]));
+const snapPlan = () => Object.fromEntries((data.workouts || []).filter(isPlan).map(w => [w.id, { date: w.date, slot: w.slot, title: w.title, target: Number(w.target), kind: w.kind, miles: Number(w.miles) || 0 }]));
+// Sessions you add on the Train page join the plan sheet too (Garmin-only/unplanned ones don't)
+let manualSeen = new Set(ls.get('2b-manual-seen', null) || (data.workouts || []).filter(w => !/^g[pa]-/.test(w.id)).map(w => w.id));
+function adoptNewSessions() {
+  let n = 0;
+  (data.workouts || []).forEach(w => {
+    if (/^g[pa]-/.test(w.id) || w.unplanned || manualSeen.has(w.id)) return;
+    let id = 'gp-' + w.date + '-' + String(w.slot || 'AM').toLowerCase(), i = 0;
+    while (data.workouts.some(x => x !== w && x.id === (i ? id + '-' + i : id))) i++;
+    w.id = i ? id + '-' + i : id; w.plan = true; w.sport = w.kind; n++;
+  });
+  ls.set('2b-manual-seen', [...manualSeen]);
+  return n;
+}
 let planSnap = ls.get('2b-plansnap', null) || snapPlan();
 function dayRow(d) {
   const ws = data.workouts.filter(w => isPlan(w) && w.date === d);
+  const sp = w => (w.sport && KIND(w.sport) === w.kind) ? w.sport : w.kind;
   const cell = sl => { const l = ws.filter(x => x.slot === sl); if (!l.length) return ['', '', ''];
-    return l.length === 1 ? [l[0].sport || l[0].kind, l[0].title, Number(l[0].target) || 0] : [l.map(w => w.sport || w.kind).join(' + '), l.map(w => w.title.replace(/\s+\|\s+/g, ' / ')).join(' | '), l.map(w => Number(w.target) || 0).join('+')]; };
+    return l.length === 1 ? [sp(l[0]), l[0].title, Number(l[0].target) || 0] : [l.map(sp).join(' + '), l.map(w => w.title.replace(/\s+\|\s+/g, ' / ')).join(' | '), l.map(w => Number(w.target) || 0).join('+')]; };
   const run = ws.find(w => w.kind === 'Run' && w.miles), first = ws.find(w => w.slot === 'AM') || ws[0];
   return { date: d, am: cell('AM'), pm: cell('PM'), bail: (first && first.bail) || (ws.find(w => w.bail) || {}).bail || '', mi: run ? run.miles : '' };
 }
 function planChanges() {
+  adoptNewSessions();
   const cur = snapPlan(), dates = new Set(), changed = [];
   Object.keys(planSnap || {}).forEach(id => {
     const a = planSnap[id], b = cur[id];
     if (!b) { dates.add(a.date); return; }
-    if (a.date !== b.date || a.slot !== b.slot || a.title !== b.title || a.target !== b.target || a.kind !== b.kind) { dates.add(a.date); dates.add(b.date); if (a.date !== b.date || a.slot !== b.slot) changed.push([id, a]); }
+    if (a.date !== b.date || a.slot !== b.slot || a.title !== b.title || a.target !== b.target || a.kind !== b.kind || (a.miles || 0) !== b.miles) { dates.add(a.date); dates.add(b.date); if (a.date !== b.date || a.slot !== b.slot) changed.push([id, a]); }
   });
   Object.keys(cur).forEach(id => { if (!planSnap[id]) dates.add(cur[id].date); });
   if (!dates.size) return;
@@ -453,6 +468,18 @@ function moveSession(id, date, slot) {
     if (!now.length) { notify('Couldn’t find those sessions to swap.'); return; }
     now.forEach(x => { x.date = from.date; x.slot = from.slot; }); save(); render(); notify('Swapped.');
   });
+}
+function swapPick(d) {
+  const mon = add(d, -((date(d).getDay() + 6) % 7)), days = Array.from({ length: 14 }, (_, i) => add(mon, i)).filter(x => x !== d);
+  const sum = x => { const ws = data.workouts.filter(w => w.date === x && !w.unplanned); return ws.length ? ws.map(w => w.kind).join(' + ') : 'Rest'; };
+  modal('Swap ' + fmtDay(d) + ' with…', `<p class="ci-sub">${esc(sum(d))}</p><div class="swap-list">${days.map(x => `<button type="button" data-2b="swap-days" data-a="${d}" data-b="${x}"${x < today ? ' class="past"' : ''}><b>${esc(fmtDay(x))}${x === today ? ' · Today' : ''}</b><small>${esc(sum(x))}</small></button>`).join('')}</div>`, { kind: '2b-swap', form: false });
+}
+function swapDays(a, b) {
+  const A = data.workouts.filter(w => w.date === a && !w.unplanned), B = data.workouts.filter(w => w.date === b && !w.unplanned);
+  if (!A.length && !B.length) return;
+  A.forEach(w => { w.date = b; }); B.forEach(w => { w.date = a; });
+  save(); forceClose(); render();
+  undoToast('Swapped ' + fmtDay(a) + ' and ' + fmtDay(b) + '.', () => { A.forEach(w => { w.date = a; }); B.forEach(w => { w.date = b; }); save(); render(); });
 }
 function swapDay(d) {
   const ws = data.workouts.filter(w => w.date === d && !w.unplanned); if (!ws.length) return;
@@ -1090,6 +1117,25 @@ document.addEventListener('submit', e => {
   const have = savedNames(), add2 = found.filter(n => !have.some(h => h.toLowerCase() === n.toLowerCase()));
   if (add2.length) { setNames(have.concat(add2).join(', ')); learnNames(); }
 }, true);
+// Workout editor: planned miles for runs (goes to the plan sheet's miles column)
+const _workoutEditor = workoutEditor;
+workoutEditor = function (id = '', d, slot) {
+  _workoutEditor(id, d === undefined ? today : d, slot || 'AM');
+  const f = document.querySelector('#modal-root #editor'), tgt = f && f.querySelector('[name="target"]'); if (!tgt) return;
+  const w = data.workouts.find(x => x.id === id) || {};
+  const row = tgt.closest('.row2');
+  row.insertAdjacentHTML('afterend', `<div class="mi-row"><label for="f-miles">Planned miles (runs)</label><input id="f-miles" name="miles" type="number" step="0.1" min="0" max="200" value="${w.miles || ''}" placeholder="e.g. 5"></div>`);
+  const kind = f.querySelector('[name="kind"]'), mr = f.querySelector('.mi-row');
+  const vis = () => { mr.hidden = kind.value !== 'Run'; }; vis(); kind.addEventListener('change', vis);
+};
+document.addEventListener('submit', e => {
+  const f = e.target; if (f.id !== 'editor' || !f.querySelector('#f-miles')) return;
+  const mi = f.querySelector('[name="kind"]').value === 'Run' ? Number(f.querySelector('#f-miles').value) || 0 : 0;
+  const w = recordId && data.workouts.find(x => x.id === recordId);
+  if (w) { w.miles = mi || undefined; return; }
+  const v = n => f.querySelector('[name="' + n + '"]').value;
+  setTimeout(() => { const n = data.workouts.filter(x => x.date === v('date') && x.slot === v('slot') && x.title === v('title').trim()).pop(); if (n && mi) { n.miles = mi; save(); render(); } }, 0);
+}, true);
 const _noteEditor = noteEditor;
 noteEditor = function (id) {
   _noteEditor(id);
@@ -1246,7 +1292,7 @@ render = function () {
   if (page === 'workouts') document.querySelectorAll('.workout-day').forEach(sec => {
     const add = sec.querySelector('.slot-add'); const d = add && add.dataset.date; if (!d) return;
     sec.querySelectorAll('.slot').forEach(sl => { const a = sl.querySelector('.slot-add'); if (a) { sl.dataset.date = a.dataset.date; sl.dataset.slot = a.dataset.slot; } });
-    const h = sec.querySelector('h3'); if (h && data.workouts.some(w => w.date === d)) h.insertAdjacentHTML('beforeend', `<button class="swap-btn" data-2b="swap-day" data-date="${d}" aria-label="Swap AM and PM">⇅ Swap</button>`);
+    const h = sec.querySelector('h3'); if (h && data.workouts.some(w => w.date === d)) h.insertAdjacentHTML('beforeend', `<span class="swap-grp"><button class="swap-btn" data-2b="swap-day" data-date="${d}" aria-label="Swap AM and PM">⇅ AM/PM</button><button class="swap-btn" data-2b="swap-pick" data-date="${d}" aria-label="Swap with another day">⇄ Day</button></span>`);
     // past days fold up into a one-line summary; tap the header to open
     if (d < today && h) {
       const ws = data.workouts.filter(w => w.date === d), pl = ws.reduce((t, w) => t + (Number(w.target) || 0), 0), ac = ws.reduce((t, w) => t + (Number(w.actual) || 0), 0);
@@ -1335,6 +1381,8 @@ addEventListener('click', async e => {
       break;
     }
     case 'swap-day': swapDay(b.dataset.date); break;
+    case 'swap-pick': swapPick(b.dataset.date); break;
+    case 'swap-days': swapDays(b.dataset.a, b.dataset.b); break;
     case 'day-fold': if (e.target.closest('.swap-btn')) break; { const d = b.dataset.date; openPast.has(d) ? openPast.delete(d) : openPast.add(d); render(); } break;
     case 'ls-now': forceClose(); fullRefresh(true); break;
     case 'zoom': cfg.zoom = Number(b.dataset.v); saveCfg(); applyZoom(); forceClose(); render(); syncSheet(); break;

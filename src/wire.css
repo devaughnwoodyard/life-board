@@ -542,3 +542,10 @@ body:has(#modal-root > *) #cmd-fab{display:none!important}
 .pl-kind{height:14px;overflow:hidden}
 .pl-box{min-height:70px}
 .pl-box u{min-height:25px}
+.swap-grp{display:inline-flex;gap:6px;margin-left:auto}
+.swap-list{display:grid;gap:6px;margin-top:10px}
+.swap-list button{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 12px}
+.swap-list button b{font-size:13px}.swap-list button small{font-size:11px;color:#585858}
+.swap-list button.past{opacity:.55}
+.mi-row label{display:block;font-size:11px;color:var(--muted);margin:15px 0 6px}
+.workout-day.folded .swap-grp{display:none}.workout-day h3 .day-sum{margin-left:auto}.workout-day h3 .day-sum + .swap-grp,.workout-day h3 .swap-grp + .day-sum{margin-left:8px}
