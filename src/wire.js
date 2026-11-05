@@ -1075,7 +1075,9 @@ taskEditor = function (id, d) {
     sel.hidden = true; sel.after(pills); sel.closest('.row2')?.classList.add('row1');
   });
   const lb = root.querySelector('label[for="f-date"]'); if (lb && lb.firstChild) lb.firstChild.nodeValue = 'Date'; const lt = root.querySelector('label[for="f-time"]'); if (lt && lt.firstChild) lt.firstChild.nodeValue = 'Time';
-  const t = growify(root.querySelector('#f-title')); if (t) { t.placeholder = 'What needs doing?'; t.setAttribute('autocomplete', 'off'); setTimeout(() => t.focus(), 30); }
+  root.insertAdjacentHTML('afterbegin', '<input class="focus-sink" hidden tabindex="-1" aria-hidden="true">');
+  const tl = root.querySelector('label[for="f-title"]'); tl && tl.remove();
+  const t = growify(root.querySelector('#f-title')); if (t) { t.placeholder = 'What needs doing?'; t.setAttribute('autocomplete', 'off'); t.classList.add('todo-text'); t.focus(); const n = t.value.length; t.setSelectionRange(n, n); }
 };
 // Event editor: @ a name to pull from your saved names; new @names get saved
 const savedNames = () => (cfg.names || '').split(/[,\n;]/).map(x => x.trim()).filter(Boolean);

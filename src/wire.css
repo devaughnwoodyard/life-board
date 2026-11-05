@@ -573,3 +573,7 @@ body:has(#modal-root > *) #cmd-fab{display:none!important}
 .sheet.note-new .row2 select,.sheet.note-new .row2 input,.sheet.note-full .row2 select,.sheet.note-full .row2 input{height:38px;font-size:14px;padding:0 10px;width:100%}
 .sheet.note-new .form-actions,.sheet.note-full .form-actions{position:sticky;bottom:-22px;background:#F5F7FA;margin:10px -22px -22px;padding:10px 22px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);z-index:2}
 .sheet.note-new .rich-editor{min-height:40dvh}
+/* to-do sheet: big writing field, smaller text, Save pinned */
+.task-sheet textarea.todo-text{min-height:28dvh!important;font-size:13px!important;font-weight:500!important;line-height:1.5!important;padding:12px 14px!important;background:#fff;border:1px solid var(--line);border-radius:12px;resize:none;margin-bottom:6px}
+.task-sheet textarea.todo-text:focus{outline:2px solid #005CBC;outline-offset:-1px}
+.task-sheet .form-actions{position:sticky;bottom:-22px;background:#F5F7FA;margin:10px -22px -22px;padding:10px 22px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);z-index:2}
