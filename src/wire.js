@@ -392,6 +392,7 @@ const SPORT_SVG = {
 };
 const sportIcon = k => `<svg class="sport-ic sport-${(SPORT_SVG[k] ? k : 'Other').toLowerCase()}" viewBox="0 0 24 24" aria-hidden="true">${SPORT_SVG[k] || SPORT_SVG.Other}</svg>`;
 const openPast = new Set();
+const overPlan = w => !w.unplanned && w.actual != null && (w.kind === 'Run' && w.miles && w.garmin && w.garmin.mi != null ? Number(w.garmin.mi) > Number(w.miles) : Number(w.actual) > Number(w.target));
 function decorateSportIcons() {
   const kindOf = id => { const w = data.workouts.find(x => x.id === id); return w && w.kind; };
   document.querySelectorAll('.session').forEach(el => { const id = el.dataset.wid || el.querySelector('[data-act="workout-edit"]')?.dataset.id; const b = el.querySelector('b'); if (id && b && !b.querySelector('.sport-ic')) b.insertAdjacentHTML('afterbegin', sportIcon(kindOf(id))); });
@@ -1137,16 +1138,40 @@ document.addEventListener('submit', e => {
   setTimeout(() => { const n = data.workouts.filter(x => x.date === v('date') && x.slot === v('slot') && x.title === v('title').trim()).pop(); if (n && mi) { n.miles = mi; save(); render(); } }, 0);
 }, true);
 const _noteEditor = noteEditor;
+// New note: compact sheet, cursor already in the body. Existing note: one full-screen view, editable in place.
 noteEditor = function (id) {
+  const n0 = id && data.notes.find(x => x.id === id);
+  if (n0) { n0.lastOpened = new Date().toISOString(); _save(); }
   _noteEditor(id);
+  const sheet = document.querySelector('#modal-root .sheet'); if (!sheet) return;
+  sheet.classList.add(id ? 'note-full' : 'note-new');
+  sheet.insertAdjacentHTML('afterbegin', '<input class="focus-sink" hidden tabindex="-1" aria-hidden="true">');
   const t = growify(document.querySelector('#modal-root #note-title'), ta => document.getElementById('rich-body')?.focus());
-  if (t && !id) setTimeout(() => t.focus(), 30);
+  if (t) { t.removeAttribute('required'); t.placeholder = id ? 'Title' : 'Title (optional — first line is used)'; }
+  const r2 = sheet.querySelector('#editor .row2'), sel = r2 && r2.querySelector(':scope > select');
+  if (sel) { const w = document.createElement('div'), l = sel.previousElementSibling; r2.insertBefore(w, l && l.tagName === 'LABEL' ? l : sel); if (l && l.tagName === 'LABEL') w.appendChild(l); w.appendChild(sel); }
+  const fl = sheet.querySelector('label[for="note-folder"]'); if (fl) fl.textContent = 'Folder';
+  const body = document.getElementById('rich-body');
+  const lb = [...sheet.querySelectorAll('label')].find(l => /Note content/.test(l.textContent)); lb && lb.remove();
+  sheet.querySelector('#editor > small:last-of-type')?.remove();
+  if (n0 && n0.source === 'granola') {
+    const btn = `<button type="button" class="primary g-btn" data-2b="g-sum" data-id="${n0.id}">${n0.summary ? 'Redo summary' : 'Summary'}</button>`;
+    sheet.querySelector('.toolbar')?.insertAdjacentHTML('beforebegin', summaryBlock(n0) + btn);
+  }
+  if (!id && body) { body.focus(); }   // same tap that opened it, so the phone keyboard comes up
 };
+document.addEventListener('submit', e => {
+  const f = e.target; if (f.id !== 'editor' || !f.querySelector('#rich-body')) return;
+  const t = f.querySelector('#note-title'); if (!t || t.value.trim()) return;
+  const first = (document.getElementById('rich-body').innerText || '').split('\n').map(x => x.trim()).find(Boolean) || 'Untitled note';
+  t.value = first.slice(0, 80);
+}, true);
 const _modal = modal;
 modal = function (title, body, opts = {}) {
   _modal(title, body, opts);
   if (opts.form === false) return;
   const t = document.querySelector('#modal-root .sheet-title'), close = t && t.querySelector('[data-act="close"]');
+  if (opts.kind === 'task' || opts.kind === 'note') return;
   if (close && !t.querySelector('.top-save')) close.insertAdjacentHTML('beforebegin', `<button class="primary top-save" type="submit" form="editor">${opts.id ? 'Save' : '+ Add'}</button>`);
 };
 /* ---------- Command layout: header, home, tab bar, quick-add sheet ---------- */
@@ -1186,7 +1211,7 @@ function cmdHome() {
   const t12 = hm => { if (!hm) return 'All day'; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
   const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
   const kindKey = k => ({ Run: 'run', Bike: 'bike', Swim: 'swim', Strength: 'strength', Yoga: 'yoga' })[k] || 'other';
-  const sess = ws.map(w => `<button class="cmd-sess" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
+  const sess = ws.map(w => `<button class="cmd-sess${overPlan(w) ? ' over' : ''}" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
   const open = openTasksSorted();
   const doneToday = data.tasks.filter(recentlyDone).sort((a, b) => b.doneAt - a.doneAt);
   const tl = open.slice(0, 6).concat(doneToday.slice(0, Math.max(0, 6 - open.length)));
@@ -1217,7 +1242,7 @@ function cmdHomeDesk() {
   const disc = ['Swim', 'Bike', 'Run', 'Strength', 'Yoga'].map(k => { const l = wk.filter(w => w.kind === k); if (!l.length) return ''; const p = l.reduce((s, w) => s + (+w.target || 0), 0), a = l.reduce((s, w) => s + (+w.actual || 0), 0);
     return `<div class="dk-disc">${sportIcon(k)}<b>${k}</b><span><span class="v-act">${hmf(a)}</span> <span class="v-sep">/</span> <span class="v-pln">${hmf(p)}</span></span><i class="dk-bar"><i style="width:${p ? Math.min(100, Math.round(a / p * 100)) : 0}%"></i></i></div>`; }).join('');
   const train = `<section class="dk-tile" data-act="nav" data-page="workouts">${head('train', 'Training', workoutScore() + '%')}<div class="dk-body">
-    <div class="dk-k">TODAY</div>${ws.map(w => `<div class="dk-row">${sportIcon(w.kind)}<span class="dk-t"><b>${esc(short(w.title))}</b><small><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}</span>` : ''}</small></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</div>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
+    <div class="dk-k">TODAY</div>${ws.map(w => `<div class="dk-row${overPlan(w) ? ' over' : ''}">${sportIcon(w.kind)}<span class="dk-t"><b>${esc(short(w.title))}</b><small><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}</span>` : ''}</small></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</div>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
     <div class="dk-k">THIS WEEK · ACTUAL / PLANNED</div><div class="dk-discs">${disc}</div></div></section>`;
   // to do
   const open = data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
@@ -1348,10 +1373,12 @@ render = function () {
       const planSub = w.unplanned ? 'unplanned' : run && w.miles ? w.target + ' min' : w.miles ? w.miles + ' mi' : '&nbsp;';
       const logBig = w.actual == null ? '—' : run && gmi != null ? big(gmi, 'mi') : Math.round(w.actual) + '<em>min</em>';
       const sub = [run && gmi != null ? Math.round(w.actual) + ' min' : gmi != null ? gmi + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', mpct != null ? mpct + '%' : ''].filter(Boolean).join(' · ');
+      const over = !w.unplanned && w.actual != null && (run && w.miles && gmi != null ? gmi > Number(w.miles) : Number(w.actual) > Number(w.target));
+      el.classList.toggle('over', !!over);
       sm.className = 'pl-wrap';
       sm.innerHTML = `<span class="pl-kind">${esc(w.kind)}</span><span class="pl-grid">
         <span class="pl-box pl-plan"><i>PLAN</i><b>${planBig}</b><u>${planSub}</u></span>
-        <span class="pl-box pl-log${w.actual == null ? ' empty' : ''}"><i>LOGGED</i><b>${logBig}</b><u>${w.actual == null ? 'not yet' : esc(sub) || '&nbsp;'}</u></span></span>`;
+        <span class="pl-box pl-log${w.actual == null ? ' empty' : ''}${over ? ' over' : ''}"><i>LOGGED</i><b>${logBig}</b><u>${w.actual == null ? 'not yet' : esc(sub) || '&nbsp;'}</u></span></span>`;
     }
     const tb = el.querySelector(':scope > b'); if (w && tb && !tb.querySelector('.st')) { const ic = tb.querySelector('.sport-ic'); tb.innerHTML = (ic ? ic.outerHTML : '') + `<span class="st">${esc(w.title)}</span>`; tb.title = w.title; }
     if (w && w.garmin) el.classList.add('from-garmin');
@@ -1400,7 +1427,8 @@ addEventListener('click', async e => {
     case 'n-on': await pushOn(b); break;
     case 'n-test': { b.disabled = true; try { const r = await api({ action: 'pushTest' }); notify(r.sent ? 'Test sent.' : 'Test failed: ' + r.error); } catch (err) { notify('Test failed: ' + err.message); } b.disabled = false; break; }
     case 'folder-toggle': { const k = fKey(b.dataset.tab, b.dataset.folder); if (openFolders.has(k)) openFolders.delete(k); else { openFolders.add(k); const st = new Date().toISOString(); data.notes.filter(n => n.tab === b.dataset.tab && n.folder === b.dataset.folder).forEach(n => n.lastOpened = st); _save(); } ls.set('2b-openf', [...openFolders]); render(); break; }
-    case 'note-toggle': { const id = b.dataset.id; if (openNotes.has(id)) openNotes.delete(id); else { openNotes.add(id); const n = data.notes.find(x => x.id === id); if (n) { n.lastOpened = new Date().toISOString(); _save(); } } render(); break; }
+    case 'note-toggle': { const nn = data.notes.find(x => x.id === b.dataset.id); if (nn && !isPhrase(nn)) { noteEditor(nn.id); break; } }
+    case 'note-toggle-old': { const id = b.dataset.id; if (openNotes.has(id)) openNotes.delete(id); else { openNotes.add(id); const n = data.notes.find(x => x.id === id); if (n) { n.lastOpened = new Date().toISOString(); _save(); } } render(); break; }
     case 'note-in-folder': { const keep = noteFolder; noteTab = b.dataset.tab; noteFolder = b.dataset.folder; noteEditor(); noteFolder = keep; break; }
     case 'sp-mic': spMicToggle(); break;
     case 'sp-filter': phraseFilter = b.dataset.v; render(); break;
