@@ -1556,3 +1556,19 @@ if (cfg.url) { if (navType === 'reload') fullRefresh(true); else sync(); }
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
+
+/* Dragging inside a to-do or note pop-up while typing = "let me see the rest": put the keyboard away */
+(() => {
+  let y0 = null;
+  const typing = () => { const a = document.activeElement; return a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) && a.closest('#modal-root') ? a : null; };
+  const inSheet = t => t && t.closest && t.closest('#modal-root .sheet.task-sheet, #modal-root .sheet.note-new, #modal-root .sheet.note-full');
+  document.addEventListener('touchstart', e => { y0 = inSheet(e.target) && typing() ? e.touches[0].clientY : null; }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (y0 == null) return;
+    if (Math.abs(e.touches[0].clientY - y0) > 12) { const a = typing(); if (a) a.blur(); y0 = null; }
+  }, { passive: true });
+  // if the browser takes the drag as a scroll, touchmove can stop arriving: a scroll during a touch counts too
+  document.addEventListener('scroll', e => { if (y0 != null && inSheet(e.target.nodeType === 1 ? e.target : null)) { const a = typing(); if (a) a.blur(); y0 = null; } }, true);
+  document.addEventListener('touchend', () => { y0 = null; }, { passive: true });
+  document.addEventListener('touchcancel', () => { y0 = null; }, { passive: true });
+})();
