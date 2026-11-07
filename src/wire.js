@@ -208,7 +208,7 @@ async function sync(manual) {
     if (!hasPlan || Date.now() - (cfg.planAt || 0) > 30 * 60e3) { try { if (await loadPlan()) changed = true; } catch (e) { cfg.planError = e.message; } }
     if (dedupeHabits()) changed = true;
     if (changed) { _save(); hashes = null; markChanges(); if (Object.keys(dirty).length) schedule(1500); }
-    (res.inbox || []).forEach(x => runCommand(x.text, { from: 'Siri' }));
+    (res.inbox || []).forEach(x => /^cp/i.test(String(x.id || '')) ? runCommand('work to do ' + x.text, { from: 'Copilot' }) : runCommand(x.text, { from: 'Siri' }));
     cfg.status = 'Synced ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     cfg.lastOk = Date.now(); saveCfg();
     if (changed && !$('#modal-root').children.length) render();
@@ -658,7 +658,7 @@ function captureSheet(autoMic) {
     <textarea id="cap-text" rows="4" placeholder="To do Friday, call the dentist&#10;Work note Vendors, pricing came in 8% higher" autocapitalize="sentences" enterkeyhint="done"></textarea>
     <div class="cap-row"><button type="button" class="cap-mic" data-2b="mic">${ICONS.mic}Speak</button><button type="button" class="cap-go" data-2b="cap-go">Add</button></div>
     <p class="cap-status" id="cap-status" role="status">Start with <b>To do</b> (and a day) or <b>Work note</b> / <b>Personal note</b> (and a folder). Anything else becomes a to-do for today.</p>
-    <ul class="cap-ex"><li><b>To do tomorrow, renew passport</b></li><li><b>To do [Nov 14] book flights at 7pm</b></li><li><b>Work to do Friday, send the deck</b></li><li><b>Work note Sprint planning, QA owner is Dana</b></li><li><b>Personal note</b> gift idea: cooking class → General</li><li><b>Spanish le llegas means do you get it</b></li></ul>
+    <ul class="cap-ex"><li><b>To do tomorrow, renew passport</b></li><li><b>To do [Nov 14] book flights at 7pm</b></li><li><b>w: send the deck fri !!</b> → Work, Friday, urgent</li><li><b>wait: Aru on pricing</b> → Waiting on someone</li><li><b>Work note Sprint planning, QA owner is Dana</b></li><li><b>Personal note</b> gift idea: cooking class → General</li><li><b>Spanish le llegas means do you get it</b></li></ul>
     <div class="cap-more"><button type="button" class="secondary" data-2b="cap-forms">More: event, workout, note, habit…</button></div></div>`, { kind: '2b-capture', form: false });
   const ta = document.getElementById('cap-text');
   ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); capGo(); } });
@@ -1554,6 +1554,182 @@ addEventListener('pagehide', () => { try { const v = JSON.parse(sessionStorage.g
 render();
 if (cfg.url) { if (navType === 'reload') fullRefresh(true); else sync(); }
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+/* ---------- 10. Section 4: priority + waiting, faster capture, swipe, saved views, Home extras, sync hygiene, calendar reminders ---------- */
+const isWait = t => !!t && !!t.wait && t.wait !== '0';
+const prio = t => (t && (t.p === '1' || t.p === 1)) ? 1 : (t && (t.p === '2' || t.p === 2)) ? 2 : 0;
+
+// Capture shorthand: "w: send spike fri !!" → Work, Friday, P1 · "p:" personal · "!" P2, "!!" P1 · "wait:" / "chase" → Waiting
+const _runCommand = runCommand;
+runCommand = function (raw, opt = {}) {
+  let s = normalizeSpoken(raw); if (!s) return null;
+  let p = '', wait = false;
+  s = s.replace(/(^|\s)(!{1,3})(?=\s|$)/g, (m0, a, b) => { p = b.length >= 2 ? '1' : (p || '2'); return a; })
+       .replace(/(^|\s)p([12])(?=\s|$)/i, (m0, a, n) => { p = n; return a; }).trim();
+  s = s.replace(/^w\s*[:;]\s*/i, 'work to do ').replace(/^p\s*[:;]\s*/i, 'to do ');
+  if (/^(wait|waiting)\s*[:;-]?\s*/i.test(s) && !/^waiting on\b/i.test(s)) { wait = true; s = s.replace(/^(wait|waiting)\s*[:;-]?\s*/i, ''); }
+  if (/^(waiting on|chase)\b/i.test(s.replace(/^(work\s+)?(to[\s-]?do|todo|task)\s*/i, ''))) wait = true;
+  const out = _runCommand(s, opt);
+  if (out && data.tasks.includes(out) && (p || wait)) { if (p) out.p = p; if (wait) out.wait = true; save(); if (!$('#modal-root').children.length) render(); }
+  return out;
+};
+
+// Saved views on the To Do page
+const VIEWS = {
+  overdue: ['Overdue', t => t.date && t.date < today],
+  nodate: ['No date', t => !t.date],
+  waiting: ['Waiting', t => isWait(t)],
+  worktoday: ['Work today', t => t.category === 'Work' && t.date && t.date <= today],
+  priority: ['Priority', t => prio(t) > 0]
+};
+const viewCount = k => data.tasks.filter(t => !t.done && VIEWS[k][1](t)).length;
+function viewChips() {
+  return `<div class="filters task-views" aria-label="Saved views">${Object.entries(VIEWS).map(([k, [l]]) => { const n = viewCount(k); return `<button data-act="task-filter" data-filter="${k}" class="${taskFilter === k ? 'on' : ''}">${l}${n ? ` <span class="vc">${n}</span>` : ''}</button>`; }).join('')}</div>`;
+}
+const _todoView = todoView;
+todoView = function () {
+  if (!VIEWS[taskFilter]) return _todoView().replace(/(<div class="filters task-filters">[\s\S]*?<\/div>)/, '$1' + viewChips());
+  const keep = taskFilter; taskFilter = 'all'; let base = _todoView(); taskFilter = keep;
+  const form = (base.match(/<form class="quick-form" id="quick-task">[\s\S]*?<\/form>/) || [''])[0];
+  const list = data.tasks.filter(t => !t.done && VIEWS[keep][1](t)).sort((a, b) => (prio(a) || 9) - (prio(b) || 9) || (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
+  return form + `<div class="filters task-filters">${['all', 'Work', 'Personal'].map(f => `<button data-act="task-filter" data-filter="${f}">${f === 'all' ? 'All tasks' : f}</button>`).join('')}</div>` + viewChips()
+    + `<section><div class="section-label">${VIEWS[keep][0]} <span>${list.length}</span></div>${taskList(list)}</section>`;
+};
+
+// Badges on every task row (To Do page, Home, desktop tile)
+function decorateTasks() {
+  document.querySelectorAll('[data-act="task-edit"][data-id]:not(.text-btn)').forEach(b => {
+    const t = data.tasks.find(x => x.id === b.dataset.id); if (!t || b.querySelector('.tb')) return;
+    const title = b.querySelector('b,.tt') || b; let h = '';
+    if (prio(t)) h += `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>`;
+    if (isWait(t)) h += '<span class="tb tb-w">Waiting</span>';
+    if (h) title.insertAdjacentHTML('afterbegin', h);
+    const row = b.closest('.task,.cmd-task,.dk-row'); if (row && !t.done) { row.dataset.swipe = t.id; row.classList.toggle('is-wait', isWait(t)); }
+  });
+  document.querySelectorAll('.dk-row .check[data-id]').forEach(c => { const t = data.tasks.find(x => x.id === c.dataset.id); const tt = c.parentElement.querySelector('.dk-t b'); if (!t || !tt || tt.querySelector('.tb')) return; let h = ''; if (prio(t)) h += `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>`; if (isWait(t)) h += '<span class="tb tb-w">Waiting</span>'; if (h) tt.insertAdjacentHTML('afterbegin', h); });
+}
+
+// RPE for plan/Garmin sessions is kept in a synced pref (those sessions are rebuilt from the plan sheet)
+function rpeMap() { const p = (data.prefs || []).find(x => x.id === 'rpe'); try { return p ? JSON.parse(p.value || '{}') : {}; } catch (e) { return {}; } }
+function setRPE(w, v) {
+  if (!/^g[pa]-/.test(String(w.id))) { w.actualEffort = v; return; }
+  const m = rpeMap(); m[w.id] = v; let p = data.prefs.find(x => x.id === 'rpe'); if (!p) { p = { id: 'rpe', value: '{}' }; data.prefs.push(p); }
+  p.value = JSON.stringify(m); p.updated = new Date().toISOString();
+}
+// Home extras: RPE on finished sessions, habit ticks, Spanish due today
+function homeExtras() {
+  if (page !== 'home' || isDesk()) return;
+  const cards = document.querySelectorAll('.cmd-home > .cmd-card');
+  const trainCard = cards[0], todoCard = cards[1];
+  const rm = rpeMap();
+  data.workouts.filter(w => w.date === today && w.actual != null && w.actualEffort == null && rm[w.id] == null).forEach(w => {
+    const btn = trainCard && trainCard.querySelector(`.cmd-sess[data-id="${w.id}"]`); if (!btn || btn.nextElementSibling?.classList.contains('rpe')) return;
+    btn.insertAdjacentHTML('afterend', `<div class="rpe" role="group" aria-label="How hard was ${esc(short(w.title))}"><span>How hard? (RPE)</span>${Array.from({ length: 10 }, (_, i) => `<button type="button" data-sx="rpe" data-id="${w.id}" data-v="${i + 1}">${i + 1}</button>`).join('')}</div>`);
+  });
+  if (todoCard && !document.querySelector('.cmd-habits') && data.habits.length) {
+    const done = data.habits.filter(h => h.days.includes(today)).length;
+    todoCard.insertAdjacentHTML('afterend', `<section class="cmd-card cmd-habits"><div class="cmd-h"><h2>Habits · ${done}/${data.habits.length}</h2><button data-act="nav" data-page="habits">Week</button></div><div class="hb-row">${data.habits.map(h => { const on = h.days.includes(today); return `<button class="hb${on ? ' on' : ''}" data-act="habit-tick" data-id="${h.id}" data-date="${today}" aria-pressed="${on}"><i>${on ? '✓' : ''}</i>${esc(h.title)}</button>`; }).join('')}</div></section>`);
+  }
+  const learning = phrases().filter(p => p.passes.length < 5 && p.en), due = learning.filter(p => !p.passes.includes(today)).length;
+  document.querySelectorAll('.cmd-split small').forEach(sm => { if (/learning$/.test(sm.textContent)) sm.textContent = due ? `${due} due today · ${learning.length} learning` : `All reviewed today · ${learning.length} learning`; });
+  const waits = data.tasks.filter(t => !t.done && isWait(t)).length;
+  const h = todoCard && todoCard.querySelector('.cmd-h h2');
+  if (h && waits && !h.querySelector('.vc')) h.insertAdjacentHTML('beforeend', ` <button class="vc vc-link" data-sx="view" data-v="waiting">${waits} waiting</button>`);
+}
+
+// Swipe a to-do: right = done, left = tomorrow (or the day after its date), hold = waiting on / off
+(function swipe() {
+  let s = null, holdT = null, eatClick = false;
+  const row = e => e.target.closest && e.target.closest('[data-swipe]');
+  const reset = r => { if (!r) return; r.style.transition = 'transform .18s ease, background .18s'; r.style.transform = ''; r.classList.remove('sw-r', 'sw-l'); setTimeout(() => { r.style.transition = ''; }, 200); };
+  document.addEventListener('touchstart', e => {
+    const r = row(e); if (!r || e.touches.length !== 1 || $('#modal-root').children.length) { s = null; return; }
+    s = { r, id: r.dataset.swipe, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, h: false };
+    clearTimeout(holdT);
+    holdT = setTimeout(() => { if (!s || s.h || Math.abs(s.dx) > 8) return; const t = data.tasks.find(x => x.id === s.id); if (!t) return;
+      eatClick = true; setTimeout(() => { eatClick = false; }, 700); t.wait = !isWait(t); if (navigator.vibrate) navigator.vibrate(15); save(); render();
+      undoToast(t.wait ? 'Marked Waiting.' : 'No longer waiting.', () => { t.wait = !t.wait; save(); render(); }); s = null; }, 550);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!s) return; const dx = e.touches[0].clientX - s.x, dy = e.touches[0].clientY - s.y;
+    if (!s.h) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { clearTimeout(holdT); s = null; return; } if (Math.abs(dx) > 12) { s.h = true; clearTimeout(holdT); try { ptr = null; ptrState(''); } catch (er) {} } }
+    if (s.h) { e.preventDefault(); s.dx = dx; s.r.style.transform = `translateX(${Math.max(-120, Math.min(120, dx))}px)`; s.r.classList.toggle('sw-r', dx > 70); s.r.classList.toggle('sw-l', dx < -70); }
+  }, { passive: false });
+  const end = () => {
+    clearTimeout(holdT); if (!s) return; const { r, id, dx, h } = s; s = null; if (!h) return;
+    eatClick = true; setTimeout(() => { eatClick = false; }, 350);
+    const t = data.tasks.find(x => x.id === id);
+    if (!t || Math.abs(dx) < 70) { reset(r); return; }
+    if (dx > 0) { toggleTask(id); undoToast('Done: ' + t.title, () => { toggleTask(id); }); return; }
+    const was = t.date, tw = add(today, 1); t.date = (t.date && t.date >= tw) ? add(t.date, 1) : tw; save(); render();
+    undoToast('Moved to ' + fmtDay(t.date) + '.', () => { t.date = was; save(); render(); });
+  };
+  document.addEventListener('touchend', end); document.addEventListener('touchcancel', () => { clearTimeout(holdT); if (s) reset(s.r); s = null; });
+  document.addEventListener('click', e => { if (eatClick && row(e)) { e.preventDefault(); e.stopPropagation(); eatClick = false; } }, true);
+  document.addEventListener('contextmenu', e => { if (row(e)) e.preventDefault(); });
+})();
+
+// Task editor: priority + waiting pills, and "Add to Google Calendar" for timed to-dos
+function gcalLink(t) {
+  const st = (t.date + 'T' + t.time).replace(/[-:]/g, '') + '00', d = new Date(t.date + 'T' + t.time); d.setMinutes(d.getMinutes() + 30);
+  const en = localDay(d).replace(/-/g, '') + 'T' + String(d.getHours()).padStart(2, '0') + String(d.getMinutes()).padStart(2, '0') + '00';
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: t.title, dates: st + '/' + en, details: 'From 2nd Brain', ctz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+}
+const _taskEditor2 = taskEditor;
+taskEditor = function (id, d) {
+  _taskEditor2(id, d);
+  const root = document.querySelector('#modal-root .sheet.task-sheet'); if (!root) return;
+  const t = data.tasks.find(x => x.id === id) || {};
+  const form = root.closest('form') || root.querySelector('form') || document.getElementById('editor'); if (!form) return;
+  const pv = prio(t) ? String(prio(t)) : '', wv = isWait(t) ? '1' : '';
+  const anchor = root.querySelector('#f-time')?.closest('.row2') || [...root.querySelectorAll('.row2')].pop();
+  const box = document.createElement('div'); box.className = 'tx-row';
+  box.innerHTML = `<label class="tx-l">Priority</label><input type="hidden" name="p" value="${pv}"><input type="hidden" name="wait" value="${wv}">
+    <div class="tpills" role="radiogroup" aria-label="Priority">${[['', 'Normal'], ['2', '! Important'], ['1', '!! Urgent']].map(([v, l]) => `<button type="button" role="radio" data-pv="${v}" class="${pv === v ? 'on' : ''}" aria-checked="${pv === v}">${l}</button>`).join('')}</div>
+    <div class="tpills"><button type="button" data-wv class="${wv ? 'on' : ''}" aria-pressed="${!!wv}">Waiting on someone</button></div>
+    <a class="gcal-btn" target="_blank" rel="noopener" hidden>Add reminder to Google Calendar</a>`;
+  (anchor ? anchor.after(box) : root.append(box));
+  box.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { box.querySelector('[name="p"]').value = b.dataset.pv; box.querySelectorAll('[data-pv]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); }); });
+  const wb = box.querySelector('[data-wv]'); wb.onclick = () => { const on = !wb.classList.contains('on'); wb.classList.toggle('on', on); wb.setAttribute('aria-pressed', String(on)); box.querySelector('[name="wait"]').value = on ? '1' : ''; };
+  const g = box.querySelector('.gcal-btn'), ti = root.querySelector('[name="title"]'), di = root.querySelector('#f-date'), tm = root.querySelector('#f-time');
+  const upd = () => { const ok = di && tm && di.value && tm.value && ti && ti.value.trim(); g.hidden = !ok; if (ok) g.href = gcalLink({ title: ti.value.trim(), date: di.value, time: tm.value }); };
+  [ti, di, tm].forEach(el => el && ['input', 'change'].forEach(ev => el.addEventListener(ev, upd))); upd();
+};
+
+// Sync hygiene: no network attempts offline, a pending-changes count on the sync dot, and duplicate events merged
+function dedupeEvents() {
+  const seen = new Set(), before = data.events.length;
+  data.events = data.events.filter(e => { if (e.gcal) return true; const k = [String(e.title || '').trim().toLowerCase(), e.date, e.time || '', e.end || ''].join('|'); if (seen.has(k)) return false; seen.add(k); return true; });
+  return data.events.length !== before;
+}
+const _sync = sync;
+sync = async function (manual) {
+  if (!navigator.onLine) { cfg.status = 'Offline · changes saved on this phone'; paintStatus(); if (manual) notify('Offline. Your changes are saved and will sync when you reconnect.'); return; }
+  await _sync(manual);
+  if (dedupeEvents()) { save(); if (!$('#modal-root').children.length) render(); }
+};
+const _paintStatus = paintStatus;
+paintStatus = function () {
+  _paintStatus();
+  const n = Object.keys(dirty || {}).length;
+  document.querySelectorAll('.sync-dot').forEach(dot => { if (n && cfg.url) dot.dataset.pending = n > 99 ? '99+' : n; else delete dot.dataset.pending; if (n) dot.title = (cfg.status || '') + ' · ' + n + ' change' + (n === 1 ? '' : 's') + ' waiting to sync'; });
+};
+const _save2 = save;
+save = function () { const ok = _save2(); try { paintStatus(); } catch (e) {} return ok; };
+addEventListener('offline', () => { cfg.status = 'Offline · changes saved on this phone'; paintStatus(); });
+try { if (dedupeEvents()) save(); } catch (e) {}
+
+// Wire it into every render + the new buttons
+const _render10 = render;
+render = function () { _render10(); try { decorateTasks(); homeExtras(); } catch (e) { console.warn(e); } };
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-sx]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  if (b.dataset.sx === 'view') { taskFilter = b.dataset.v; go('todo'); return; }
+  const w = data.workouts.find(x => x.id === b.dataset.id); if (!w) return;
+  setRPE(w, Number(b.dataset.v)); save(); render(); notify(`Logged RPE ${b.dataset.v} for ${short(w.title)}.`);
+}, true);
+
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
 

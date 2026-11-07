@@ -590,3 +590,26 @@ body.kb-open .sheet-title h2{font-size:17px}
 body.kb-open .sheet.note-full{height:var(--vvh)!important;max-height:var(--vvh)!important}
 body.kb-open .modal-backdrop:has(.sheet.note-full){padding:0!important}
 .sheet.note-new .toolbar,.sheet.note-full .toolbar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.sheet.note-new .toolbar button,.sheet.note-full .toolbar button{flex:none;padding:6px 9px}
+/* Section 4 additions */
+.tb{display:inline-block;font:700 10px/1 system-ui,sans-serif;border-radius:100px;padding:3px 6px;margin-right:6px;vertical-align:2px}
+.tb-p1{background:#FFE5DE;color:#AB2B09}.tb-p2{background:#FEF1B9;color:#995211}.tb-w{background:#E8F0FB;color:#005CBC}
+.is-wait .tt,.is-wait b{opacity:.85}
+.task-views{margin-top:-4px}.task-views button{border-style:dashed}.task-views button.on{border-style:solid}
+.vc{font-size:10px;font-weight:700;background:#E8F0FB;color:#005CBC;border-radius:100px;padding:1px 6px;margin-left:2px}
+.filters button.on .vc{background:rgba(255,255,255,.25);color:#fff}
+.vc-link{border:0;cursor:pointer;font-family:inherit}
+[data-swipe]{touch-action:pan-y;position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+[data-swipe].sw-r{background:linear-gradient(90deg,#CAF3C6,transparent 70%)}
+[data-swipe].sw-l{background:linear-gradient(270deg,#DAEEFA,transparent 70%)}
+.rpe{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:6px 0 4px 34px}
+.rpe span{font-size:11px;color:#616161;margin-right:4px}
+.rpe button{width:26px;height:26px;border-radius:50%;border:1px solid #D0D0D0;background:#fff;font-size:11px;font-weight:600;color:#2D2D2D;padding:0}
+.rpe button:active{background:#005CBC;color:#fff}
+.cmd-habits .hb-row{display:flex;flex-wrap:wrap;gap:8px}
+.cmd-habits .hb{display:inline-flex;align-items:center;gap:7px;border:1px solid #D0D0D0;background:#fff;border-radius:100px;padding:7px 12px 7px 7px;font-size:12px;font-weight:600;color:#2D2D2D}
+.cmd-habits .hb i{width:18px;height:18px;border-radius:50%;border:1.5px solid #9aa3b2;display:grid;place-items:center;font-style:normal;font-size:11px}
+.cmd-habits .hb.on{background:#E8F0FB;border-color:#82CDF8}.cmd-habits .hb.on i{background:#005CBC;border-color:#005CBC;color:#fff}
+.tx-row{display:grid;gap:10px;margin-top:14px}.tx-l{margin:0}
+.gcal-btn{display:inline-block;font-size:13px;font-weight:600;color:#005CBC;text-decoration:none;padding:6px 0}
+.gcal-btn:before{content:"+ ";}
+.sync-dot[data-pending]::after{content:attr(data-pending);position:absolute;top:2px;right:-4px;min-width:15px;height:15px;padding:0 4px;border-radius:100px;background:#FF8C09;color:#fff;font:700 9px/15px system-ui,sans-serif;text-align:center}
