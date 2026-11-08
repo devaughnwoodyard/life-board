@@ -1731,6 +1731,139 @@ document.addEventListener('click', e => {
   setRPE(w, Number(b.dataset.v)); save(); render(); notify(`Logged RPE ${b.dataset.v} for ${short(w.title)}.`);
 }, true);
 
+/* ---------- Training grid: every week as a dated 7×2 grid, one continuous scroll ---------- */
+// Matched sessions: a planned session done on another day/slot. Pref 'wlink' = { planId: garminActivityId }.
+function linkMap() { const p = (data.prefs || []).find(x => x.id === 'wlink'); try { return p ? JSON.parse(p.value || '{}') : {}; } catch (e) { return {}; } }
+function setLinkMap(m) { let p = data.prefs.find(x => x.id === 'wlink'); if (!p) { p = { id: 'wlink', value: '{}' }; data.prefs.push(p); } p.value = JSON.stringify(m); p.updated = new Date().toISOString(); }
+// The activity moves inside the plan row: it scores against the plan, counts once, and remembers where it happened
+function attach(p, a, list) {
+  p.linked = Object.assign({}, a); p.actual = a.actual; p.garmin = a.garmin;
+  const i = list.indexOf(a); if (i >= 0) list.splice(i, 1);
+}
+function applyLinks(list) {
+  const m = linkMap();
+  Object.entries(m).forEach(([pid, aid]) => {
+    const p = list.find(w => w.id === pid), a = list.find(w => w.id === aid);
+    if (p && a && !p.garmin && a.unplanned) attach(p, a, list);
+  });
+}
+const _loadPlan = loadPlan;
+loadPlan = async function () {
+  const ok = await _loadPlan();
+  if (ok) { applyLinks(data.workouts); save(); }
+  return ok;
+};
+applyLinks(data.workouts);
+function linkSession(p, a) {
+  const m = linkMap(); m[p.id] = a.id; setLinkMap(m);
+  attach(p, a, data.workouts); save(); render();
+  undoToast(`${fmtDay(a.date)} ${a.slot} ${a.kind.toLowerCase()} counts for ${fmtDay(p.date)} ${p.slot}: ${short(p.title)}.`, () => unlinkSession(p.id));
+}
+function unlinkSession(pid) {
+  const p = data.workouts.find(w => w.id === pid); const m = linkMap(); delete m[pid]; setLinkMap(m);
+  if (p && p.linked) { data.workouts.push(p.linked); delete p.linked; p.actual = null; delete p.garmin; }
+  save(); render();
+}
+// Look for a done-but-unplanned activity of the same kind: target slot, same day other slot, then the day before/after
+function findAct(p, date, slot) {
+  const pool = data.workouts.filter(w => w.unplanned && /^ga-/.test(String(w.id)) && w.kind === p.kind);
+  const near = (d, s) => pool.filter(w => w.date === d && (!s || w.slot === s)).sort((x, y) => Math.abs((x.actual || 0) - p.target) - Math.abs((y.actual || 0) - p.target))[0];
+  return near(date, slot) || near(date) || near(add(date, -1)) || near(add(date, 1));
+}
+// Dropped an activity: find an open planned session of the same kind there or a day either side
+function findPlan(a, date, slot) {
+  const pool = data.workouts.filter(w => isPlan(w) && w.kind === a.kind && w.actual == null && !w.linked);
+  const near = (d, s) => pool.filter(w => w.date === d && (!s || w.slot === s))[0];
+  return near(date, slot) || near(date) || near(add(date, -1)) || near(add(date, 1));
+}
+const _moveSession = moveSession;
+moveSession = function (id, date, slot) {
+  const w = data.workouts.find(x => x.id === id); if (!w) return;
+  if (w.unplanned && /^ga-/.test(String(w.id))) {
+    const p = findPlan(w, date, slot);
+    if (p) return linkSession(p, w);
+    notify(`No open ${w.kind.toLowerCase()} on the plan there or a day either side. Garmin activities stay where they happened.`); return;
+  }
+  if (w.date === date && w.slot === slot) return;
+  if (isPlan(w) && w.actual == null && !w.linked) { const a = findAct(w, date, slot); if (a) return linkSession(w, a); }
+  return _moveSession(id, date, slot);
+};
+// A linked activity shows on its real day too, so today's Home and the grid both tell the truth
+const doneOn = w => w.linked ? { date: w.linked.date, slot: w.linked.slot } : null;
+
+let wgBack = 1, wgLast = '';
+const wgMon = d => add(d, -((date(d).getDay() + 6) % 7));
+function wgCard(w, ghost) {
+  const run = w.kind === 'Run', gmi = w.garmin && w.garmin.mi != null ? Number(w.garmin.mi) : null;
+  const r1 = x => Math.round(x * 10) / 10;
+  const plan = w.unplanned ? 'Not on plan' : run && w.miles ? `${r1(w.miles)} mi · ${w.target}m` : `${w.target} min`;
+  const done = w.actual != null;
+  const act = done ? (run && gmi != null ? `${r1(gmi)} mi · ${Math.round(w.actual)}m` : `${Math.round(w.actual)} min`) : '';
+  const pct = !w.unplanned && done && w.target ? Math.round(Math.min((run && w.miles && gmi != null ? gmi / w.miles : w.actual / w.target), 1) * 100) : null;
+  const missed = !w.unplanned && !done && w.date < today;
+  const dn = doneOn(w);
+  if (ghost) return `<div class="wg-s wg-ghost" data-act="workout-log" data-id="${w.id}" role="button" tabindex="0"><b>${sportIcon(w.kind)}<span class="st">${esc(short(w.title))}</span></b><small>↪ counts for ${esc(fmt(w.date, { weekday: 'short' }))} ${w.slot}</small></div>`;
+  const cls = ['session', 'wg-s', done ? 'done' : '', missed ? 'missed' : '', w.unplanned ? 'unpl' : '', dn ? 'moved' : '', overPlan(w) ? 'over' : ''].filter(Boolean).join(' ');
+  return `<div class="${cls}" data-wid="${w.id}" draggable="true" data-act="${w.date <= today || done ? 'workout-log' : 'workout-edit'}" data-id="${w.id}" role="button" tabindex="0" aria-label="${esc(w.title)}"><b>${sportIcon(w.kind)}<span class="st">${esc(w.title)}</span></b>
+    <small class="wg-p">${esc(plan)}</small>${done ? `<small class="wg-a">✓ ${esc(act)}${pct != null ? ` · ${pct}%` : ''}</small>` : missed ? '<small class="wg-m">Missed</small>' : ''}${dn ? `<small class="wg-mv">Done ${esc(fmt(dn.date, { weekday: 'short' }))} ${dn.slot}</small>` : ''}</div>`;
+}
+function wgWeek(mon) {
+  const days = Array.from({ length: 7 }, (_, i) => add(mon, i));
+  const ws = data.workouts.filter(w => days.includes(w.date));
+  const pl = ws.filter(w => !w.unplanned);
+  const pm = pl.reduce((s, w) => s + (Number(w.target) || 0), 0), am = ws.reduce((s, w) => s + (Number(w.actual) || 0), 0);
+  const pmi = ws.reduce((s, w) => s + (w.kind === 'Run' ? Number(w.miles) || 0 : 0), 0), ami = ws.reduce((s, w) => s + (w.kind === 'Run' && w.garmin && w.garmin.mi ? Number(w.garmin.mi) : 0), 0);
+  const scored = pl.filter(w => w.target > 0 && (w.actual != null || w.date < today));
+  const eff = scored.length ? Math.round(scored.reduce((s, w) => s + Math.min((w.actual || 0) / w.target, 1), 0) / scored.length * 100) : null;
+  const hm = m => { m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60 ? String(m % 60).padStart(2, '0') : '') : m + 'm'; };
+  const r1 = x => Math.round(x * 10) / 10;
+  const cur = mon === wgMon(today);
+  const rows = days.map(d => {
+    const cell = sl => {
+      const here = data.workouts.filter(w => w.date === d && w.slot === sl);
+      const ghosts = data.workouts.filter(w => w.linked && w.linked.date === d && w.linked.slot === sl);
+      const body = here.map(w => wgCard(w)).join('') + ghosts.map(w => wgCard(w, true)).join('');
+      return `<div class="slot wg-cell" data-date="${d}" data-slot="${sl}">${body || `<button class="wg-add" data-act="workout-new" data-date="${d}" data-slot="${sl}" aria-label="Add ${sl} session ${fmtDay(d)}">+</button>`}</div>`;
+    };
+    return `<div class="wg-row${d === today ? ' today' : ''}${d < today ? ' past' : ''}"><div class="wg-day"><b>${esc(fmt(d, { weekday: 'short' }))}</b><span>${esc(fmt(d, { month: 'numeric', day: 'numeric' }))}</span></div>${cell('AM')}${cell('PM')}</div>`;
+  }).join('');
+  return `<section class="wg-week${cur ? ' current' : ''}" data-mon="${mon}"><div class="wg-wh"><div><b>${esc(fmt(mon))} – ${esc(fmt(add(mon, 6)))}</b>${cur ? '<i>This week</i>' : ''}</div>
+    <div class="wg-tot">${pm || am ? `<span><u>${hm(am)}</u> / ${hm(pm)}</span>` : '<span>Nothing planned</span>'}${pmi || ami ? `<span><u>${r1(ami)}</u> / ${r1(pmi)} mi</span>` : ''}${eff != null ? `<span class="wg-eff">${eff}%</span>` : ''}</div></div>
+    <div class="wg-grid"><div class="wg-cols"><span></span><span>AM</span><span>PM</span></div>${rows}</div></section>`;
+}
+workoutsView = function () {
+  const cur = wgMon(today);
+  const last = data.workouts.reduce((m, w) => w.date > m ? w.date : m, today);
+  let end = wgMon(last); if (end < add(cur, 21)) end = add(cur, 21);
+  const weeks = []; for (let m = add(cur, -7 * wgBack); m <= end; m = add(m, 7)) weeks.push(m);
+  const src = cfg.url ? `<p class="plan-src">Plan: Little Elm sheet${cfg.planError ? ' · not loaded: ' + esc(cfg.planError) : ''} · Garmin: ${cfg.garminAt ? 'synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected'}${Object.keys(cfg.planQ || {}).length ? ' · ' + Object.keys(cfg.planQ).length + ' day(s) waiting to save' : ''}</p>` : '';
+  return `<div class="page-head wg-head"><h1>Training</h1><span class="wg-score">${workoutScore()}% efficiency</span><button class="primary" data-act="workout-new">+ Session</button></div>${src}
+    <p class="wg-hint">Hold and drag a session to another slot or day. Drop a planned session on the day you actually did it and it picks up the Garmin activity.</p>
+    <button class="wg-more" data-2b="wg-back">Show earlier weeks</button>${weeks.map(wgWeek).join('')}`;
+};
+const _render3 = render;
+render = function () {
+  _render3();
+  if (page === 'workouts' && wgLast !== 'workouts') {
+    const c = document.querySelector('.wg-week.current'), h = document.querySelector('.app-header');
+    if (c) requestAnimationFrame(() => scrollTo(0, Math.max(0, c.getBoundingClientRect().top + scrollY - (h ? h.offsetHeight : 0) - 8)));
+  }
+  wgLast = page;
+};
+addEventListener('click', e => {
+  const b = e.target.closest('[data-2b="wg-back"],[data-2b="wl-unlink"]'); if (!b) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (b.dataset['2b'] === 'wg-back') { const y0 = document.documentElement.scrollHeight - scrollY; wgBack += 4; render(); scrollTo(0, document.documentElement.scrollHeight - y0); }
+  else { forceClose(); unlinkSession(b.dataset.id); notify('Unmatched. The activity is back on the day you did it.'); }
+}, true);
+// Log sheet for a matched session: say where it was done, offer to undo the match
+const _workoutLog = workoutLog;
+workoutLog = function (id) {
+  _workoutLog(id);
+  const w = data.workouts.find(x => x.id === id), f = document.querySelector('#modal-root #editor');
+  if (w && w.linked && f) f.insertAdjacentHTML('afterbegin', `<p class="wl-note">Planned ${esc(fmtDay(w.date))} ${w.slot} · done ${esc(fmtDay(w.linked.date))} ${w.linked.slot} (${esc(w.linked.title)})</p><button type="button" class="secondary wl-unlink" data-2b="wl-unlink" data-id="${w.id}">Unmatch</button>`);
+};
+
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
 
@@ -1749,3 +1882,4 @@ window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, 
   document.addEventListener('touchend', () => { y0 = null; }, { passive: true });
   document.addEventListener('touchcancel', () => { y0 = null; }, { passive: true });
 })();
+
