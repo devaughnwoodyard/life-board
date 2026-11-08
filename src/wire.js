@@ -1110,7 +1110,8 @@ eventEditor = function (id) {
   const t = growify(root.querySelector('#f-title')); if (!t) return;
   t.placeholder = 'What’s happening? Type @ to add a person';
   attachMentions(t);
-  if (!id) setTimeout(() => t.focus(), 40);
+  if (!root.querySelector('.focus-sink')) root.insertAdjacentHTML('afterbegin', '<input class="focus-sink" hidden tabindex="-1" aria-hidden="true">');
+  if (!id) { t.focus(); setTimeout(() => { if (document.activeElement !== t) t.focus(); }, 40); }
 };
 // On save: any leftover @Name becomes Name, and new names join your list
 document.addEventListener('submit', e => {
@@ -1149,7 +1150,7 @@ noteEditor = function (id) {
   sheet.classList.add(id ? 'note-full' : 'note-new');
   sheet.insertAdjacentHTML('afterbegin', '<input class="focus-sink" hidden tabindex="-1" aria-hidden="true">');
   const t = growify(document.querySelector('#modal-root #note-title'), ta => document.getElementById('rich-body')?.focus());
-  if (t) { t.removeAttribute('required'); t.placeholder = id ? 'Title' : 'Title (optional — first line is used)'; }
+  if (t) { t.removeAttribute('required'); t.placeholder = id ? 'Title' : 'Title'; }
   const r2 = sheet.querySelector('#editor .row2'), sel = r2 && r2.querySelector(':scope > select');
   if (sel) { const w = document.createElement('div'), l = sel.previousElementSibling; r2.insertBefore(w, l && l.tagName === 'LABEL' ? l : sel); if (l && l.tagName === 'LABEL') w.appendChild(l); w.appendChild(sel); }
   const fl = sheet.querySelector('label[for="note-folder"]'); if (fl) fl.textContent = 'Folder';
@@ -1160,7 +1161,7 @@ noteEditor = function (id) {
     const btn = `<button type="button" class="primary g-btn" data-2b="g-sum" data-id="${n0.id}">${n0.summary ? 'Redo summary' : 'Summary'}</button>`;
     sheet.querySelector('.toolbar')?.insertAdjacentHTML('beforebegin', summaryBlock(n0) + btn);
   }
-  if (!id && body) { body.focus(); }   // same tap that opened it, so the phone keyboard comes up
+  if (!id && t) { t.focus(); setTimeout(() => { if (document.activeElement !== t) t.focus(); }, 40); }   // same tap that opened it, so the phone keyboard comes up
 };
 document.addEventListener('submit', e => {
   const f = e.target; if (f.id !== 'editor' || !f.querySelector('#rich-body')) return;
@@ -1207,7 +1208,7 @@ function cmdNav() {
 }
 function cmdPills() {
   const tt = taskToday();
-  return `<div class="cmd-pills"><span class="cmd-pill" title="To-dos done today">${svgI(CI.todo)}${tt.filter(t => t.done).length}/${tt.length}</span><span class="cmd-pill">Training ${workoutScore()}%</span><span class="cmd-pill">Habits ${habitScore()}%</span></div>`;
+  return `<div class="cmd-pills"><button class="cmd-pill" data-act="nav" data-page="todo"><small>To-dos</small><b>${tt.filter(t => t.done).length}/${tt.length}</b></button><button class="cmd-pill" data-act="nav" data-page="workouts"><small>Training</small><b>${workoutScore()}%</b></button><button class="cmd-pill" data-act="nav" data-page="habits"><small>Habits</small><b>${habitScore()}%</b></button></div>`;
 }
 function cmdHome() {
   const t12 = hm => { if (!hm) return 'All day'; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
@@ -1286,8 +1287,8 @@ render = function () {
   try { sessionStorage.setItem('2b-view', JSON.stringify({ page, noteTab, week, month, selectedDate, taskFilter, y: page === lastPage ? scrollY : 0 })); } catch (e) {}
   lastPage = page;
   const qf = document.getElementById('quick-task');
-  if (qf) growify(qf.querySelector('input[name="title"]'));
-  if (qf && !qf.querySelector('.qf-add')) qf.insertAdjacentHTML('beforeend', '<button class="primary qf-add" type="submit" aria-label="Add to-do">+ Add</button>');
+  if (qf) { const ti = growify(qf.querySelector('input[name="title"]')); if (ti) ti.placeholder = 'Add a to-do'; }
+  if (qf && !qf.querySelector('.qf-add')) qf.insertAdjacentHTML('beforeend', `<button class="primary qf-add" type="submit" aria-label="Add to-do">${svgI(CI.plus)}</button>`);
   const acts = document.querySelector('.header-actions');
   if (acts && !acts.querySelector('.sync-dot')) acts.insertAdjacentHTML('afterbegin', `<button class="icon-btn mic-btn" data-2b="capture-mic" aria-label="Voice capture">${ICONS.mic}</button><button class="icon-btn sync-dot" data-2b="sync-settings" aria-label="Google sync settings"><i></i></button>`);
   paintStatus();
@@ -1587,11 +1588,11 @@ function viewChips() {
 }
 const _todoView = todoView;
 todoView = function () {
-  if (!VIEWS[taskFilter]) return _todoView().replace(/(<div class="filters task-filters">[\s\S]*?<\/div>)/, '$1' + viewChips());
+  if (!VIEWS[taskFilter]) return _todoView().replace(/<div class="filters task-filters">([\s\S]*?)<\/div>/, (m, inner) => '<div class="todo-controls"><div class="filters task-filters">' + inner + '</div>' + viewChips() + '</div>');
   const keep = taskFilter; taskFilter = 'all'; let base = _todoView(); taskFilter = keep;
   const form = (base.match(/<form class="quick-form" id="quick-task">[\s\S]*?<\/form>/) || [''])[0];
   const list = data.tasks.filter(t => !t.done && VIEWS[keep][1](t)).sort((a, b) => (prio(a) || 9) - (prio(b) || 9) || (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
-  return form + `<div class="filters task-filters">${['all', 'Work', 'Personal'].map(f => `<button data-act="task-filter" data-filter="${f}">${f === 'all' ? 'All tasks' : f}</button>`).join('')}</div>` + viewChips()
+  return form + `<div class="todo-controls"><div class="filters task-filters">${['all', 'Work', 'Personal'].map(f => `<button data-act="task-filter" data-filter="${f}">${f === 'all' ? 'All' : f}</button>`).join('')}</div>` + viewChips() + '</div>'
     + `<section><div class="section-label">${VIEWS[keep][0]} <span>${list.length}</span></div>${taskList(list)}</section>`;
 };
 
