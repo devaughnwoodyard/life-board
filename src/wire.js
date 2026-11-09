@@ -1813,10 +1813,10 @@ moveSession = function (id, date, slot) {
 // A linked activity shows on its real day too, so today's Home and the grid both tell the truth
 const doneOn = w => w.linked ? { date: w.linked.date, slot: w.linked.slot } : null;
 
-let wgBack = 1, wgLast = '';
+let wgBack = 0, wgLast = '';
 // Past weeks start folded; a tap on the week header opens or folds any week (remembered on this device)
-const wgFold = ls.get('2b-wg-fold', null) || {};
-const wgFolded = mon => mon in wgFold ? wgFold[mon] : mon < wgMon(today);
+const wgFold = ls.get('2b-wg-fold2', null) || {};
+const wgFolded = mon => mon in wgFold ? wgFold[mon] : mon !== wgMon(today);
 const wgMon = d => add(d, -((date(d).getDay() + 6) % 7));
 function wgCard(w, ghost) {
   const run = w.kind === 'Run', gmi = w.garmin && w.garmin.mi != null ? Number(w.garmin.mi) : null;
@@ -1864,7 +1864,7 @@ workoutsView = function () {
   const src = cfg.url ? `<p class="plan-src">Plan: Little Elm sheet${cfg.planError ? ' · not loaded: ' + esc(cfg.planError) : ''} · Garmin: ${cfg.garminAt ? 'synced ' + esc(new Date(cfg.garminAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) : 'not connected'}${Object.keys(cfg.planQ || {}).length ? ' · ' + Object.keys(cfg.planQ).length + ' day(s) waiting to save' : ''}</p>` : '';
   return `<div class="page-head wg-head"><h1>Training</h1><span class="wg-score">${workoutScore()}% efficiency</span><button class="primary" data-act="workout-new">+ Session</button></div>${src}
     <p class="wg-hint">Hold and drag a session to another slot or day. Drop a planned session on the day you actually did it and it picks up the Garmin activity.</p>
-    <button class="wg-more" data-2b="wg-back">Show earlier weeks</button>${weeks.map(wgWeek).join('')}`;
+    ${wgBack ? `<button class="wg-more" data-2b="wg-back">See more previous weeks</button>${weeks.filter(m => m < cur).map(wgWeek).join('')}<button class="wg-more wg-hide" data-2b="wg-hide">Hide previous weeks</button>` : '<button class="wg-more" data-2b="wg-back">See previous weeks</button>'}${weeks.filter(m => m >= cur).map(wgWeek).join('')}`;
 };
 const _render3 = render;
 render = function () {
@@ -1876,9 +1876,10 @@ render = function () {
   wgLast = page;
 };
 addEventListener('click', e => {
-  const b = e.target.closest('[data-2b="wg-back"],[data-2b="wl-unlink"],[data-2b="wg-open"],[data-2b="wg-go"],[data-2b="wg-fold"]'); if (!b) return;
+  const b = e.target.closest('[data-2b="wg-back"],[data-2b="wl-unlink"],[data-2b="wg-open"],[data-2b="wg-go"],[data-2b="wg-fold"],[data-2b="wg-hide"]'); if (!b) return;
   e.preventDefault(); e.stopImmediatePropagation();
-  if (b.dataset['2b'] === 'wg-fold') { const m = b.dataset.mon; wgFold[m] = !wgFolded(m); ls.set('2b-wg-fold', wgFold); const y = scrollY; render(); scrollTo(0, y); return; }
+  if (b.dataset['2b'] === 'wg-hide') { wgBack = 0; render(); const c = document.querySelector('.wg-week.current'), h = document.querySelector('.app-header'); if (c) scrollTo(0, Math.max(0, c.getBoundingClientRect().top + scrollY - (h ? h.offsetHeight : 0) - 70)); return; }
+  if (b.dataset['2b'] === 'wg-fold') { const m = b.dataset.mon; wgFold[m] = !wgFolded(m); ls.set('2b-wg-fold2', wgFold); const y = scrollY; render(); scrollTo(0, y); return; }
   if (b.dataset['2b'] === 'wg-open') { if (!drag && Date.now() - eatTap > 600) wgDetail(b.dataset.id); }
   else if (b.dataset['2b'] === 'wg-go') { forceClose(); (b.dataset.v === 'log' ? workoutLog : workoutEditor)(b.dataset.id); }
   else if (b.dataset['2b'] === 'wg-back') { const y0 = document.documentElement.scrollHeight - scrollY; wgBack += 4; render(); scrollTo(0, document.documentElement.scrollHeight - y0); }

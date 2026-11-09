@@ -715,3 +715,9 @@ textarea.wd-edit-title{font-size:15px;line-height:1.45;min-height:48px}
 body.is-dragging{-webkit-user-select:none;user-select:none;overflow-anchor:none}
 body.is-dragging .wg-cell.slot{transition:background .12s}
 .wg-cell.drop-on{background:#CFE2FB!important;outline:2px dashed var(--blue)!important;outline-offset:-3px}
+/* TODAY: unmistakable */
+.wg-row.today{background:#D3E4FA!important;box-shadow:inset 0 0 0 2px var(--blue)!important;position:relative;z-index:1}
+.wg-row.today .wg-day{background:var(--blue);border-right-color:var(--blue)}
+.wg-row.today .wg-day b,.wg-row.today .wg-day span{color:#fff!important}
+.wg-row.today .wg-day em{background:#fff;color:var(--blue);font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;margin-top:4px}
+.wg-hide{margin:-8px 0 18px}
