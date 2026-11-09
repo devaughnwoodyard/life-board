@@ -345,7 +345,7 @@ async function loadPlan() {
         const id = 'gp-' + p.date + '-' + slot.toLowerCase() + (si ? '-' + si : '');
         const old = prev[id] || prevByTitle[p.date + '|' + String(session).trim()] || {};
         const target = Number(mins) || 30, mi = kind === 'Run' && Number(p.mi) ? Number(p.mi) : 0;
-        day.push({ id, title: String(session).trim().slice(0, 160), date: p.date, slot, kind, target, effort: EFFORT(session, kind), old, actual: null,
+        day.push({ id, title: String(session).trim(), date: p.date, slot, kind, target, effort: EFFORT(session, kind), old, actual: null,
           notes: old.notes || (p.bail ? 'Bail rule: ' + p.bail : ''), plan: true, miles: mi || undefined, sport: String(sport), bail: p.bail || '' });
       });
     });
@@ -487,36 +487,57 @@ function swapDay(d) {
   ws.forEach(w => { w.slot = w.slot === 'AM' ? 'PM' : 'AM'; });
   save(); render(); notify('Swapped AM and PM on ' + fmtDay(d) + '.');
 }
-// Drag: mouse = native drag and drop; touch = press and hold, then drag
-let drag = null;
+// Drag: mouse = native drag and drop; touch = press and hold, the tile lifts and follows your finger
+let drag = null, scrollV = 0, scrollRaf = 0;
 function slotAt(x, y) { const el = document.elementFromPoint(x, y); return el && el.closest('.slot[data-date]'); }
+function autoScroll() { if (!drag || !scrollV) { scrollRaf = 0; return; } scrollBy(0, scrollV); moveDrag(drag.x, drag.y, true); scrollRaf = requestAnimationFrame(autoScroll); }
 function startDrag(sess, x, y) {
   const r = sess.getBoundingClientRect(), g = sess.cloneNode(true);
-  g.className += ' drag-ghost'; g.style.width = r.width + 'px'; document.body.appendChild(g);
-  drag = { id: sess.dataset.wid, g, dx: x - r.left, dy: y - r.top, src: sess }; sess.classList.add('dragging'); moveDrag(x, y);
+  g.classList.remove('pressing', 'dragging'); g.classList.add('drag-ghost'); g.removeAttribute('data-2b');
+  g.style.width = r.width + 'px'; document.body.appendChild(g);
+  drag = { id: sess.dataset.wid, g, dx: x - r.left, dy: y - r.top, src: sess, x, y };
+  sess.classList.remove('pressing'); sess.classList.add('dragging'); document.body.classList.add('is-dragging');
+  moveDrag(x, y);
   if (navigator.vibrate) navigator.vibrate(15);
 }
-function moveDrag(x, y) {
-  if (!drag) return; drag.g.style.transform = `translate(${x - drag.dx}px,${y - drag.dy}px)`;
-  document.querySelectorAll('.slot.drop-on').forEach(s => s.classList.remove('drop-on')); const s = slotAt(x, y); if (s) s.classList.add('drop-on');
-  if (y < 70) scrollBy(0, -12); else if (y > innerHeight - 110) scrollBy(0, 12);
+function moveDrag(x, y, fromScroll) {
+  if (!drag) return; drag.x = x; drag.y = y;
+  drag.g.style.transform = `translate3d(${x - drag.dx}px,${y - drag.dy}px,0) rotate(-1.5deg) scale(1.04)`;
+  const s = slotAt(x, y);
+  if (s !== drag.over) { document.querySelectorAll('.slot.drop-on').forEach(t => t.classList.remove('drop-on')); if (s) s.classList.add('drop-on'); drag.over = s; }
+  const top = 90, bot = innerHeight - 120;
+  scrollV = y < top ? -Math.ceil((top - y) / 6) : y > bot ? Math.ceil((y - bot) / 6) : 0;
+  if (scrollV && !scrollRaf && !fromScroll) scrollRaf = requestAnimationFrame(autoScroll);
 }
 function endDrag(x, y) {
-  if (!drag) return; const d = drag; drag = null; d.g.remove(); d.src.classList.remove('dragging');
+  if (!drag) return; const d = drag; drag = null; scrollV = 0;
+  d.g.remove(); d.src.classList.remove('dragging'); document.body.classList.remove('is-dragging');
   document.querySelectorAll('.slot.drop-on').forEach(s => s.classList.remove('drop-on'));
   const s = x == null ? null : slotAt(x, y); if (s) moveSession(d.id, s.dataset.date, s.dataset.slot);
 }
-let press = null;
+// Touch: a quick tap opens the session, a hold lifts it
+let press = null, eatTap = 0;
 document.addEventListener('pointerdown', e => {
-  const sess = e.target.closest('.session[data-wid]'); if (!sess || e.target.closest('button') && e.pointerType === 'mouse') return;
-  if (e.pointerType === 'mouse') return;   // mouse uses native drag
-  press = { x: e.clientX, y: e.clientY, t: setTimeout(() => { startDrag(sess, press.x, press.y); }, 350) };
+  if (e.pointerType === 'mouse') return;   // mouse uses native drag; a mouse click opens the session
+  const sess = e.target.closest('.session[data-wid]'); if (!sess) return;
+  sess.classList.add('pressing');
+  press = { x: e.clientX, y: e.clientY, sess, t0: Date.now(), t: setTimeout(() => { if (press) startDrag(sess, press.x, press.y); press = null; }, 300) };
 });
-document.addEventListener('pointermove', e => { if (press && !drag && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) { clearTimeout(press.t); press = null; } if (press) { press.x = e.clientX; press.y = e.clientY; } if (drag) moveDrag(e.clientX, e.clientY); });
-document.addEventListener('pointerup', e => { if (press) { clearTimeout(press.t); press = null; } if (drag) { e.preventDefault(); endDrag(e.clientX, e.clientY); } });
-document.addEventListener('pointercancel', () => { if (press) { clearTimeout(press.t); press = null; } if (drag) endDrag(null); });
+const clearPress = () => { if (press) { clearTimeout(press.t); press.sess.classList.remove('pressing'); press = null; } };
+document.addEventListener('pointermove', e => {
+  if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) clearPress();
+  if (drag) moveDrag(e.clientX, e.clientY);
+});
+document.addEventListener('pointerup', e => {
+  if (press) {
+    const p = press; clearPress();
+    if (!drag && Date.now() - p.t0 < 300 && !$('#modal-root').children.length) { const id = p.sess.dataset.wid; eatTap = Date.now(); if (typeof wgDetail === 'function') wgDetail(id); }
+  }
+  if (drag) { e.preventDefault(); eatTap = Date.now(); endDrag(e.clientX, e.clientY); }
+});
+document.addEventListener('pointercancel', () => { clearPress(); if (drag) endDrag(null); });
 document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
-document.addEventListener('click', e => { if (e.target.closest('.session.dragging')) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+document.addEventListener('click', e => { if (e.target.closest('.session.dragging') || (Date.now() - eatTap < 600 && e.target.closest('.session[data-wid]'))) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
 document.addEventListener('contextmenu', e => { if (e.target.closest('.session[data-wid]')) e.preventDefault(); });
 document.addEventListener('dragstart', e => { const sess = e.target.closest && e.target.closest('.session[data-wid]'); if (!sess) return; e.dataTransfer.setData('text/x-wid', sess.dataset.wid); e.dataTransfer.effectAllowed = 'move'; sess.classList.add('dragging'); });
 document.addEventListener('dragend', e => { document.querySelectorAll('.session.dragging,.slot.drop-on').forEach(x => x.classList.remove('dragging', 'drop-on')); });
@@ -1390,6 +1411,7 @@ render = function () {
 
 addEventListener('click', async e => {
   const b = e.target.closest('[data-2b]'); if (!b) return;
+  if (/^(wg-|wl-unlink$)/.test(b.dataset['2b'])) return;   // the Training grid handles its own taps
   e.preventDefault(); e.stopImmediatePropagation();
   const a = b.dataset['2b'], n = b.dataset.id && data.notes.find(x => x.id === b.dataset.id);
   switch (a) {
@@ -1792,6 +1814,9 @@ moveSession = function (id, date, slot) {
 const doneOn = w => w.linked ? { date: w.linked.date, slot: w.linked.slot } : null;
 
 let wgBack = 1, wgLast = '';
+// Past weeks start folded; a tap on the week header opens or folds any week (remembered on this device)
+const wgFold = ls.get('2b-wg-fold', null) || {};
+const wgFolded = mon => mon in wgFold ? wgFold[mon] : mon < wgMon(today);
 const wgMon = d => add(d, -((date(d).getDay() + 6) % 7));
 function wgCard(w, ghost) {
   const run = w.kind === 'Run', gmi = w.garmin && w.garmin.mi != null ? Number(w.garmin.mi) : null;
@@ -1802,9 +1827,9 @@ function wgCard(w, ghost) {
   const pct = !w.unplanned && done && w.target ? Math.round(Math.min((run && w.miles && gmi != null ? gmi / w.miles : w.actual / w.target), 1) * 100) : null;
   const missed = !w.unplanned && !done && w.date < today;
   const dn = doneOn(w);
-  if (ghost) return `<div class="wg-s wg-ghost" data-act="workout-log" data-id="${w.id}" role="button" tabindex="0"><b>${sportIcon(w.kind)}<span class="st">${esc(short(w.title))}</span></b><small>↪ counts for ${esc(fmt(w.date, { weekday: 'short' }))} ${w.slot}</small></div>`;
+  if (ghost) return `<div class="wg-s wg-ghost" data-2b="wg-open" data-id="${w.id}" role="button" tabindex="0"><b>${sportIcon(w.kind)}<span class="st">${esc(short(w.title))}</span></b><small>↪ counts for ${esc(fmt(w.date, { weekday: 'short' }))} ${w.slot}</small></div>`;
   const cls = ['session', 'wg-s', done ? 'done' : '', missed ? 'missed' : '', w.unplanned ? 'unpl' : '', dn ? 'moved' : '', overPlan(w) ? 'over' : ''].filter(Boolean).join(' ');
-  return `<div class="${cls}" data-wid="${w.id}" draggable="true" data-act="${w.date <= today || done ? 'workout-log' : 'workout-edit'}" data-id="${w.id}" role="button" tabindex="0" aria-label="${esc(w.title)}"><b>${sportIcon(w.kind)}<span class="st">${esc(w.title)}</span></b>
+  return `<div class="${cls}" data-wid="${w.id}" draggable="true" data-2b="wg-open" data-id="${w.id}" role="button" tabindex="0" aria-label="${esc(w.title)}"><b>${sportIcon(w.kind)}<span class="st">${esc(w.title)}</span></b>
     <small class="wg-p">${esc(plan)}</small>${done ? `<small class="wg-a">✓ ${esc(act)}${pct != null ? ` · ${pct}%` : ''}</small>` : missed ? '<small class="wg-m">Missed</small>' : ''}${dn ? `<small class="wg-mv">Done ${esc(fmt(dn.date, { weekday: 'short' }))} ${dn.slot}</small>` : ''}</div>`;
 }
 function wgWeek(mon) {
@@ -1817,7 +1842,7 @@ function wgWeek(mon) {
   const eff = scored.length ? Math.round(scored.reduce((s, w) => s + Math.min((w.actual || 0) / w.target, 1), 0) / scored.length * 100) : null;
   const hm = m => { m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60 ? String(m % 60).padStart(2, '0') : '') : m + 'm'; };
   const r1 = x => Math.round(x * 10) / 10;
-  const cur = mon === wgMon(today);
+  const cur = mon === wgMon(today), folded = wgFolded(mon);
   const rows = days.map(d => {
     const cell = sl => {
       const here = data.workouts.filter(w => w.date === d && w.slot === sl);
@@ -1825,11 +1850,11 @@ function wgWeek(mon) {
       const body = here.map(w => wgCard(w)).join('') + ghosts.map(w => wgCard(w, true)).join('');
       return `<div class="slot wg-cell" data-date="${d}" data-slot="${sl}">${body || `<button class="wg-add" data-act="workout-new" data-date="${d}" data-slot="${sl}" aria-label="Add ${sl} session ${fmtDay(d)}">+</button>`}</div>`;
     };
-    return `<div class="wg-row${d === today ? ' today' : ''}${d < today ? ' past' : ''}"><div class="wg-day"><b>${esc(fmt(d, { weekday: 'short' }))}</b><span>${esc(fmt(d, { month: 'numeric', day: 'numeric' }))}</span></div>${cell('AM')}${cell('PM')}</div>`;
+    return `<div class="wg-row${d === today ? ' today' : ''}${d < today ? ' past' : ''}"><div class="wg-day"><b>${esc(fmt(d, { weekday: 'short' }))}</b><span>${esc(fmt(d, { month: 'numeric', day: 'numeric' }))}</span>${d === today ? '<em>Today</em>' : ''}</div>${cell('AM')}${cell('PM')}</div>`;
   }).join('');
-  return `<section class="wg-week${cur ? ' current' : ''}" data-mon="${mon}"><div class="wg-wh"><div><b>${esc(fmt(mon))} – ${esc(fmt(add(mon, 6)))}</b>${cur ? '<i>This week</i>' : ''}</div>
+  return `<section class="wg-week${cur ? ' current' : ''}${folded ? ' folded' : ''}" data-mon="${mon}"><div class="wg-wh" data-2b="wg-fold" data-mon="${mon}" role="button" tabindex="0" aria-expanded="${!folded}"><div><span class="wg-chev" aria-hidden="true">${folded ? '▸' : '▾'}</span><b>${esc(fmt(mon))} – ${esc(fmt(add(mon, 6)))}</b>${cur ? '<i>This week</i>' : ''}</div>
     <div class="wg-tot">${pm || am ? `<span><u>${hm(am)}</u> / ${hm(pm)}</span>` : '<span>Nothing planned</span>'}${pmi || ami ? `<span><u>${r1(ami)}</u> / ${r1(pmi)} mi</span>` : ''}${eff != null ? `<span class="wg-eff">${eff}%</span>` : ''}</div></div>
-    <div class="wg-grid"><div class="wg-cols"><span></span><span>AM</span><span>PM</span></div>${rows}</div></section>`;
+    ${folded ? '' : `<div class="wg-grid"><div class="wg-cols"><span></span><span>AM</span><span>PM</span></div>${rows}</div>`}</section>`;
 }
 workoutsView = function () {
   const cur = wgMon(today);
@@ -1851,11 +1876,42 @@ render = function () {
   wgLast = page;
 };
 addEventListener('click', e => {
-  const b = e.target.closest('[data-2b="wg-back"],[data-2b="wl-unlink"]'); if (!b) return;
+  const b = e.target.closest('[data-2b="wg-back"],[data-2b="wl-unlink"],[data-2b="wg-open"],[data-2b="wg-go"],[data-2b="wg-fold"]'); if (!b) return;
   e.preventDefault(); e.stopImmediatePropagation();
-  if (b.dataset['2b'] === 'wg-back') { const y0 = document.documentElement.scrollHeight - scrollY; wgBack += 4; render(); scrollTo(0, document.documentElement.scrollHeight - y0); }
+  if (b.dataset['2b'] === 'wg-fold') { const m = b.dataset.mon; wgFold[m] = !wgFolded(m); ls.set('2b-wg-fold', wgFold); const y = scrollY; render(); scrollTo(0, y); return; }
+  if (b.dataset['2b'] === 'wg-open') { if (!drag && Date.now() - eatTap > 600) wgDetail(b.dataset.id); }
+  else if (b.dataset['2b'] === 'wg-go') { forceClose(); (b.dataset.v === 'log' ? workoutLog : workoutEditor)(b.dataset.id); }
+  else if (b.dataset['2b'] === 'wg-back') { const y0 = document.documentElement.scrollHeight - scrollY; wgBack += 4; render(); scrollTo(0, document.documentElement.scrollHeight - y0); }
   else { forceClose(); unlinkSession(b.dataset.id); notify('Unmatched. The activity is back on the day you did it.'); }
 }, true);
+// Tap a session: the whole session text, split into steps, plus bail rule, notes and what Garmin logged
+function wgSteps(t) {
+  return String(t || '').split(/\s+\|\s+|;\s*|\n+|\s+then\s+/i).map(x => x.trim()).filter(Boolean);
+}
+function wgDetail(id) {
+  const w = data.workouts.find(x => x.id === id); if (!w) return;
+  const run = w.kind === 'Run', r1 = x => Math.round(x * 10) / 10, gmi = w.garmin && w.garmin.mi != null ? Number(w.garmin.mi) : null;
+  const steps = wgSteps(w.title), head = steps.length > 1 ? short(w.title) : w.title;
+  if (steps.length > 1 && head !== w.title && steps[0].startsWith(head)) steps[0] = steps[0].slice(head.length).replace(/^[\s:(-]+/, '') || steps[0];
+  const plan = w.unplanned ? 'Not on the plan' : [w.target ? w.target + ' min' : '', w.miles ? r1(w.miles) + ' mi' : ''].filter(Boolean).join(' · ');
+  const act = w.actual != null ? [Math.round(w.actual) + ' min', gmi != null ? r1(gmi) + ' mi' : '', w.garmin && w.garmin.hr ? w.garmin.hr + ' bpm' : '', !w.unplanned && w.target ? Math.round(Math.min((run && w.miles && gmi != null ? gmi / w.miles : w.actual / w.target), 1) * 100) + '%' : ''].filter(Boolean).join(' · ') : '';
+  const notes = String(w.notes || '').replace(/^Bail rule: .*$/m, '').trim();
+  const row = (k, v) => v ? `<div class="wd-row"><span>${k}</span><b>${v}</b></div>` : '';
+  modal(esc(w.kind) + ' · ' + esc(fmt(w.date, { weekday: 'short', month: 'short', day: 'numeric' })) + ' ' + w.slot, `<div class="wd">
+    <h3 class="wd-title">${sportIcon(w.kind)}<span>${esc(head)}</span></h3>
+    ${steps.length > 1 ? `<ol class="wd-steps">${steps.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
+    <div class="wd-box">${row('Planned', esc(plan))}${row('Logged', act ? esc(act) : w.date < today && !w.unplanned ? 'Missed' : 'Not yet')}${w.linked ? row('Done', esc(fmtDay(w.linked.date) + ' ' + w.linked.slot + ' · ' + w.linked.title)) : ''}${w.garmin && w.garmin.name && !w.linked ? row('Garmin', esc(w.garmin.name)) : ''}</div>
+    ${w.bail ? `<div class="wd-bail"><b>Bail rule</b><p>${esc(w.bail)}</p></div>` : ''}
+    ${notes ? `<div class="wd-notes"><b>Notes</b><p>${esc(notes)}</p></div>` : ''}
+    <div class="wd-actions">${w.linked ? `<button type="button" class="secondary" data-2b="wl-unlink" data-id="${w.id}">Unmatch</button>` : ''}${w.unplanned ? '' : `<button type="button" class="secondary" data-2b="wg-go" data-v="edit" data-id="${w.id}">Edit plan</button>`}<button type="button" class="primary" data-2b="wg-go" data-v="log" data-id="${w.id}">${w.actual == null ? 'Log session' : 'Edit log'}</button></div>
+  </div>`, { kind: 'wg-detail', form: false });
+}
+const _wgEditor = workoutEditor;
+workoutEditor = function (id = '', d, slot) {
+  _wgEditor(id, d, slot);
+  const t = growify(document.querySelector('#modal-root #editor [name="title"]'));
+  if (t) { t.classList.add('wd-edit-title'); autoGrow(t); }
+};
 // Log sheet for a matched session: say where it was done, offer to undo the match
 const _workoutLog = workoutLog;
 workoutLog = function (id) {

@@ -679,3 +679,39 @@ body.kb-open .modal-backdrop:has(.sheet.note-full){padding:0!important}
 @media (min-width:700px){.wg-cols,.wg-row{grid-template-columns:70px minmax(0,1fr) minmax(0,1fr)}.wg-row,.wg-cell.slot{min-height:88px}.wg-s>b{font-size:13.5px}}
 .wg-s .sport-ic{width:14px!important;height:14px!important;padding:3px!important;border-radius:6px!important;margin:0!important;box-sizing:content-box!important}
 .wg-s.over{border-left-color:var(--g600)!important}
+/* Session detail sheet */
+.wd-title{display:flex;gap:9px;align-items:flex-start;font-size:18px;line-height:1.4;font-weight:700;color:#1b1b25;margin:0 0 12px;overflow-wrap:anywhere}
+.wd-title .sport-ic{flex:none;margin-top:2px}
+.wd-steps{margin:0 0 14px;padding:12px 14px 12px 32px;background:#fff;border:1px solid #E6E6E6;border-radius:12px;font-size:15px;line-height:1.55;color:#1b1b25}
+.wd-steps li+li{margin-top:6px}
+.wd-box{background:#fff;border:1px solid #E6E6E6;border-radius:12px;padding:4px 14px;margin:0 0 12px}
+.wd-row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #EEF0F3;font-size:14px}.wd-row:last-child{border-bottom:0}
+.wd-row span{color:#6b7280;flex:none}.wd-row b{text-align:right;color:var(--navy);font-weight:700;overflow-wrap:anywhere}
+.wd-bail,.wd-notes{background:#FFF8E6;border:1px solid #F3DFA8;border-radius:12px;padding:10px 14px;margin:0 0 12px}
+.wd-notes{background:#fff;border-color:#E6E6E6}
+.wd-bail b,.wd-notes b{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#7a5a00}.wd-notes b{color:#6b7280}
+.wd-bail p,.wd-notes p{margin:4px 0 0;font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.wd-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
+.wd-actions button{min-height:44px;padding:0 16px;font-size:14px}
+textarea.wd-edit-title{font-size:15px;line-height:1.45;min-height:48px}
+/* Weeks fold; this week is highlighted */
+.wg-wh{cursor:pointer;-webkit-user-select:none;user-select:none;padding:8px 10px;margin:0 -10px 8px;border-radius:10px}
+.wg-wh:active{background:var(--b50)}
+.wg-chev{display:inline-block;width:16px;color:#6b7280;font-size:13px}
+.wg-week.folded{margin-bottom:6px}.wg-week.folded .wg-wh{background:#fff;border:1px solid #E6E6E6;margin:0;padding:10px 12px}
+.wg-week.folded .wg-wh b{font-size:15px;color:#3a4250}
+.wg-week.current{background:#E8F0FB;border:2px solid var(--blue);border-radius:16px;padding:10px 10px 12px;margin:4px -6px 22px}
+.wg-week.current .wg-wh{margin:0 0 8px;padding:4px 4px}
+.wg-week.current .wg-grid{border-color:var(--b100)}
+/* Today's row stands out */
+.wg-row.today{background:#DCE9FB!important;box-shadow:inset 4px 0 0 var(--blue)}
+.wg-row.today .wg-day{border-right-color:var(--b100)}
+.wg-row.today .wg-day b,.wg-row.today .wg-day span{color:var(--blue)}
+.wg-day em{font-style:normal;font-size:10px;font-weight:800;color:#fff;background:var(--blue);border-radius:100px;padding:1px 6px;margin-top:3px;letter-spacing:.02em}
+/* Drag: the tile lifts and follows your finger */
+.drag-ghost{position:fixed!important;left:0!important;top:0!important;margin:0!important;z-index:9999!important;pointer-events:none!important;opacity:.97!important;background:#fff!important;border-radius:10px!important;box-shadow:0 18px 40px rgba(1,52,111,.28),0 4px 10px rgba(0,0,0,.12)!important;transition:none!important;will-change:transform}
+.wg-s.pressing{transform:scale(.97);transition:transform .25s ease;box-shadow:0 0 0 2px var(--b100)}
+.wg-s.dragging{opacity:.35!important;border-style:dashed!important}
+body.is-dragging{-webkit-user-select:none;user-select:none;overflow-anchor:none}
+body.is-dragging .wg-cell.slot{transition:background .12s}
+.wg-cell.drop-on{background:#CFE2FB!important;outline:2px dashed var(--blue)!important;outline-offset:-3px}
