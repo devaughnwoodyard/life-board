@@ -601,9 +601,9 @@ body.kb-open .modal-backdrop:has(.sheet.note-full){padding:0!important}
 [data-swipe]{touch-action:pan-y;position:relative;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 [data-swipe].sw-r{background:linear-gradient(90deg,#CAF3C6,transparent 70%)}
 [data-swipe].sw-l{background:linear-gradient(270deg,#DAEEFA,transparent 70%)}
-.rpe{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:6px 0 4px 34px}
-.rpe span{font-size:11px;color:#616161;margin-right:4px}
-.rpe button{width:26px;height:26px;border-radius:50%;border:1px solid #D0D0D0;background:#fff;font-size:11px;font-weight:600;color:#2D2D2D;padding:0}
+.rpe{display:grid;grid-template-columns:repeat(10,minmax(0,34px));justify-content:space-between;gap:4px;padding:2px 0 10px}
+.rpe span{grid-column:1/-1;font-size:11px;font-weight:600;color:#616161;margin-bottom:2px}
+.rpe button{width:100%;aspect-ratio:1;max-height:34px;border-radius:50%;border:1px solid #D0D0D0;background:#fff;font-size:12px;font-weight:600;color:#2D2D2D;padding:0;line-height:1}
 .rpe button:active{background:#005CBC;color:#fff}
 .cmd-habits .hb-row{display:flex;flex-wrap:wrap;gap:8px}
 .cmd-habits .hb{display:inline-flex;align-items:center;gap:7px;border:1px solid #D0D0D0;background:#fff;border-radius:100px;padding:7px 12px 7px 7px;font-size:12px;font-weight:600;color:#2D2D2D}
