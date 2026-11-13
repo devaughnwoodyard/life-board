@@ -70,6 +70,7 @@ function handle_(b) {
     if (b.action === 'strava') { var n = syncStrava(); return out_({ ok: true, added: n, strava: stravaState_() }); }
     if (b.action === 'getfile') return out_(getfile_(b));
     if (b.action === 'summarize') return out_(summarize_(b));
+    if (b.action === 'image') return out_(image_(b));
     if (b.action === 'icu') return out_(icu_(b));
     return out_({ ok: false, error: 'unknown action' });
   } finally { lock.releaseLock(); }
@@ -294,6 +295,30 @@ function summarize_(b) {
   var m = txt.match(/\{[\s\S]*\}/);
   var s = JSON.parse(m ? m[0] : txt);
   return { ok: true, summary: { date: s.date || b.date || '', topics: s.topics || [], todos: s.todos || [] } };
+}
+
+// ---------- Screenshot → to-dos (needs Script Property ANTHROPIC_KEY) ----------
+// {action:'image', b64, mime, today:'YYYY-MM-DD', weekday} -> {ok, todos:[{title, date, time, category, notes}]}
+function image_(b) {
+  var p = PropertiesService.getScriptProperties(), key = p.getProperty('ANTHROPIC_KEY');
+  if (!key) return { ok: false, error: 'no key' };
+  if (!b.b64) return { ok: false, error: 'no image' };
+  var prompt = 'This is a screenshot from my phone (a message thread, an appointment reminder, an email, a flyer, etc.). ' +
+    'Work out what I need to DO because of it and reply with JSON only, no prose: ' +
+    '{"todos":[{"title":"short to-do starting with a verb, with the person or place if it matters","date":"YYYY-MM-DD or empty if none is stated or implied",' +
+    '"time":"HH:MM 24h or empty","category":"Work or Personal","notes":"one line of context worth keeping: address, phone, confirmation number, who asked"}]}. ' +
+    'Usually one to-do; at most 5, and only for separate actions. An appointment becomes one to-do on its date and time. ' +
+    'Resolve relative dates ("tomorrow", "Friday") from today, ' + (b.weekday || '') + ' ' + (b.today || '') + '. If nothing in the image needs action, return {"todos":[]}.';
+  var res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    payload: JSON.stringify({ model: p.getProperty('CLAUDE_MODEL') || 'claude-sonnet-5-5', max_tokens: 1000,
+      messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: b.mime || 'image/jpeg', data: b.b64 } }, { type: 'text', text: prompt }] }] })
+  });
+  if (res.getResponseCode() !== 200) return { ok: false, error: 'Claude ' + res.getResponseCode() + ': ' + res.getContentText().slice(0, 160) };
+  var txt = JSON.parse(res.getContentText()).content[0].text, m = txt.match(/\{[\s\S]*\}/);
+  var o = JSON.parse(m ? m[0] : txt);
+  return { ok: true, todos: (o.todos || []).slice(0, 5) };
 }
 
 // ---------- Send the training plan to Garmin (through Intervals.icu) ----------
