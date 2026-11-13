@@ -2019,9 +2019,10 @@ workoutLog = function (id) {
 const _qaSheetS = qaSheet;
 qaSheet = function () {
   _qaSheetS();
-  const d = document.querySelector('.qa-dial'); if (!d || d.querySelector('[data-shot]')) return;
-  d.querySelector('.a3')?.remove();   // check-in went with Habits
-  d.insertAdjacentHTML('beforeend', `<button class="qa-act a3" role="menuitem" data-shot="pick"><span>${svgI('<rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/>')}</span><b>Screenshot</b></button>`);
+  const d = document.querySelector('.qa-dial'); if (!d || d.querySelector('[data-imp]')) return;
+  d.querySelector('.a5')?.remove(); d.querySelector('.a3')?.remove();   // Event and Check in are retired
+  d.classList.add('three');
+  d.insertAdjacentHTML('beforeend', `<button class="qa-act a3" role="menuitem" data-imp="open"><span>${svgI('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>')}</span><b>Import</b></button>`);
 };
 function shotShrink(file) {
   return new Promise((res, rej) => {
@@ -2081,27 +2082,27 @@ function ntTodos() {
 }
 function ntTodoTile(x) {
   const late = !x.done && x.due && x.due < today;
-  return `<li class="nt-tile nt-todo${late ? ' late' : ''}${x.done ? ' done' : ''}${x.due === today && !x.done ? ' now' : ''}"${x.k === 't' && !x.done ? ` data-task-id="${x.id}" draggable="true"` : ''}>
-    <div class="nt-top"><button class="nt-cat c-${x.cat === 'Work' ? 'w' : 'p'}" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
-      <label class="nt-due${late ? ' late' : ''}${x.due ? '' : ' none'}">${x.due ? ntShort(x.due) : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label></div>
-    <button class="nt-body" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><b>${x.pr ? `<em>${x.pr === 1 ? '!! ' : '! '}</em>` : ''}${esc(x.title)}</b>${x.sub || x.time || x.wait ? `<small>${esc([x.time ? hm12(x.time) : '', x.wait ? 'waiting' : '', x.sub].filter(Boolean).join(' · '))}</small>` : ''}</button>
-    <button class="nt-c${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button></li>`;
+  return `<li class="nt-tile nt-todo c-${x.cat === 'Work' ? 'w' : 'p'}${late ? ' late' : ''}${x.done ? ' done' : ''}${x.due === today && !x.done ? ' now' : ''}"${x.k === 't' && !x.done ? ` data-task-id="${x.id}" draggable="true"` : ''}>
+    <button class="nt-body" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><b>${x.pr ? `<em>${x.pr === 1 ? '!! ' : '! '}</em>` : ''}${esc(x.title)}</b></button>
+    <button class="nt-c${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>
+    <div class="nt-bot"><button class="nt-cat" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
+      <label class="nt-due${x.due ? '' : ' none'}">${x.due ? ntShort(x.due) + (x.time && x.due === today ? ' ' + hm12(x.time).replace(':00', '').replace(' ', '').toLowerCase().replace('m', '') : '') : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label></div></li>`;
 }
 function ntNoteTile(n) {
-  const body = ntBody(n);
-  return `<li class="nt-tile nt-note"><button class="nt-body" data-act="note-edit" data-id="${n.id}"><b>${esc(n.title || 'Untitled')}</b>${body ? `<small>${esc(body.slice(0, 160))}</small>` : ''}</button><button class="nt-c nt-dash" data-nt="make" data-id="${n.id}" aria-label="Make ${esc(n.title || 'this note')} a to-do"></button></li>`;
+  const body = ntBody(n).replace(/\n/g, ' · ');
+  return `<li class="nt-tile nt-note"><button class="nt-body" data-act="note-edit" data-id="${n.id}"><b>${esc(n.title || 'Untitled')}</b><small>${esc(body.slice(0, 80)) || '&nbsp;'}</small></button></li>`;
 }
 function ntList() {
   const notes = data.notes.filter(n => !n.todo && !isPhrase(n)).sort((a, b) => String(b.updated || b.entered || '').localeCompare(String(a.updated || a.entered || '')));
   const todos = ntTodos(), open = todos.filter(x => !x.done), done = todos.filter(x => x.done).sort((a, b) => b.at - a.at);
   open.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.pr || 9) - (b.pr || 9) || (a.time || '99').localeCompare(b.time || '99'));
   const shown = ntAll ? notes : notes.slice(0, 6);
-  return `<div class="nt"><form class="nt-add" id="nt-add" autocomplete="off"><button type="button" class="nt-c ${ntTodo ? '' : 'nt-dash'}" data-nt="mode" aria-pressed="${ntTodo}" aria-label="Save as a to-do"></button><textarea name="t" rows="1" placeholder="${ntTodo ? 'New to-do… (add “tomorrow” or “fri” for a date)' : 'Write a note…'}" maxlength="400" aria-label="New note"></textarea><button class="primary nt-go" type="submit" aria-label="Save">${svgI(CI.plus)}</button></form>
-    <h3 class="nt-h">Notes<span>${notes.length}</span></h3>
-    ${notes.length ? `<ul class="nt-grid">${shown.map(ntNoteTile).join('')}</ul>` : '<p class="nt-empty">No notes yet. Write one above.</p>'}
-    ${notes.length > 6 ? `<button class="nt-more" data-nt="all">${ntAll ? 'Show fewer notes' : `Open notes (${notes.length})`}</button>` : ''}
+  const nLate = open.filter(x => x.due && x.due < today).length, nNow = open.filter(x => x.due === today).length;
+  return `<div class="nt nt3">
+    <h3 class="nt-h">Notes<span>${notes.length}</span>${notes.length > 6 ? `<button data-nt="all">${ntAll ? 'Show fewer' : 'Open all ›'}</button>` : ''}</h3>
+    ${notes.length ? `<ul class="nt-grid">${shown.map(ntNoteTile).join('')}</ul>` : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
     <h3 class="nt-h">To-dos<span>${open.length}</span></h3>
-    ${open.length ? `<ul class="nt-grid">${open.map(ntTodoTile).join('')}</ul>` : '<p class="nt-empty">No open to-dos.</p>'}
+    ${open.length ? `<ul class="nt-grid">${open.map(ntTodoTile).join('')}</ul><p class="nt-sum">${[nLate ? nLate + ' late' : '', nNow ? nNow + ' today' : '', (open.length - nLate - nNow) ? (open.length - nLate - nNow) + ' later' : ''].filter(Boolean).join(' · ')}</p>` : '<p class="nt-empty">No open to-dos.</p>'}
     <div class="nt-foot">${done.length ? `<button data-nt="done">${ntDone ? 'Hide' : 'Show'} completed (${done.length})</button>` : '<span></span>'}<button data-nt="old">Folders &amp; files ›</button></div>
     ${ntDone ? `<ul class="nt-grid">${done.slice(0, 30).map(ntTodoTile).join('')}</ul>` : ''}</div>`;
 }
@@ -2148,6 +2149,74 @@ function ntSave(raw) {
 document.addEventListener('submit', e => { if (e.target.id !== 'nt-add') return; e.preventDefault(); e.stopPropagation(); ntSave(e.target.querySelector('textarea').value); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target.closest && e.target.closest('#nt-add')) { e.preventDefault(); ntSave(e.target.value); } }, true);
 document.addEventListener('input', e => { const t = e.target; if (t.closest && t.closest('#nt-add') && t.tagName === 'TEXTAREA') { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; } }, true);
+
+/* ==================== Import: a pasted list, a .md/.txt file or a screenshot becomes notes and to-dos ==================== */
+function impTodo(text, cat, done) {
+  let s = String(text).trim(), due = '', m;
+  if ((m = s.match(/[\s(\[]*(?:due|by|on|@)?:?\s*(\d{4}-\d{2}-\d{2})[)\]]*\s*$/i))) { due = m[1]; s = s.slice(0, m.index).trim(); }
+  else if ((m = s.match(/[\s(\[]*(?:due|by|on|@)?:?\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?[)\]]*\s*$/i))) { let y = m[3] ? Number(m[3]) : Number(today.slice(0, 4)); if (y < 100) y += 2000; due = `${y}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}`; if (!m[3] && due < today) due = `${y + 1}${due.slice(4)}`; s = s.slice(0, m.index).trim(); }
+  else { s = s.replace(/[\s(\[]+(?:due|by|on|@):?\s*(today|tonight|tomorrow|tmrw|weekend|next week|(?:sun|mon|tue|wed|thu|fri|sat)[a-z]*)[)\]]*\s*$/i, ' $1');
+    if (/\s(today|tonight|tomorrow|tmrw|weekend|next week|(sun|mon|tue|wed|thu|fri|sat)[a-z]*)$/i.test(s)) { const v = tdParse(s.replace(/^(w|work|p|personal)\s*[:;]\s*/i, '')); due = v.date; s = (s.match(/^(w|work|p|personal)\s*[:;]\s*/i) || [''])[0] + v.title; } }
+  if ((m = s.match(/^(w|work)\s*[:;]\s*/i))) { cat = 'Work'; s = s.slice(m[0].length); } else if ((m = s.match(/^(p|personal)\s*[:;]\s*/i))) { cat = 'Personal'; s = s.slice(m[0].length); }
+  if ((m = s.match(/\s*\((work|personal)\)\s*$/i))) { cat = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase(); s = s.slice(0, m.index); }
+  return { type: 'todo', title: s.trim(), due, cat: cat || 'Personal', done: !!done, body: '' };
+}
+function impParse(text) {
+  const items = []; let note = null, cat = '', mode = '';
+  const flush = () => { if (note) { note.body = note.lines.join('\n').replace(/\n{3,}/g, '\n\n').trim(); delete note.lines; items.push(note); note = null; } };
+  const B = '(?:[-*+•]\\s+|\\d+[.)]\\s+)';
+  String(text || '').replace(/^---\n[\s\S]*?\n---\n/, '').split(/\r?\n/).forEach(raw => {
+    const line = raw.trim(); let m;
+    if (!line) { if (note) note.lines.push(''); return; }
+    if ((m = line.match(/^#{1,6}\s+(.*)$/))) { const h = m[1].replace(/[:*_]+$/g, '').trim(); flush();
+      if (/^(work|personal)$/i.test(h)) { cat = h[0].toUpperCase() + h.slice(1).toLowerCase(); return; }
+      if (/^(to[\s-]?dos?|tasks?|action items?|next steps?)$/i.test(h)) { mode = 'todo'; return; }
+      if (/^(notes?|thoughts?|ideas?)$/i.test(h)) { mode = 'note'; return; }
+      mode = ''; note = { type: 'note', title: h.slice(0, 160), lines: [], cat }; return; }
+    if ((m = line.match(new RegExp('^' + B + '?\\[( |x|X)\\]\\s+(.+)$')))) { items.push(impTodo(m[2], cat, m[1] !== ' ')); return; }
+    if ((m = line.match(new RegExp('^' + B + '?(?:to[\\s-]?do|todo|task)\\s*[:\\-–]\\s*(.+)$', 'i')))) { items.push(impTodo(m[1], cat)); return; }
+    if ((m = line.match(new RegExp('^' + B + '?(?:note|thought|idea)\\s*[:\\-–]\\s*(.+)$', 'i')))) { flush(); note = { type: 'note', title: m[1].slice(0, 160), lines: [], cat }; return; }
+    if (note) { note.lines.push(line.replace(/^[-*+]\s+/, '• ')); return; }
+    if ((m = line.match(new RegExp('^' + B + '(.+)$')))) { items.push(mode === 'note' ? { type: 'note', title: m[1].slice(0, 160), body: '', cat } : impTodo(m[1], cat)); return; }
+    if (mode === 'todo') { items.push(impTodo(line, cat)); return; }
+    note = { type: 'note', title: line.replace(/^\*\*(.*)\*\*$/, '$1').slice(0, 160), lines: [], cat };
+  });
+  flush(); return items.filter(x => x.title).slice(0, 60);
+}
+function impSheet() {
+  modal('Import', `<form id="imp-form"><p class="mr-help">Paste a list or markdown, or pick a file (.md, .txt or a screenshot). You get to review everything before it is added.</p>
+    <textarea name="text" rows="9" placeholder="todo: Book bike fit fri&#10;- [ ] Send Arvind the spike (work) due 11/20&#10;note: Gift ideas&#10;Steph: engraving stand&#10;&#10;# Asia honeymoon&#10;Seoul first, then Hanoi" aria-label="Text to import"></textarea>
+    <div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button class="secondary" type="button" data-imp="file">Choose file</button><button class="primary" type="submit">Read it</button></div></form>`, { kind: 'imp', form: false });
+}
+function impReview(items) {
+  modal(`Review ${items.length} item${items.length === 1 ? '' : 's'}`, `<form id="imp-review" autocomplete="off">${items.map((x, i) => `<div class="shot-it"><label class="shot-on"><input type="checkbox" name="on${i}" checked aria-label="Add this item"></label><div class="shot-f">
+      <textarea name="title${i}" rows="2" aria-label="Title">${esc(x.title)}</textarea>
+      <div class="shot-r"><select name="type${i}" aria-label="Note or to-do"><option value="todo"${x.type === 'todo' ? ' selected' : ''}>To-do</option><option value="note"${x.type === 'note' ? ' selected' : ''}>Note</option></select><input type="date" name="date${i}" value="${x.due || ''}" aria-label="Due date"><select name="cat${i}" aria-label="Category"><option${x.cat === 'Work' ? '' : ' selected'}>Personal</option><option${x.cat === 'Work' ? ' selected' : ''}>Work</option></select></div>
+      ${x.body ? `<small class="imp-body">${esc(x.body.slice(0, 140))}${x.body.length > 140 ? '…' : ''}</small>` : ''}</div></div>`).join('')}
+    <div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button class="primary" type="submit">Add</button></div></form>`, { kind: 'imp', form: false });
+  window.__impItems = items;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-imp]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  if (b.dataset.imp === 'open') { qaClose(); impSheet(); return; }
+  let inp = document.getElementById('imp-file');
+  if (!inp) { inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.md,.markdown,.txt,text/plain,text/markdown,image/*'; inp.id = 'imp-file'; inp.hidden = true; document.body.appendChild(inp);
+    inp.addEventListener('change', async () => { const f = inp.files && inp.files[0]; inp.value = ''; if (!f) return;
+      if (/^image\//.test(f.type)) { forceClose(); shotRead(f); return; }
+      const t = await f.text(), items = impParse(t); if (!items.length) { notify('Nothing to import in that file.'); return; } forceClose(); impReview(items); }); }
+  inp.click();
+}, true);
+document.addEventListener('submit', e => {
+  const f = e.target; if (f.id !== 'imp-form' && f.id !== 'imp-review') return; e.preventDefault(); e.stopPropagation();
+  const v = Object.fromEntries(new FormData(f));
+  if (f.id === 'imp-form') { const items = impParse(v.text); if (!items.length) { notify('Nothing to import. Paste a list first.'); return; } forceClose(); impReview(items); return; }
+  const items = window.__impItems || [], now = new Date().toISOString(), addedT = [], addedN = [];
+  items.forEach((x, i) => { const title = String(v['title' + i] || '').trim(); if (!v['on' + i] || !title) return;
+    if (v['type' + i] === 'todo') { const t = { id: uid(), title, category: v['cat' + i], date: v['date' + i] || '', time: '', done: !!x.done && x.type === 'todo', repeat: 'none', notes: x.body || '' }; if (t.done) t.doneAt = Date.now(); data.tasks.push(t); addedT.push(t); }
+    else { const n = { id: uid(), title, tab: v['cat' + i] === 'Work' ? 'Work' : 'Personal', folder: 'General', body: String(x.body || '').split('\n').map(l => `<div>${esc(l) || '<br>'}</div>`).join(''), entered: now, updated: now }; data.notes.push(n); addedN.push(n); } });
+  forceClose(); if (!addedT.length && !addedN.length) return; save(); render();
+  undoToast(`Added ${[addedN.length ? addedN.length + ' note' + (addedN.length > 1 ? 's' : '') : '', addedT.length ? addedT.length + ' to-do' + (addedT.length > 1 ? 's' : '') : ''].filter(Boolean).join(' and ')}.`, () => { data.tasks = data.tasks.filter(t => !addedT.includes(t)); data.notes = data.notes.filter(n => !addedN.includes(n)); save(); render(); });
+}, true);
 
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
