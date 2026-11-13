@@ -1714,7 +1714,7 @@ document.addEventListener('click', e => {
 // Badges on every task row (To Do page, Home, desktop tile)
 function decorateTasks() {
   document.querySelectorAll('[data-act="task-edit"][data-id]:not(.text-btn)').forEach(b => {
-    if (b.closest('.td3')) return;
+    if (b.closest('.td3, .lg-today')) return;
     const t = data.tasks.find(x => x.id === b.dataset.id); if (!t || b.querySelector('.tb')) return;
     const title = b.querySelector('b,.tt') || b; let h = '';
     if (prio(t)) h += `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>`;
@@ -2014,6 +2014,72 @@ workoutLog = function (id) {
   const w = data.workouts.find(x => x.id === id), f = document.querySelector('#modal-root #editor');
   if (w && w.linked && f) f.insertAdjacentHTML('afterbegin', `<p class="wl-note">Planned ${esc(fmtDay(w.date))} ${w.slot} · done ${esc(fmtDay(w.linked.date))} ${w.linked.slot} (${esc(w.linked.title)})</p><button type="button" class="secondary wl-unlink" data-2b="wl-unlink" data-id="${w.id}">Unmatch</button>`);
 };
+
+/* ==================== LEDGER (v4): 4 tabs + capture, Today feed, editorial type ==================== */
+const LTABS = [['home', 'Today', 'home'], ['todo', 'Plan', 'todo'], ['workouts', 'Train', 'train'], ['notes', 'Notes', 'notes']];
+const LTAB_OF = { home: 'home', habits: 'home', todo: 'todo', calendar: 'todo', workouts: 'workouts', notes: 'notes' };
+const LTITLE = { todo: 'Plan', calendar: 'Calendar', workouts: 'Train', notes: 'Notes', habits: 'Habits' };
+cmdHeader = function () {
+  const h = document.querySelector('.app-header'); if (!h) return;
+  h.removeAttribute('data-act'); h.removeAttribute('data-page');
+  const left = page === 'home' ? `<span class="lg-mark">2nd&nbsp;Brain</span>` : `<button class="lg-back" data-act="nav" data-page="${page === 'calendar' ? 'todo' : page === 'habits' ? 'home' : 'home'}" aria-label="Back">${page === 'calendar' || page === 'habits' ? '‹ ' : ''}<b>${esc(LTITLE[page] || '')}</b></button>`;
+  h.innerHTML = `<div class="lg-hd">${left}<div class="lg-hr"><button class="lg-ib" data-act="search" aria-label="Search everything">${svgI(CI.search)}</button><button class="sync-dot" data-2b="sync-settings" aria-label="Sync status"><i></i></button><button class="lg-av" data-2b="sync-settings" aria-label="Settings">${esc((cfg.initial || 'D').slice(0, 1))}</button></div></div>`;
+};
+cmdNav = function () {
+  const n = document.querySelector('.app>.nav'); if (!n) return;
+  const on = LTAB_OF[page] || 'home';
+  n.innerHTML = `<div class="lg-tabs">${LTABS.map(t => `<button class="lg-tab${on === t[0] ? ' on' : ''}" data-act="nav" data-page="${t[0]}" aria-current="${on === t[0] ? 'page' : 'false'}">${svgI(CI[t[2]])}<span>${t[1]}</span></button>`).join('')}</div><button class="lg-cap" data-2b="qa" aria-label="Capture">${svgI(CI.plus)}</button>`;
+  document.getElementById('cmd-fab')?.remove();
+};
+const lgMin = m => { m = Math.round(Number(m) || 0); return m >= 60 ? Math.floor(m / 60) + 'h' + (m % 60 ? String(m % 60).padStart(2, '0') : '') : m + '′'; };
+const lgT = hm => { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + (m ? ':' + String(m).padStart(2, '0') : '') + (h < 12 ? 'a' : 'p'); };
+function lgSession(w) {
+  const done = w.actual != null, run = w.kind === 'Run', gmi = w.garmin && w.garmin.mi != null ? Number(w.garmin.mi) : null;
+  const plan = w.unplanned ? 'unplanned' : run && w.miles ? w.miles + ' mi' : lgMin(w.target);
+  const act = done ? (run && gmi != null ? Math.round(gmi * 10) / 10 + ' mi' : lgMin(w.actual)) + (w.garmin && w.garmin.hr ? ` · ${w.garmin.hr} bpm` : '') : '';
+  const missed = !done && w.date < today, short_ = done && !w.unplanned && (run && w.miles && gmi != null ? gmi / w.miles : w.actual / (w.target || 1)) < .8;
+  const rpe = rpeMap()[w.id] || w.actualEffort;
+  const rpeRow = done && !rpe ? `<div class="lg-rpe" role="group" aria-label="How hard"><span>How hard?</span><div>${Array.from({ length: 10 }, (_, i) => `<button type="button" data-sx="rpe" data-id="${w.id}" data-v="${i + 1}">${i + 1}</button>`).join('')}</div><small><i>easy</i><i>max</i></small></div>` : '';
+  return `<li class="lg-sess${done ? ' done' : ''}${overPlan(w) ? ' over' : ''}${short_ ? ' short' : ''}${missed ? ' missed' : ''}"><button class="lg-sess-b" data-2b="wg-open" data-id="${w.id}">`
+    + `<span class="lg-k">${esc(w.slot || '')}</span><span class="lg-sess-t"><b>${esc(short(w.title))}</b><small>${esc(w.kind)}${w.bail ? ' · bail: ' + esc(String(w.bail).split('.')[0]) : ''}</small></span>`
+    + `<span class="lg-num"><s>${esc(plan)}</s>${done ? `<b>${esc(act)}</b>` : `<i>${missed ? 'missed' : 'to do'}</i>`}${rpe ? `<em>RPE ${rpe}</em>` : ''}</span></button>${rpeRow}</li>`;
+}
+cmdHome = function () {
+  const nowHM = new Date().toTimeString().slice(0, 5);
+  const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
+  const open = data.tasks.filter(t => !t.done);
+  const todayT = open.filter(t => t.date && t.date <= today && !t.someday).sort((a, b) => ((b.date < today) - (a.date < today)) || tdSort(a, b));
+  const doneT = data.tasks.filter(t => t.done && t.doneAt && day(new Date(t.doneAt)) === today);
+  const undated = open.filter(t => !t.date && !t.someday).length;
+  const evs = data.events.filter(e => e.date === today).sort((a, b) => (a.time || '00').localeCompare(b.time || '00'));
+  const ph = phrases().filter(p => p.passes.length < 5 && p.en), due = ph.filter(p => !p.passes.includes(today)).length;
+  const ci = data.checkins.some(c => c.date === today);
+  const hDone = data.habits.filter(h => h.days.includes(today)).length;
+  const bits = [ws.length ? `${ws.length} session${ws.length > 1 ? 's' : ''}` : 'rest day', todayT.length ? `${todayT.length} to-do${todayT.length > 1 ? 's' : ''}` : 'no to-dos', evs.length ? `${evs.length} on the calendar` : ''].filter(Boolean);
+  const next = evs.find(e => e.time && e.time >= nowHM);
+  let h = `<header class="lg-hero"><span class="lg-eyebrow">${fmt(today, { weekday: 'long' })}</span><h1>${fmt(today, { day: 'numeric', month: 'long' })}</h1><p>${esc(bits.join(' · '))}${next ? ` — next up <b>${esc(next.title)}</b> at ${lgT(next.time)}` : ''}.</p></header>`;
+  // training
+  h += `<section class="lg-sec"><h2><span>Training</span><button data-act="nav" data-page="workouts">Week ›</button></h2>${ws.length ? `<ul class="lg-ledger">${ws.map(lgSession).join('')}</ul>` : '<p class="lg-quiet">Rest day. Nothing planned.</p>'}</section>`;
+  // to-dos
+  const N = 6, rows = todayT.slice(0, N).map(t => tdLine(t, { late: true })).join('') + doneT.slice(0, 3).map(t => tdLine(t)).join('');
+  h += `<section class="lg-sec"><h2><span>To do</span><button data-act="nav" data-page="todo">Plan ›</button></h2>`
+    + (rows ? `<ul class="td3-list lg-todo">${rows}</ul>` : '<p class="lg-quiet">Nothing committed for today.</p>')
+    + (todayT.length > N ? `<button class="lg-link" data-act="nav" data-page="todo">+ ${todayT.length - N} more today</button>` : '')
+    + (undated ? `<button class="lg-inbox" data-act="nav" data-page="todo"><b>${undated}</b> without a date — triage ›</button>` : '')
+    + `<form class="lg-add" id="td3-add" autocomplete="off"><span>+</span><input name="t" placeholder="Add to today" maxlength="160" aria-label="New to-do"></form></section>`;
+  // calendar
+  if (evs.length) h += `<section class="lg-sec"><h2><span>Calendar</span><button data-act="nav" data-page="calendar">Month ›</button></h2><ul class="lg-ledger lg-cal">${evs.map(e => `<li class="${e.time && e.time < nowHM ? 'past' : ''}"><button data-act="event-edit" data-id="${e.id}"><span class="lg-k">${e.time ? lgT(e.time) : 'all day'}</span><span class="lg-sess-t"><b>${esc(e.title)}</b>${e.cal ? `<small>${esc(e.cal)}</small>` : ''}</span></button></li>`).join('')}</ul></section>`;
+  // habits + check-in
+  if (data.habits.length) h += `<section class="lg-sec"><h2><span>Habits</span><span class="lg-c">${hDone}/${data.habits.length}</span><button data-act="nav" data-page="habits">History ›</button></h2><div class="lg-habits">${data.habits.map(x => { const on = x.days.includes(today); const wk = Array.from({ length: 7 }, (_, i) => add(today, i - 6)).filter(d => x.days.includes(d)).length; return `<button class="lg-hab${on ? ' on' : ''}" data-act="habit-tick" data-id="${x.id}" data-date="${today}" aria-pressed="${on}"><i>${on ? '✓' : ''}</i><b>${esc(x.title)}</b><small>${wk}/7</small></button>`; }).join('')}</div>`
+    + (ci ? '' : `<button class="lg-ci" data-2b="checkin"><span>How are you today?</span><b>Check in ›</b></button>`) + `</section>`;
+  // spanish
+  h += `<section class="lg-sec lg-sp"><h2><span>Español</span></h2>${ph.length ? `<button class="lg-sp-b" data-2b="quiz-start"><span lang="es">${esc((ph.find(p => !p.passes.includes(today)) || ph[0]).es)}</span><small>${due ? `${due} due · about ${Math.max(1, Math.round(due * .25))} min` : 'All reviewed today'}</small><b>${due ? 'Review' : 'Practice'} ›</b></button>` : `<button class="lg-sp-b" data-2b="sp-open"><span>No phrases yet</span><small>Add your first one</small><b>Add ›</b></button>`}</section>`;
+  return `<div class="lg-today">${h}</div>`;
+};
+cmdHomeDesk = function () { return cmdHome(); };
+// Plan page: link to the month calendar
+const _todoView4 = todoView;
+todoView = function () { return _todoView4().replace('<div class="td3-seg"', `<button class="lg-callink" data-act="nav" data-page="calendar"><span>Calendar</span><b>${data.events.filter(e => e.date >= today && e.date <= add(today, 6)).length} this week ›</b></button><div class="td3-seg"`); };
 
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
