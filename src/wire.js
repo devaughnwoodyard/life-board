@@ -1596,26 +1596,61 @@ runCommand = function (raw, opt = {}) {
   return out;
 };
 
-// Saved views on the To Do page
+// To Do page (v2): one add field, one filter row, grouped inset list
 const VIEWS = {
   overdue: ['Overdue', t => t.date && t.date < today],
-  nodate: ['No date', t => !t.date],
-  waiting: ['Waiting', t => isWait(t)],
-  worktoday: ['Work today', t => t.category === 'Work' && t.date && t.date <= today],
-  priority: ['Priority', t => prio(t) > 0]
+  priority: ['Priority', t => prio(t) > 0],
+  waiting: ['Waiting', t => isWait(t)]
 };
-const viewCount = k => data.tasks.filter(t => !t.done && VIEWS[k][1](t)).length;
-function viewChips() {
-  return `<div class="filters task-views" aria-label="Saved views">${Object.entries(VIEWS).map(([k, [l]]) => { const n = viewCount(k); return `<button data-act="task-filter" data-filter="${k}" class="${taskFilter === k ? 'on' : ''}">${l}${n ? ` <span class="vc">${n}</span>` : ''}</button>`; }).join('')}</div>`;
+const TD_CATS = ['all', 'Work', 'Personal'];
+function tdWhen(t, showDate) {
+  const bits = [];
+  if (showDate && t.date) { const n = Math.round((date(t.date) - date(today)) / 864e5); bits.push(n >= -6 && n <= 6 ? fmt(t.date, { weekday: 'short' }) : fmt(t.date, { month: 'short', day: 'numeric' })); }
+  if (t.time) bits.push(t.time);
+  if (t.repeat && t.repeat !== 'none') bits.push('↻ ' + t.repeat);
+  return bits.join(' · ');
 }
-const _todoView = todoView;
+function tdRow(t, o = {}) {
+  const meta = [];
+  if (taskFilter === 'all' || VIEWS[taskFilter]) meta.push(`<i class="td-dot td-${t.category === 'Work' ? 'w' : 'p'}"></i>${esc(t.category || 'Personal')}`);
+  const when = tdWhen(t, o.date); if (when) meta.push(esc(when));
+  const badges = (prio(t) ? `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>` : '') + (isWait(t) ? '<span class="tb tb-w">Waiting</span>' : '');
+  return `<div class="td-row${t.done ? ' done' : ''}${isWait(t) ? ' is-wait' : ''}"${t.done ? '' : ` data-swipe="${t.id}"`} draggable="true" data-task-id="${t.id}">`
+    + `<button class="check td-check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button>`
+    + `<button class="td-copy" data-act="task-edit" data-id="${t.id}"><b>${badges}${esc(t.title)}</b>${meta.length ? `<small>${meta.join('<span class="td-sep">·</span>')}</small>` : ''}</button></div>`;
+}
+const tdSort = (a, b) => (prio(a) || 9) - (prio(b) || 9) || (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99');
+function tdGroup(key, label, list, dropDate, o = {}) {
+  if (!list.length && !o.always) return '';
+  return `<section class="td-group td-${key}" data-drop-date="${dropDate}"><h3 class="td-h">${label}<span>${list.length}</span></h3>`
+    + (list.length ? `<div class="td-list">${list.sort(tdSort).map(t => tdRow(t, o)).join('')}</div>` : `<p class="td-none">${o.none || 'Nothing here.'}</p>`) + '</section>';
+}
 todoView = function () {
-  if (!VIEWS[taskFilter]) return _todoView().replace(/<div class="filters task-filters">([\s\S]*?)<\/div>/, (m, inner) => '<div class="todo-controls"><div class="filters task-filters">' + inner + '</div>' + viewChips() + '</div>');
-  const keep = taskFilter; taskFilter = 'all'; let base = _todoView(); taskFilter = keep;
-  const form = (base.match(/<form class="quick-form" id="quick-task">[\s\S]*?<\/form>/) || [''])[0];
-  const list = data.tasks.filter(t => !t.done && VIEWS[keep][1](t)).sort((a, b) => (prio(a) || 9) - (prio(b) || 9) || (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
-  return form + `<div class="todo-controls"><div class="filters task-filters">${['all', 'Work', 'Personal'].map(f => `<button data-act="task-filter" data-filter="${f}">${f === 'all' ? 'All' : f}</button>`).join('')}</div>` + viewChips() + '</div>'
-    + `<section><div class="section-label">${VIEWS[keep][0]} <span>${list.length}</span></div>${taskList(list)}</section>`;
+  if (!TD_CATS.includes(taskFilter) && !VIEWS[taskFilter]) taskFilter = 'all';
+  const open = data.tasks.filter(t => !t.done), inCat = t => !TD_CATS.includes(taskFilter) || taskFilter === 'all' || t.category === taskFilter;
+  const n = f => f === 'all' ? open.length : TD_CATS.includes(f) ? open.filter(t => t.category === f).length : open.filter(VIEWS[f][1]).length;
+  const chip = (f, l, cls = '') => `<button data-act="task-filter" data-filter="${f}" class="td-chip${cls}${taskFilter === f ? ' on' : ''}">${l}<span>${n(f)}</span></button>`;
+  const defCat = taskFilter === 'Work' ? 'Work' : 'Personal';
+  let h = `<form class="td-add" id="quick-task"><input name="title" aria-label="New to-do" placeholder="Add a to-do" maxlength="160" autocomplete="off" required>`
+    + `<select name="category" aria-label="Category"><option${defCat === 'Personal' ? ' selected' : ''}>Personal</option><option${defCat === 'Work' ? ' selected' : ''}>Work</option></select></form>`
+    + `<div class="td-filters">${TD_CATS.map(f => chip(f, f === 'all' ? 'All' : f)).join('')}<i class="td-div"></i>${Object.keys(VIEWS).filter(k => n(k)).map(k => chip(k, VIEWS[k][0], ' td-v td-v-' + k)).join('')}</div>`;
+  if (VIEWS[taskFilter]) {
+    h += tdGroup('view', VIEWS[taskFilter][0], open.filter(VIEWS[taskFilter][1]), '', { always: true, date: true, none: 'Nothing left in this view.' });
+  } else {
+    const list = open.filter(inCat), tom = add(today, 1);
+    const g = [
+      tdGroup('overdue', 'Overdue', list.filter(t => t.date && t.date < today), today, { date: true }),
+      tdGroup('today', 'Today', list.filter(t => t.date === today), today, { always: true, none: list.length ? 'Nothing due today.' : 'All clear.' }),
+      tdGroup('tomorrow', 'Tomorrow', list.filter(t => t.date === tom), tom),
+      tdGroup('later', 'Later', list.filter(t => t.date > tom), add(today, 2), { date: true }),
+      tdGroup('nodate', 'No date', list.filter(t => !t.date), '')
+    ];
+    h += g.join('');
+  }
+  const doneList = data.tasks.filter(t => t.done && inCat(t)).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
+  if (doneList.length) h += `<button class="td-donebtn" data-act="done-toggle">${showDone ? 'Hide' : 'Show'} completed <span>${doneList.length}</span></button>`
+    + (showDone ? `<div class="td-list td-donelist">${doneList.slice(0, 50).map(t => tdRow(t, { date: true })).join('')}</div>` : '');
+  return `<div class="td">${h}</div>`;
 };
 
 // Badges on every task row (To Do page, Home, desktop tile)
