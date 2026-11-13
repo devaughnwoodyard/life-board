@@ -2015,6 +2015,186 @@ workoutLog = function (id) {
   if (w && w.linked && f) f.insertAdjacentHTML('afterbegin', `<p class="wl-note">Planned ${esc(fmtDay(w.date))} ${w.slot} · done ${esc(fmtDay(w.linked.date))} ${w.linked.slot} (${esc(w.linked.title)})</p><button type="button" class="secondary wl-unlink" data-2b="wl-unlink" data-id="${w.id}">Unmatch</button>`);
 };
 
+/* ==================== MORE: Budget · Cars · Health (personal data lives only in synced prefs, never in this code) ==================== */
+const mrGet = (id, d) => { const p = (data.prefs || []).find(x => x.id === id); try { return p && p.value ? JSON.parse(p.value) : d; } catch (e) { return d; } };
+const mrSet = (id, v) => { let p = data.prefs.find(x => x.id === id); if (!p) { p = { id, value: '' }; data.prefs.push(p); } p.value = JSON.stringify(v); p.updated = new Date().toISOString(); save(); };
+const $$ = n => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+const mrDays = d => Math.round((date(d) - date(today)) / 864e5);
+const mrDue = d => { if (!d) return 'No date'; const n = mrDays(d); return n < 0 ? `${-n}d overdue` : n === 0 ? 'Today' : n <= 60 ? `in ${n} day${n === 1 ? '' : 's'}` : fmt(d, { month: 'short', day: 'numeric', year: 'numeric' }); };
+const mrBack = (t, sub) => `<div class="mr-top"><button class="mr-back" data-mr="go" data-v="more">‹ More</button><h1>${t}</h1>${sub ? `<p>${sub}</p>` : ''}</div>`;
+const mrField = (label, name, val = '', attr = '') => `<label class="mr-f"><span>${label}</span><input name="${name}" value="${esc(String(val == null ? '' : val))}" ${attr}></label>`;
+function mrForm(title, kind, id, body, canDelete) {
+  modal(title, `<form id="mr-form" data-kind="${kind}" data-id="${id || ''}" autocomplete="off">${body}<div class="form-actions">${canDelete ? '<button class="danger" type="button" data-mr="del">Delete</button>' : ''}<button class="secondary" type="button" data-act="close">Cancel</button><button class="primary" type="submit">Save</button></div></form>`, { kind: 'mr', form: false });
+}
+PAGE_NAME.more = 'More'; PAGE_NAME.budget = 'Budget'; PAGE_NAME.cars = 'Cars'; PAGE_NAME.health = 'Health';
+
+function moreView() {
+  const b = mrGet('more-budget', null), c = mrGet('more-cars', { jobs: [] }), h = mrGet('more-health', { results: [], todos: [] });
+  const next = (c.jobs || []).filter(j => !j.done && j.due).sort((a, x) => a.due.localeCompare(x.due))[0];
+  const dates = [...new Set((h.results || []).map(r => r.d))].sort();
+  const row = (v, t, sub) => `<button class="mr-row" data-mr="go" data-v="${v}"><span><b>${t}</b><small>${sub}</small></span><i>›</i></button>`;
+  return `<div class="mr"><div class="mr-top"><h1>More</h1><p>The things you check a couple of times a month.</p></div><div class="mr-list">`
+    + row('budget', 'Budget', b ? `${esc(b.month)} · ${$$(b.total)}` : 'Not loaded yet')
+    + row('cars', 'Cars', next ? `Next: ${esc(next.task)} · ${mrDue(next.due)}` : 'Plan maintenance, tools and cost')
+    + row('health', 'Health', dates.length ? `${new Set(h.results.map(r => r.m)).size} markers · last results ${fmt(dates[dates.length - 1])}` : 'Labs, trends and to-dos')
+    + `</div><button class="mr-import" data-mr="import">Paste an update from Claude</button></div>`;
+}
+
+/* ---------- Budget ---------- */
+function budgetView() {
+  const b = mrGet('more-budget', null);
+  if (!b) return `<div class="mr">${mrBack('Budget')}<p class="mr-empty">No budget loaded yet. Copy the code Claude gave you, then tap below.</p><button class="mr-import" data-mr="import">Paste budget</button></div>`;
+  const tot = Number(b.total) || 0, sum = b.sections.reduce((n, x) => n + (Number(x.amount) || 0), 0);
+  return `<div class="mr">${mrBack('Budget', esc(b.month) + (b.asOf ? ' · from your sheet ' + fmt(b.asOf) : ''))}
+    <section class="cmd-card mr-total"><div><small>This month</small><b>${$$(tot)}</b></div><div><small>Assigned</small><b>${$$(sum)}</b></div><div><small>Left</small><b>${$$(tot - sum)}</b></div></section>
+    ${(b.summary || []).length ? `<ul class="mr-notes mr-sum">${b.summary.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+    ${b.sections.map((x, i) => `<section class="cmd-card mr-sec"><div class="mr-sec-h"><h2>${esc(x.name)}</h2><b>${$$(x.amount)}</b></div>
+      <div class="mr-bar"><i style="width:${tot ? Math.min(100, Math.round(x.amount / tot * 100)) : 0}%"></i></div><small class="mr-pct">${tot ? Math.round(x.amount / tot * 100) : 0}% of the month</small>
+      ${(x.comments || []).length ? `<ul class="mr-notes">${x.comments.map(c => `<li>${esc(c)}</li>`).join('')}</ul>` : ''}
+      <button class="mr-mynote${x.note ? '' : ' empty'}" data-mr="bnote" data-i="${i}">${x.note ? esc(x.note) : '+ Add your own note'}</button></section>`).join('')}
+    <button class="mr-import" data-mr="import">Paste a new month</button></div>`;
+}
+
+/* ---------- Cars ---------- */
+const carsData = () => Object.assign({ cars: [], jobs: [], tools: [] }, mrGet('more-cars', {}));
+function carsView() {
+  const c = carsData(), carName = id => (c.cars.find(x => x.id === id) || {}).name || '';
+  const open = c.jobs.filter(j => !j.done).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999')), done = c.jobs.filter(j => j.done).sort((a, b) => String(b.done).localeCompare(String(a.done)));
+  const jobCost = open.reduce((n, j) => n + (Number(j.cost) || 0), 0), need = c.tools.filter(t => !t.have), toolCost = need.reduce((n, t) => n + (Number(t.cost) || 0), 0);
+  const next = open.find(j => j.due);
+  const job = j => `<div class="mr-job${j.due && j.due < today && !j.done ? ' late' : ''}"><button class="check${j.done ? ' on' : ''}" data-mr="jdone" data-id="${j.id}" aria-label="${j.done ? 'Reopen' : 'Mark done'} ${esc(j.task)}">${j.done ? '✓' : ''}</button><button class="mr-job-b" data-mr="job" data-id="${j.id}"><b>${esc(j.task)}</b><small>${[esc(carName(j.car)), j.done ? 'Done ' + fmt(j.done) : mrDue(j.due), j.miles ? 'at ' + Number(j.miles).toLocaleString('en-US') + ' mi' : '', j.every ? 'every ' + j.every + ' mo' : '', j.tools ? 'Tools: ' + esc(j.tools) : ''].filter(Boolean).join(' · ')}</small></button><span class="mr-amt">${j.cost ? $$(j.cost) : ''}</span></div>`;
+  return `<div class="mr">${mrBack('Cars', next ? `Next up: ${esc(next.task)}${carName(next.car) ? ' on the ' + esc(carName(next.car)) : ''}, ${mrDue(next.due)}.` : 'Plan the maintenance, the tools and what it costs.')}
+    <section class="cmd-card mr-total"><div><small>Parts &amp; service</small><b>${$$(jobCost)}</b></div><div><small>Tools to buy</small><b>${$$(toolCost)}</b></div><div><small>Total planned</small><b>${$$(jobCost + toolCost)}</b></div></section>
+    <section class="cmd-card"><div class="cmd-h"><h2>Vehicles</h2><button data-mr="car">+ Add</button></div>${c.cars.map(x => `<button class="mr-row sm" data-mr="car" data-id="${x.id}"><span><b>${esc(x.name)}</b><small>${x.miles ? Number(x.miles).toLocaleString('en-US') + ' mi' : 'Mileage not set'}${x.milesAt ? ' · updated ' + fmt(x.milesAt) : ''}</small></span><i>›</i></button>`).join('') || '<p class="cmd-empty">Add your cars to start.</p>'}</section>
+    <section class="cmd-card"><div class="cmd-h"><h2>Upcoming maintenance</h2><button data-mr="job">+ Add</button></div>${open.map(job).join('') || '<p class="cmd-empty">Nothing planned yet. Add the spring jobs here.</p>'}</section>
+    <section class="cmd-card"><div class="cmd-h"><h2>Tools</h2><button data-mr="tool">+ Add</button></div>${c.tools.slice().sort((a, b) => (a.have ? 1 : 0) - (b.have ? 1 : 0) || a.name.localeCompare(b.name)).map(t => `<div class="mr-job"><button class="check${t.have ? ' on' : ''}" data-mr="thave" data-id="${t.id}" aria-label="${t.have ? 'Mark as needed' : 'Mark as owned'} ${esc(t.name)}">${t.have ? '✓' : ''}</button><button class="mr-job-b" data-mr="tool" data-id="${t.id}"><b>${esc(t.name)}</b><small>${t.have ? 'Have it' : 'Need to buy'}</small></button><span class="mr-amt">${!t.have && t.cost ? $$(t.cost) : ''}</span></div>`).join('') || '<p class="cmd-empty">Tools you list on a job show up here to tick off.</p>'}</section>
+    ${done.length ? `<section class="cmd-card"><div class="cmd-h"><h2>Done</h2></div>${done.slice(0, 20).map(job).join('')}</section>` : ''}</div>`;
+}
+function carForm(id) { const c = carsData(), x = c.cars.find(v => v.id === id) || {}; mrForm(id ? 'Edit vehicle' : 'Add vehicle', 'car', id, mrField('Name', 'name', x.name, 'required placeholder="2020 Elantra"') + mrField('Current mileage', 'miles', x.miles, 'inputmode="numeric"'), !!id); }
+function jobForm(id) {
+  const c = carsData(), j = c.jobs.find(v => v.id === id) || {};
+  mrForm(id ? 'Edit maintenance' : 'Add maintenance', 'job', id, mrField('What', 'task', j.task, 'required placeholder="Oil change"')
+    + `<label class="mr-f"><span>Vehicle</span><select name="car"><option value="">—</option>${c.cars.map(v => `<option value="${v.id}"${j.car === v.id ? ' selected' : ''}>${esc(v.name)}</option>`).join('')}</select></label>`
+    + `<div class="mr-2">${mrField('Due date', 'due', j.due, 'type="date"')}${mrField('Due at miles', 'miles', j.miles, 'inputmode="numeric"')}</div>`
+    + `<div class="mr-2">${mrField('Est. cost ($)', 'cost', j.cost, 'inputmode="decimal"')}${mrField('Repeats every (months)', 'every', j.every, 'inputmode="numeric"')}</div>`
+    + mrField('Tools needed (comma separated)', 'tools', j.tools, 'placeholder="Jack stands, 17mm socket"') + mrField('Notes', 'notes', j.notes), !!id);
+}
+function toolForm(id) { const c = carsData(), t = c.tools.find(v => v.id === id) || {}; mrForm(id ? 'Edit tool' : 'Add tool', 'tool', id, mrField('Tool', 'name', t.name, 'required') + mrField('Cost to buy ($)', 'cost', t.cost, 'inputmode="decimal"') + `<label class="mr-chk"><input type="checkbox" name="have"${t.have ? ' checked' : ''}> I already have it</label>`, !!id); }
+
+/* ---------- Health ---------- */
+const HCATS = [['Heart', /ldl|hdl|cholesterol|triglycer|apo ?b|lp\(a\)|lipoprotein/i], ['Metabolic', /glucose|a1c|insulin|uric/i], ['Thyroid', /tsh|\bt3\b|\bt4\b|thyro/i], ['Hormones', /testosterone|estradiol|cortisol|dhea|shbg|\blh\b|\bfsh\b|prolactin|psa/i],
+  ['Nutrients', /vitamin|ferritin|iron|b12|folate|magnesium|zinc|omega|calcium/i], ['Liver', /\balt\b|\bast\b|ggt|bilirubin|albumin|alkaline/i], ['Kidney', /creatinine|egfr|\bbun\b|cystatin/i], ['Blood', /hemoglobin|hematocrit|wbc|rbc|platelet|mcv|white blood|red blood/i], ['Inflammation', /crp|c-reactive|homocysteine|sed rate|esr/i]];
+const hCat = m => (HCATS.find(c => c[1].test(m)) || ['Other'])[0];
+const healthData = () => Object.assign({ results: [], todos: [], notes: [] }, mrGet('more-health', {}));
+function hSpark(vals) {
+  if (vals.length < 2) return '';
+  const lo = Math.min(...vals), hi = Math.max(...vals), W = 64, H = 22, x = i => 2 + i * (W - 4) / (vals.length - 1), y = v => hi === lo ? H / 2 : H - 3 - (v - lo) / (hi - lo) * (H - 6);
+  return `<svg class="mr-spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline points="${vals.map((v, i) => x(i).toFixed(1) + ',' + y(v).toFixed(1)).join(' ')}"/><circle cx="${x(vals.length - 1).toFixed(1)}" cy="${y(vals[vals.length - 1]).toFixed(1)}" r="2.2"/></svg>`;
+}
+function healthView() {
+  const h = healthData(), by = {};
+  h.results.forEach(r => { (by[r.m] = by[r.m] || []).push(r); });
+  const cats = {};
+  Object.keys(by).forEach(m => { const l = by[m].sort((a, b) => a.d.localeCompare(b.d)), last = l[l.length - 1]; (cats[last.cat || hCat(m)] = cats[last.cat || hCat(m)] || []).push([m, l, last]); });
+  const order = HCATS.map(c => c[0]).concat('Other').filter(c => cats[c]).concat(Object.keys(cats).filter(c => !HCATS.some(x => x[0] === c) && c !== 'Other'));
+  const marker = ([m, l, last]) => { const prev = l[l.length - 2], out = (last.lo != null && last.v < last.lo) || (last.hi != null && last.v > last.hi), d = prev ? last.v - prev.v : 0;
+    return `<button class="mr-mk" data-mr="marker" data-m="${esc(m)}"><span><b>${esc(m)}</b><small>${fmt(last.d, { month: 'short', year: 'numeric' })}${l.length > 1 ? ' · ' + l.length + ' results' : ''}${last.lo != null || last.hi != null ? ` · range ${last.lo != null ? last.lo : ''}–${last.hi != null ? last.hi : ''}` : ''}</small></span>${hSpark(l.map(r => r.v))}<span class="mr-val${out ? ' out' : ''}"><b>${last.v}</b><small>${esc(last.u || '')}${prev ? ' ' + (d > 0 ? '▲' : d < 0 ? '▼' : '•') : ''}</small></span></button>`; };
+  const todos = h.todos.filter(t => !t.done).concat(h.todos.filter(t => t.done).slice(-3));
+  return `<div class="mr">${mrBack('Health', h.results.length ? `${Object.keys(by).length} markers across ${new Set(h.results.map(r => r.d)).size} test date${new Set(h.results.map(r => r.d)).size === 1 ? '' : 's'}.` : 'Bring in results from Function, 23andMe or anywhere else.')}
+    <section class="cmd-card"><div class="cmd-h"><h2>To do</h2></div>${todos.map(t => `<div class="mr-job${t.done ? ' isdone' : ''}"><button class="check${t.done ? ' on' : ''}" data-mr="hdone" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.t)}">${t.done ? '✓' : ''}</button><button class="mr-job-b" data-mr="htodo" data-id="${t.id}"><b>${esc(t.t)}</b>${t.due ? `<small>${mrDue(t.due)}</small>` : ''}</button></div>`).join('')}
+      <form class="mr-add" id="mr-htodo"><input name="t" placeholder="Add a health to-do (retest, appointment…)" maxlength="160" aria-label="New health to-do"><button class="primary" type="submit">+</button></form></section>
+    <div class="mr-acts"><button data-mr="result">+ Add a result</button><button data-mr="himport">Import results</button></div>
+    ${order.map(c => `<section class="cmd-card"><div class="cmd-h"><h2>${esc(c)}</h2><span class="mr-n">${cats[c].length}</span></div>${cats[c].sort((a, b) => a[0].localeCompare(b[0])).map(marker).join('')}</section>`).join('') || '<p class="mr-empty">No results yet. Import a file’s rows or add one by hand; each marker gets its own trend line once it has two results.</p>'}
+    <section class="cmd-card"><div class="cmd-h"><h2>Reports &amp; genetics</h2><button data-mr="hnote">+ Add</button></div>${h.notes.map(n => `<button class="mr-row sm" data-mr="hnote" data-id="${n.id}"><span><b>${esc(n.title)}</b><small>${esc([n.src, String(n.body || '').slice(0, 70)].filter(Boolean).join(' · '))}</small></span><i>›</i></button>`).join('') || '<p class="cmd-empty">Keep 23andMe findings and report notes here.</p>'}</section></div>`;
+}
+function resultForm(m) { mrForm('Add a result', 'result', '', mrField('Marker', 'm', m || '', 'required placeholder="LDL cholesterol"') + `<div class="mr-2">${mrField('Value', 'v', '', 'required inputmode="decimal"')}${mrField('Unit', 'u', '', 'placeholder="mg/dL"')}</div>` + mrField('Test date', 'd', today, 'type="date" required') + `<div class="mr-2">${mrField('Range low', 'lo', '', 'inputmode="decimal"')}${mrField('Range high', 'hi', '', 'inputmode="decimal"')}</div>` + mrField('Source', 'src', '', 'placeholder="Function"')); }
+function markerSheet(m) {
+  const l = healthData().results.filter(r => r.m === m).sort((a, b) => b.d.localeCompare(a.d));
+  modal(esc(m), `<div class="mr-hist">${hSpark(l.map(r => r.v).reverse())}${l.map(r => `<div class="mr-job"><span class="mr-job-b"><b>${r.v} ${esc(r.u || '')}</b><small>${fmt(r.d, { month: 'short', day: 'numeric', year: 'numeric' })}${r.src ? ' · ' + esc(r.src) : ''}${r.lo != null || r.hi != null ? ` · range ${r.lo != null ? r.lo : ''}–${r.hi != null ? r.hi : ''}` : ''}</small></span><button class="mr-x" data-mr="rdel" data-m="${esc(m)}" data-d="${r.d}" aria-label="Delete this result">×</button></div>`).join('')}<div class="form-actions"><button class="secondary" type="button" data-act="close">Close</button><button class="primary" type="button" data-mr="result" data-m="${esc(m)}">+ Add result</button></div></div>`, { kind: 'mr', form: false });
+}
+// rows of: marker, value, unit, date[, low, high, source] separated by commas or tabs; a header row is skipped
+function hParse(text) {
+  const out = [];
+  String(text || '').split(/\r?\n/).forEach(line => {
+    const c = line.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(x => x.trim().replace(/^"|"$/g, '')); if (c.length < 3) return;
+    const v = parseFloat(String(c[1]).replace(/[<>,]/g, '')); if (!c[0] || isNaN(v)) return;
+    let di = c.findIndex((x, i) => i > 1 && /^\d{4}-\d{2}-\d{2}$|^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(x)); if (di < 0) return;
+    let d = c[di]; if (d.includes('/')) { const [mo, dy, yr] = d.split('/').map(Number); d = `${yr < 100 ? 2000 + yr : yr}-${String(mo).padStart(2, '0')}-${String(dy).padStart(2, '0')}`; }
+    const rest = c.filter((x, i) => i > 1 && i !== di), u = rest[0] && isNaN(parseFloat(rest[0])) ? rest.shift() : '';
+    const lo = parseFloat(rest[0]), hi = parseFloat(rest[1]), r = { m: c[0], v, u, d }; if (!isNaN(lo)) r.lo = lo; if (!isNaN(hi)) r.hi = hi; const src = rest.find(x => x && isNaN(parseFloat(x))); if (src) r.src = src;
+    out.push(r);
+  });
+  return out;
+}
+function hMerge(list) { const h = healthData(); let n = 0; list.forEach(r => { if (!r || !r.m || r.v == null || !r.d) return; const i = h.results.findIndex(x => x.m.toLowerCase() === String(r.m).toLowerCase() && x.d === r.d); if (i >= 0) h.results[i] = Object.assign(h.results[i], r, { m: h.results[i].m }); else { const same = h.results.find(x => x.m.toLowerCase() === String(r.m).toLowerCase()); h.results.push(Object.assign({}, r, same ? { m: same.m } : {})); n++; } }); mrSet('more-health', h); return n; }
+
+/* ---------- import code from Claude: "2B1:" + base64 JSON { budget?, cars?, health? } ---------- */
+function mrImportSheet() { modal('Paste an update', `<form id="mr-form" data-kind="import"><p class="mr-help">Copy the whole code block from Claude and paste it here. It stays on your devices and your own Google Sheet.</p><label class="mr-f"><textarea name="code" rows="6" required placeholder="2B1:…"></textarea></label><div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button class="primary" type="submit">Import</button></div></form>`, { kind: 'mr', form: false }); }
+function mrImport(code) {
+  const m = String(code || '').replace(/\s+/g, '').match(/2B1:([A-Za-z0-9+/=_-]+)/); if (!m) throw new Error('That does not look like a code from Claude.');
+  const o = JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))))), did = [];
+  if (o.budget && Array.isArray(o.budget.sections)) { const old = mrGet('more-budget', null); if (old && old.month === o.budget.month) o.budget.sections.forEach(x => { const p = old.sections.find(y => y.name === x.name); if (p && p.note && !x.note) x.note = p.note; }); mrSet('more-budget', o.budget); did.push('budget'); }
+  if (o.cars) { const c = carsData(); ['cars', 'jobs', 'tools'].forEach(k => (o.cars[k] || []).forEach(x => { const i = c[k].findIndex(y => y.id === x.id); if (i >= 0) c[k][i] = x; else c[k].push(x); })); mrSet('more-cars', c); did.push('cars'); }
+  if (o.health) { if (o.health.results) hMerge(o.health.results); const h = healthData(); ['todos', 'notes'].forEach(k => (o.health[k] || []).forEach(x => { if (!h[k].some(y => y.id === x.id)) h[k].push(x); })); mrSet('more-health', h); did.push('health'); }
+  if (!did.length) throw new Error('Nothing to import in that code.');
+  return did;
+}
+
+const MORE_PAGES = { more: moreView, budget: budgetView, cars: carsView, health: healthView };
+const _renderM = render;
+render = function () {
+  if (!MORE_PAGES[page]) return _renderM();
+  const p = page; page = 'home';
+  try { _renderM(); } finally { page = p; }
+  document.body.dataset.page = p;
+  const pc = document.getElementById('page-content'); if (pc) pc.innerHTML = MORE_PAGES[p]();
+  cmdHeader(); cmdNav(); try { paintStatus(); } catch (e) {}
+};
+const _cmdHeaderM = cmdHeader;
+cmdHeader = function () { _cmdHeaderM(); const r = document.querySelector('.app-header .cmd-r'); if (r && !r.querySelector('.mr-open')) r.insertAdjacentHTML('afterbegin', `<button class="cmd-ib mr-open" data-mr="go" data-v="more" aria-label="More: budget, cars, health">${svgI('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>')}</button>`); };
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-mr]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const k = b.dataset.mr, id = b.dataset.id;
+  if (k === 'go') { forceClose(); go(b.dataset.v); return; }
+  if (k === 'import') return mrImportSheet();
+  if (k === 'bnote') { const bd = mrGet('more-budget', null), x = bd.sections[+b.dataset.i]; return mrForm('Note · ' + esc(x.name), 'bnote', b.dataset.i, `<label class="mr-f"><textarea name="note" rows="4" placeholder="Your note for this section">${esc(x.note || '')}</textarea></label>`); }
+  if (k === 'car') return carForm(id); if (k === 'job') return jobForm(id); if (k === 'tool') return toolForm(id);
+  if (k === 'thave') { const c = carsData(), t = c.tools.find(x => x.id === id); if (t) { t.have = !t.have; mrSet('more-cars', c); render(); } return; }
+  if (k === 'jdone') { const c = carsData(), j = c.jobs.find(x => x.id === id); if (!j) return;
+    if (j.done) { delete j.done; } else { j.done = today; if (j.every) { const d = new Date(date(today)); d.setMonth(d.getMonth() + Number(j.every)); c.jobs.push(Object.assign({}, j, { id: uid(), done: undefined, due: day(d), miles: '' })); } }
+    mrSet('more-cars', c); render(); if (j.done) notify(j.every ? 'Done. Next one scheduled in ' + j.every + ' months.' : 'Marked done.'); return; }
+  if (k === 'hdone') { const h = healthData(), t = h.todos.find(x => x.id === id); if (t) { t.done = !t.done; mrSet('more-health', h); render(); } return; }
+  if (k === 'htodo') { const t = healthData().todos.find(x => x.id === id); return mrForm('Health to-do', 'htodo', id, mrField('To-do', 't', t.t, 'required') + mrField('Due', 'due', t.due, 'type="date"'), true); }
+  if (k === 'result') { forceClose(); return resultForm(b.dataset.m); }
+  if (k === 'marker') return markerSheet(b.dataset.m);
+  if (k === 'rdel') { const h = healthData(); h.results = h.results.filter(r => !(r.m === b.dataset.m && r.d === b.dataset.d)); mrSet('more-health', h); forceClose(); render(); if (h.results.some(r => r.m === b.dataset.m)) markerSheet(b.dataset.m); return; }
+  if (k === 'himport') return modal('Import results', `<form id="mr-form" data-kind="himport"><p class="mr-help">Paste rows copied from a spreadsheet or CSV: <b>marker, value, unit, date</b> and optionally range low, range high, source. Or paste a code from Claude.</p><label class="mr-f"><textarea name="rows" rows="8" required placeholder="LDL Cholesterol, 92, mg/dL, 2026-03-14, 0, 100, Function"></textarea></label><div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button class="primary" type="submit">Import</button></div></form>`, { kind: 'mr', form: false });
+  if (k === 'hnote') { const n = healthData().notes.find(x => x.id === id) || {}; return mrForm(id ? 'Edit report note' : 'Add report note', 'hnote', id, mrField('Title', 'title', n.title, 'required placeholder="23andMe: caffeine metabolism"') + mrField('Source', 'src', n.src, 'placeholder="23andMe"') + `<label class="mr-f"><span>Notes</span><textarea name="body" rows="5">${esc(n.body || '')}</textarea></label>`, !!id); }
+  if (k === 'del') { const f = document.getElementById('mr-form'), kind = f.dataset.kind, fid = f.dataset.id;
+    if (kind === 'car' || kind === 'job' || kind === 'tool') { const c = carsData(), key = kind + 's'; c[key] = c[key].filter(x => x.id !== fid); mrSet('more-cars', c); }
+    else { const h = healthData(), key = kind === 'htodo' ? 'todos' : 'notes'; h[key] = h[key].filter(x => x.id !== fid); mrSet('more-health', h); }
+    forceClose(); render(); return; }
+}, true);
+document.addEventListener('submit', e => {
+  const f = e.target; if (f.id !== 'mr-form' && f.id !== 'mr-htodo') return; e.preventDefault(); e.stopPropagation();
+  const v = Object.fromEntries(new FormData(f)), num = x => x === '' || x == null || isNaN(Number(x)) ? '' : Number(x);
+  if (f.id === 'mr-htodo') { if (!v.t.trim()) return; const h = healthData(); h.todos.push({ id: uid(), t: v.t.trim() }); mrSet('more-health', h); render(); return; }
+  const kind = f.dataset.kind, id = f.dataset.id;
+  try {
+    if (kind === 'import') { const did = mrImport(v.code); forceClose(); if (did.length === 1) page = did[0]; render(); notify('Imported: ' + did.join(', ') + '.'); return; }
+    if (kind === 'himport') { const n = /2B1:/.test(v.rows) ? (mrImport(v.rows), -1) : hMerge(hParse(v.rows)); if (n === 0 && !hParse(v.rows).length) throw new Error('No rows found. Each row needs a marker, a value and a date.'); forceClose(); render(); notify(n < 0 ? 'Imported.' : `Imported ${hParse(v.rows).length} result${hParse(v.rows).length === 1 ? '' : 's'}.`); return; }
+    if (kind === 'bnote') { const b = mrGet('more-budget', null); b.sections[+id].note = v.note.trim(); mrSet('more-budget', b); }
+    else if (kind === 'car') { const c = carsData(); let x = c.cars.find(y => y.id === id); if (!x) { x = { id: uid() }; c.cars.push(x); } const m = num(v.miles); if (m !== x.miles) x.milesAt = today; x.name = v.name.trim(); x.miles = m; mrSet('more-cars', c); }
+    else if (kind === 'job') { const c = carsData(); let j = c.jobs.find(y => y.id === id); if (!j) { j = { id: uid() }; c.jobs.push(j); } Object.assign(j, { task: v.task.trim(), car: v.car, due: v.due, miles: num(v.miles), cost: num(v.cost), every: num(v.every), tools: v.tools.split(',').map(x => x.trim()).filter(Boolean).join(', '), notes: v.notes.trim() });
+      j.tools.split(', ').filter(Boolean).forEach(n => { if (!c.tools.some(t => t.name.toLowerCase() === n.toLowerCase())) c.tools.push({ id: uid(), name: n, cost: '', have: false }); }); mrSet('more-cars', c); }
+    else if (kind === 'tool') { const c = carsData(); let t = c.tools.find(y => y.id === id); if (!t) { t = { id: uid() }; c.tools.push(t); } Object.assign(t, { name: v.name.trim(), cost: num(v.cost), have: !!v.have }); mrSet('more-cars', c); }
+    else if (kind === 'result') { const r = { m: v.m.trim(), v: Number(v.v), u: v.u.trim(), d: v.d }; if (isNaN(r.v)) throw new Error('Value needs to be a number.'); if (v.lo !== '') r.lo = Number(v.lo); if (v.hi !== '') r.hi = Number(v.hi); if (v.src.trim()) r.src = v.src.trim(); hMerge([r]); }
+    else if (kind === 'htodo') { const h = healthData(), t = h.todos.find(y => y.id === id); if (t) { t.t = v.t.trim(); t.due = v.due; mrSet('more-health', h); } }
+    else if (kind === 'hnote') { const h = healthData(); let n = h.notes.find(y => y.id === id); if (!n) { n = { id: uid() }; h.notes.push(n); } Object.assign(n, { title: v.title.trim(), src: v.src.trim(), body: v.body.trim() }); mrSet('more-health', h); }
+    forceClose(); render();
+  } catch (err) { notify(err.message || 'Could not save that.'); }
+}, true);
+
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
 
