@@ -2066,12 +2066,83 @@ document.addEventListener('submit', e => {
   undoToast(`Added ${added.length} to-do${added.length > 1 ? 's' : ''}.`, () => { data.tasks = data.tasks.filter(t => !added.includes(t)); save(); render(); });
 }, true);
 
-/* ==================== Simple shell: To Do · Notes · Train. Home, Habits and extras are retired. ==================== */
-TABS.length = 0; TABS.push(['todo', 'To Do', 'todo'], ['notes', 'Notes', 'notes'], ['workouts', 'Train', 'train']);
+/* ==================== Simple shell: Notes · Train. One list; any note can be a to-do. ==================== */
+// To-dos stay in data.tasks (Siri, screenshots, swipes, repeats keep working); thoughts are notes. A note can also carry todo/due/done itself.
+TABS.length = 0; TABS.push(['notes', 'Notes', 'notes'], ['workouts', 'Train', 'train']);
+let ntFilter = ls.get('2b-ntf', 'all'), ntOld = false, ntDone = false, ntTodo = false;
+const ntDueTxt = d => { const n = Math.round((date(d) - date(today)) / 864e5); return n < -1 ? `${-n} days late` : n === -1 ? 'Yesterday' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n < 7 ? fmt(d, { weekday: 'long' }) : fmt(d, { month: 'short', day: 'numeric' }); };
+function ntItems() {
+  const tasks = data.tasks.map(t => ({ k: 't', id: t.id, title: t.title, sub: String(t.notes || '').replace(/^Bail rule:.*$/m, '').trim(), todo: true, due: t.date || '', time: t.time || '', done: !!t.done, at: t.doneAt || parseInt(String(t.id).slice(0, 8), 36) || 0, tag: (isWait(t) ? 'waiting' : '') + (t.repeat && t.repeat !== 'none' ? ' ↻' : ''), pr: prio(t) }));
+  const notes = data.notes.filter(n => !isPhrase(n)).map(n => ({ k: 'n', id: n.id, title: n.title || 'Untitled', sub: plain(String(n.body || '').replace(/<(div|p|br|li)\b/gi, ' · <$1')).replace(/\s+/g, ' ').replace(/^[\s·]+/, '').trim(), todo: !!n.todo, due: n.due || '', time: '', done: !!n.todo && !!n.done, at: Date.parse(n.updated || n.entered || '') || 0, tag: n.folder && n.folder !== 'General' ? n.folder : '', pr: 0 }));
+  return tasks.concat(notes);
+}
+function ntRow(x) {
+  const late = x.todo && !x.done && x.due && x.due < today;
+  const lead = x.todo ? `<button class="nt-c${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`
+    : `<button class="nt-c nt-dash" data-nt="make" data-id="${x.id}" aria-label="Make ${esc(x.title)} a to-do"></button>`;
+  const meta = [];
+  if (x.todo && !x.done) meta.push(`<label class="nt-due${late ? ' late' : ''}${x.due ? '' : ' none'}">${x.due ? ntDueTxt(x.due) + (x.time ? ' · ' + hm12(x.time) : '') : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label>`);
+  if (x.pr) meta.push(`<em class="nt-p">${x.pr === 1 ? '!!' : '!'}</em>`);
+  if (x.tag) meta.push(`<em>${esc(x.tag)}</em>`);
+  if (x.todo && x.k === 'n' && !x.done) meta.push(`<button class="nt-un" data-nt="unmake" data-id="${x.id}">not a to-do</button>`);
+  return `<li class="nt-row${x.done ? ' done' : ''}${late ? ' late' : ''}"${x.k === 't' && !x.done ? ` data-swipe="${x.id}" data-task-id="${x.id}"` : ''}>${lead}<div class="nt-b"><button class="nt-t" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><b>${esc(x.title)}</b>${x.sub ? `<small>${esc(x.sub.slice(0, 110))}</small>` : ''}</button>${meta.length ? `<div class="nt-m">${meta.join('')}</div>` : ''}</div></li>`;
+}
+function ntList() {
+  const all = ntItems(), open = all.filter(x => !x.done);
+  const f = ntFilter === 'todo' ? open.filter(x => x.todo) : ntFilter === 'thought' ? open.filter(x => !x.todo) : open;
+  const late = f.filter(x => x.todo && x.due && x.due < today).sort((a, b) => a.due.localeCompare(b.due));
+  const now = f.filter(x => x.todo && x.due === today).sort((a, b) => (a.pr || 9) - (b.pr || 9) || (a.time || '99').localeCompare(b.time || '99'));
+  const rest = f.filter(x => !late.includes(x) && !now.includes(x)).sort((a, b) => b.at - a.at);
+  const done = all.filter(x => x.done).sort((a, b) => b.at - a.at);
+  const n = { all: open.length, todo: open.filter(x => x.todo).length, thought: open.filter(x => !x.todo).length };
+  const sec = (label, list, cls = '') => list.length ? `${label ? `<h3 class="nt-h ${cls}">${label}<span>${list.length}</span></h3>` : ''}<ul class="nt-list">${list.map(ntRow).join('')}</ul>` : '';
+  return `<div class="nt"><form class="nt-add" id="nt-add" autocomplete="off"><button type="button" class="nt-c ${ntTodo ? '' : 'nt-dash'}" data-nt="mode" aria-pressed="${ntTodo}" aria-label="Save as a to-do"></button><textarea name="t" rows="1" placeholder="${ntTodo ? 'New to-do… (add “tomorrow” or “fri” for a date)' : 'Write a note…'}" maxlength="400" aria-label="New note"></textarea><button class="primary nt-go" type="submit" aria-label="Save">${svgI(CI.plus)}</button></form>
+    <div class="nt-f">${[['all', 'All'], ['todo', 'To-dos'], ['thought', 'Thoughts']].map(([k, l]) => `<button data-nt="filter" data-v="${k}" class="${ntFilter === k ? 'on' : ''}">${l}<span>${n[k]}</span></button>`).join('')}</div>
+    ${sec('Overdue', late, 'late')}${sec('Today', now)}${sec(late.length || now.length ? 'Everything else' : '', rest)}${f.length ? '' : `<p class="nt-empty">${ntFilter === 'todo' ? 'No open to-dos.' : 'Nothing here yet. Write the first one above.'}</p>`}
+    <div class="nt-foot">${done.length ? `<button data-nt="done">${ntDone ? 'Hide' : 'Show'} completed (${done.length})</button>` : '<span></span>'}<button data-nt="old">Folders &amp; files ›</button></div>
+    ${ntDone ? `<ul class="nt-list">${done.slice(0, 40).map(ntRow).join('')}</ul>` : ''}</div>`;
+}
 const _renderS = render;
-render = function () { if (page === 'home' || page === 'habits') page = 'todo'; _renderS(); };
+render = function () {
+  if (page === 'home' || page === 'habits' || page === 'todo') page = 'notes';
+  _renderS();
+  if (page !== 'notes') { ntOld = false; return; }
+  const pc = document.getElementById('page-content'); if (!pc) return;
+  if (ntOld) { if (!pc.querySelector('.nt-backold')) pc.insertAdjacentHTML('afterbegin', '<button class="nt-backold" data-nt="new">‹ All notes</button>'); return; }
+  const y = scrollY; pc.innerHTML = ntList(); scrollTo(0, y);
+};
 const _cmdHeaderS = cmdHeader;
-cmdHeader = function () { _cmdHeaderS(); const h = document.querySelector('.app-header'); if (h) { h.dataset.page = 'todo'; h.title = 'To Do'; } };
+cmdHeader = function () { _cmdHeaderS(); const h = document.querySelector('.app-header'); if (h) { h.dataset.page = 'notes'; h.title = 'Notes'; } };
+const ntNote = id => data.notes.find(x => x.id === id);
+const ntTouch = n => { n.updated = new Date().toISOString(); };
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-nt]'); if (!b || b.tagName === 'INPUT') return; e.preventDefault(); e.stopPropagation();
+  const k = b.dataset.nt, id = b.dataset.id;
+  if (k === 'filter') { ntFilter = b.dataset.v; ls.set('2b-ntf', ntFilter); render(); return; }
+  if (k === 'mode') { ntTodo = !ntTodo; const v = document.querySelector('#nt-add textarea').value; render(); const t = document.querySelector('#nt-add textarea'); t.value = v; t.focus(); return; }
+  if (k === 'done') { ntDone = !ntDone; render(); return; }
+  if (k === 'old') { ntOld = true; render(); scrollTo(0, 0); return; }
+  if (k === 'new') { ntOld = false; render(); scrollTo(0, 0); return; }
+  if (k === 'check') { if (b.dataset.k === 't') return toggleTask(id); const n = ntNote(id); if (!n) return; n.done = !n.done; ntTouch(n); save(); render(); if (n.done) undoToast('Done.', () => { n.done = false; save(); render(); }); return; }
+  if (k === 'make') { const n = ntNote(id); if (!n) return; n.todo = true; n.done = false; ntTouch(n); save(); render(); return; }
+  if (k === 'unmake') { const n = ntNote(id); if (!n) return; n.todo = false; n.done = false; n.due = ''; ntTouch(n); save(); render(); return; }
+}, true);
+document.addEventListener('change', e => {
+  const i = e.target; if (!i.dataset || i.dataset.nt !== 'due') return;
+  if (i.dataset.k === 't') { const t = data.tasks.find(x => x.id === i.dataset.id); if (t) { t.date = i.value; t.updated = new Date().toISOString(); } }
+  else { const n = ntNote(i.dataset.id); if (n) { n.due = i.value; ntTouch(n); } }
+  save(); render();
+}, true);
+function ntSave(raw) {
+  let s = String(raw || '').trim(); if (!s) return;
+  let todo = ntTodo; const m = s.match(/^(to[\s-]?do|todo|task)\b[\s:,-]*/i); if (m) { todo = true; s = s.slice(m[0].length).trim(); if (!s) return; }
+  if (todo) { const v = tdParse(s), dated = /\s(today|tonight|tomorrow|tmrw|weekend|next week|(sun|mon|tue|wed|thu|fri|sat)[a-z]*)$/i.test(s); const t = { id: uid(), title: v.title, category: v.category, date: dated ? v.date : '', time: '', done: false, repeat: 'none', notes: '' }; if (v.someday) t.someday = true; data.tasks.push(t); }
+  else { const lines = s.split(/\n/), now = new Date().toISOString(); data.notes.push({ id: uid(), title: lines[0].slice(0, 160), tab: 'Personal', folder: 'General', body: lines.slice(1).map(l => `<div>${esc(l)}</div>`).join(''), entered: now, updated: now }); }
+  save(); render(); document.querySelector('#nt-add textarea')?.focus();
+}
+document.addEventListener('submit', e => { if (e.target.id !== 'nt-add') return; e.preventDefault(); e.stopPropagation(); ntSave(e.target.querySelector('textarea').value); }, true);
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target.closest && e.target.closest('#nt-add')) { e.preventDefault(); ntSave(e.target.value); } }, true);
+document.addEventListener('input', e => { const t = e.target; if (t.closest && t.closest('#nt-add') && t.tagName === 'TEXTAREA') { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; } }, true);
 
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
