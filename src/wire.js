@@ -231,6 +231,9 @@ async function checkUpdate() {
     const t = await (await fetch('./index.html?b=' + Date.now(), { cache: 'no-store' })).text();
     const m = t.match(/name="2b-build" content="([0-9a-f]+)"/);
     if (m && m[1] !== BUILD) {
+      // already reloaded for this build and still old (a cached copy in between): go around the cache once, then stop trying
+      let tried = ''; try { tried = sessionStorage.getItem('2b-updated') || ''; } catch (e) {}
+      if (tried === m[1]) { try { if (sessionStorage.getItem('2b-upd2') === m[1]) return; sessionStorage.setItem('2b-upd2', m[1]); } catch (e) { return; } location.replace('./?v=' + m[1]); return; }
       if ($('#modal-root').children.length) { actionToast('A new version of 2nd Brain is ready.', 'Update', () => location.reload()); return; }
       try { sessionStorage.setItem('2b-updated', m[1]); } catch (e) {}
       location.reload();
@@ -238,6 +241,12 @@ async function checkUpdate() {
   } catch (e) {}
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (!newDay()) checkUpdate(); } });
+// iPhone home-screen apps often resume a frozen page without firing visibilitychange, so also check on launch, on resume and every 10 minutes
+addEventListener('pageshow', () => { if (!newDay()) checkUpdate(); });
+addEventListener('focus', () => { if (!newDay()) checkUpdate(); });
+setTimeout(checkUpdate, 1500);
+setInterval(() => { if (document.visibilityState === 'visible' && !newDay()) checkUpdate(); }, 10 * 60e3);
+if ('serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
 // The app keeps "today" from when it opened; when the date changes (left open overnight), reload
 function newDay() {
   if (day() === today) return false;

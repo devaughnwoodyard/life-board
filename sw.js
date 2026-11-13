@@ -1,7 +1,7 @@
-// 2nd Brain service worker — build 32a1d767
+// 2nd Brain service worker — build 633bcd6b
 // App shell: network-first for the page (so updates land when online), cache fallback offline.
 // Fonts: stale-while-revalidate.
-const CACHE = 'lifeboard-32a1d767';
+const CACHE = 'lifeboard-633bcd6b';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
@@ -19,6 +19,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  if (url.searchParams.has('b')) return;   // update probe: always straight to the network, never cached
 
   if (req.mode === 'navigate') {
     e.respondWith(
