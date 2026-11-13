@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"><title>2nd Brain</title><meta name="2b-build" content="6b174fb1"><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"><title>2nd Brain</title><meta name="2b-build" content="b6d21a03"><style>
 :root{--bg:#eef2f5;--paper:#fff;--ink:#1d2c3b;--muted:#667786;--line:#d9e1e7;--soft:#e2ebf2;--accent:#246b9e;--radius:20px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--bg)}*{box-sizing:border-box}body{margin:0}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}button:focus-visible{outline:3px solid #74b3de;outline-offset:3px}input,select,textarea{width:100%;border:1px solid var(--line);background:white;border-radius:11px;padding:11px 12px;font-size:14px;min-width:0}textarea{min-height:95px;resize:vertical}button,input{touch-action:manipulation}h1,h2,h3,p{margin:0}small,.muted{color:var(--muted)}.gallery{max-width:1600px;margin:auto;padding:30px clamp(14px,3vw,45px)}.gallery h1{font-size:40px;letter-spacing:-1.6px;margin:12px 0}.gallery>p{max-width:780px;line-height:1.6;color:var(--muted)}.eyebrow{font-size:10px;font-weight:750;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.gallery-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:17px;margin-top:28px}.preview-card{background:white;border:1px solid var(--line);border-radius:20px;overflow:hidden}.preview-card>.preview-open{width:100%;padding:14px;text-align:left}.preview-card h2{font-size:15px;letter-spacing:-.4px}.preview-card p{font-size:11px;color:var(--muted);line-height:1.5;margin:8px 0;min-height:50px}.mini-viewport{height:340px;overflow:hidden;background:var(--bg);border:1px solid var(--line);border-radius:14px;margin:12px 0;pointer-events:none;position:relative}.mini-app{width:360px;transform:scale(.56);transform-origin:top left;padding:18px}.try{font-size:12px;color:var(--accent);font-weight:750}.demo-note{margin-top:22px;font-size:12px;color:var(--muted)}.workspace[hidden],.gallery[hidden],[hidden]{display:none!important}.comparison-bar{position:sticky;top:0;z-index:20;background:#172b3d;color:white;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 20px;min-height:48px}.comparison-bar button,.comparison-bar select{color:white;font-size:11px;border:1px solid #ffffff38;background:#ffffff0c;border-radius:8px;padding:7px 10px;width:auto}.comparison-bar option{color:#172b3d;background:white}.comparison-bar .controls{display:flex;gap:6px}.app{max-width:1160px;margin:auto;min-height:calc(100dvh - 48px);display:flex;flex-direction:column;position:relative;padding:0 26px 95px}.app-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 0 14px}.brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:750}.mark{width:29px;height:29px;background:var(--accent);color:white;display:grid;place-items:center;border-radius:10px}.header-actions{display:flex;gap:7px}.icon-btn{background:var(--paper);border:1px solid var(--line);width:37px;height:37px;border-radius:12px;display:inline-grid;place-items:center;font-size:18px}.scoreline{display:flex;gap:8px;font-size:11px;color:var(--accent);font-weight:700}.page-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 20px}.page-head h1{font-size:29px;letter-spacing:-1px}.primary{background:var(--accent);color:white;border-radius:11px;padding:11px 15px;font-weight:650;font-size:12px}.secondary{background:white;border:1px solid var(--line);border-radius:11px;padding:10px 14px;font-size:12px}.danger{color:#b32e3b;font-size:12px;padding:9px}.searchbox{display:flex;align-items:center;gap:8px;background:#e2eaf0;border:1px solid #d5e1e9;border-radius:13px;padding:0 11px;margin-bottom:17px;color:var(--muted)}.searchbox input{background:none;border:0;padding:12px 0;font-size:12px}.date-block{display:flex;align-items:center;gap:15px;margin:12px 0 20px}.date-number{font-size:68px;font-weight:720;letter-spacing:-4px;line-height:1}.date-block strong{display:block;font-size:23px;letter-spacing:-.7px}.date-block small{display:block;margin-top:5px;font-size:11px}.mosaic{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tile{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px;text-align:left;min-height:142px;position:relative;overflow:hidden;box-shadow:0 3px 10px #1d2c3b04;display:flex;flex-direction:column;align-items:flex-start;transition:transform .15s,box-shadow .15s}.tile:hover{transform:translateY(-2px);box-shadow:0 9px 20px #1d2c3b0d}.tile-top{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;font-size:13px;font-weight:700}.tile-icon{font-size:17px;color:var(--accent);font-weight:500}.tile-value{font-size:36px;line-height:1.05;color:var(--accent);font-weight:650;letter-spacing:-1.5px;margin-top:17px}.tile-caption{font-size:10px;color:var(--muted);margin-top:7px}.tile-detail{font-size:11px;line-height:1.45;margin-top:12px;color:var(--muted)}.tile[data-key="todo"]{background:var(--accent);color:white;border-color:var(--accent)}.tile[data-key="todo"] .tile-value,.tile[data-key="todo"] .tile-icon,.tile[data-key="todo"] .tile-caption,.tile[data-key="todo"] .tile-detail{color:white}.capture{display:flex;gap:8px;margin:18px 0}.capture>button{flex:1}.peek{background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:17px;margin-top:16px}.peek-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px}.peek-title button{color:var(--accent);font-size:11px}.peek p{font-size:12px;color:var(--muted);line-height:1.6}.nav{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;justify-content:space-around;gap:4px;background:#fffffff0;backdrop-filter:blur(24px);border:1px solid #d4dee8c9;border-radius:22px;padding:8px;width:min(590px,calc(100% - 28px));box-shadow:0 7px 30px #1d2c3b13;z-index:15}.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:9px;color:var(--muted);padding:5px;border-radius:14px}.nav span{font-size:19px;line-height:1}.nav button.active{background:var(--soft);color:var(--accent);font-weight:700}.desktop-home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.75fr);gap:24px}.desktop-home .home-aside{padding-top:14px}.list{border:1px solid var(--line);border-radius:17px;background:white;overflow:hidden}.task{display:flex;gap:10px;align-items:center;padding:15px;border-bottom:1px solid var(--line)}.task:last-child{border-bottom:0}.check{width:23px;height:23px;flex:none;border:1.5px solid #9aaab7;border-radius:50%;background:none;color:white;padding:0;font-size:13px}.check.on{background:var(--accent);border-color:var(--accent)}.task-copy{flex:1;text-align:left;min-width:0}.task-copy b{font-size:13px;font-weight:600;display:block;overflow-wrap:anywhere}.task-copy small{display:block;font-size:10px;margin-top:5px}.task.done b{text-decoration:line-through;color:var(--muted)}.text-btn{color:var(--accent);font-size:11px;padding:8px 0}.section-label{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:23px 0 10px;font-size:15px;font-weight:700}.section-label small{font-size:10px;font-weight:400}.filters{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.filters button{padding:8px 13px;border:1px solid var(--line);background:white;border-radius:10px;font-size:11px}.filters button.on{background:var(--ink);color:white;border-color:var(--ink)}.quick-form{display:flex;gap:8px}.quick-form input{flex:1}.quick-form select{width:110px}.empty{font-size:12px;color:var(--muted);padding:23px;text-align:center;border:1px dashed #c5d2db;border-radius:15px;line-height:1.6}.calendar-layout{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}.calendar-panel,.panel{background:white;border:1px solid var(--line);border-radius:19px;padding:18px}.month-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px;font-weight:700;margin-bottom:16px}.month-head button{font-size:20px;padding:4px 10px}.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal-grid .weekday{font-size:10px;text-align:center;color:var(--muted);padding:7px 0}.cal-day{height:44px;border-radius:11px;position:relative;font-size:12px}.cal-day.today{border:1px solid var(--accent)}.cal-day.selected{background:var(--accent);color:white}.cal-day i{position:absolute;width:4px;height:4px;border-radius:50%;bottom:5px;left:calc(50% - 2px);background:currentColor}.agenda-item{display:flex;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}.agenda-item>span{font-size:10px;color:var(--muted);width:47px;flex:none}.agenda-item>button{flex:1;text-align:left;border-left:3px solid var(--accent);padding:6px 10px}.agenda-item b{font-size:12px;display:block}.agenda-item small{font-size:10px;display:block;margin-top:5px}.week-control{display:flex;align-items:center;justify-content:space-between;padding:12px 0}.week-control button{background:white;border:1px solid var(--line);border-radius:10px;padding:9px 14px}.week-control strong{font-size:13px}.workout-day{margin-bottom:12px;background:white;border:1px solid var(--line);border-radius:17px;padding:14px}.workout-day h3{font-size:12px;margin-bottom:12px}.slots{display:grid;grid-template-columns:1fr 1fr;gap:10px}.slot{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px;min-height:110px}.slot-label{font-size:9px;font-weight:750;color:var(--muted);letter-spacing:.08em;margin-bottom:10px}.session{padding:8px 0;border-bottom:1px solid var(--line)}.session b{font-size:12px;display:block}.session small{font-size:10px;display:block;margin:5px 0}.session .actions{display:flex;justify-content:space-between;gap:7px}.session button{color:var(--accent);font-size:10px;padding:5px 0}.slot-add{color:var(--accent);font-size:10px;width:100%;padding-top:10px}.stats{display:flex;gap:10px;margin:10px 0 18px}.stats>div{flex:1;background:white;border:1px solid var(--line);border-radius:14px;padding:14px}.stats b{font-size:25px;color:var(--accent);letter-spacing:-1px}.stats small{display:block;font-size:10px;margin-top:5px}.notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}.note-card{background:white;border:1px solid var(--line);border-radius:17px;padding:18px;text-align:left;min-height:180px}.note-card b{font-size:14px;display:block}.note-card p{font-size:11px;line-height:1.6;color:var(--muted);margin:12px 0;white-space:pre-wrap;overflow:hidden;max-height:75px}.note-card small{font-size:9px}.habit-header,.habit-row{display:grid;grid-template-columns:minmax(120px,1fr) repeat(7,36px);gap:7px;align-items:center}.habit-header{font-size:10px;color:var(--muted);padding:10px 14px;text-align:center}.habit-header span:first-child{text-align:left}.habit-row{background:white;border:1px solid var(--line);border-radius:15px;padding:14px;margin-bottom:10px}.habit-name{text-align:left}.habit-name b{display:block;font-size:12px}.habit-name small{display:block;font-size:9px;margin-top:5px}.tick{width:34px;height:34px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:12px;color:var(--muted)}.tick.on{border:2px solid #3b9765;color:#28794e;background:#f4fbf6}.modal-backdrop{position:fixed;inset:0;z-index:40;background:#1025376b;backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:20px}.sheet{width:min(600px,100%);max-height:92dvh;overflow:auto;background:var(--bg);border:1px solid #ffffff80;border-radius:24px;padding:22px;box-shadow:0 20px 80px #11263833}.sheet.wide{width:min(1250px,100%)}.sheet-title{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:16px}.sheet-title h2{font-size:22px;letter-spacing:-.6px}.sheet label{display:block;font-size:11px;color:var(--muted);margin:15px 0 6px}.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end;margin-top:22px}.toolbar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}.toolbar button{background:white;border:1px solid var(--line);border-radius:7px;padding:7px 12px;font-size:12px}.rich-editor{min-height:250px;background:white;border:1px solid var(--line);border-radius:12px;padding:18px;line-height:1.65;outline-color:var(--accent);font-size:15px;overflow-wrap:anywhere}.rich-editor img,.reader img{max-width:100%;max-height:500px;object-fit:contain;border-radius:10px}.reader{background:white;border:1px solid var(--line);border-radius:15px;padding:22px;font-size:15px;line-height:1.7;min-height:160px;overflow-wrap:anywhere}.reader ul,.reader ol{padding-left:25px}.reader h2{margin:13px 0;font-size:22px}.reader p{margin:8px 0}.folder-chip{border:1px solid var(--line);padding:7px 10px;border-radius:9px;background:white;font-size:10px}.search-result{display:block;text-align:left;width:100%;padding:14px;background:white;border:1px solid var(--line);border-radius:12px;margin-top:8px}.search-result b{font-size:13px;display:block}.search-result small{display:block;font-size:10px;margin-top:4px}.toast{position:fixed;z-index:100;bottom:100px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;font-size:12px;padding:12px 18px;border-radius:12px;box-shadow:0 6px 20px #1d2c3b22;max-width:90vw}.home-nav{display:flex;gap:8px;overflow:auto;margin:12px 0}.home-nav button{flex:1;padding:9px;background:white;border:1px solid var(--line);border-radius:10px;font-size:10px;white-space:nowrap}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 :root{--ink:#203346;--accent:#28628b;--line:#d8e2e9;--muted:#708292;--bg:#edf2f6}body{background:radial-gradient(ellipse at 10% 5%,#dceaf3,transparent 50%),radial-gradient(ellipse at 90% 75%,#dfe9f0,transparent 60%),#f0f4f7;min-height:100vh}.gallery{max-width:1440px;padding:44px 30px}.gallery h1{font-size:48px;font-weight:650}.gallery-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}.preview-card{border:1px solid #fff;background:#ffffff95;border-radius:22px;box-shadow:0 9px 30px #253d5009}.card-label{padding:22px 22px 0}.card-label h2{font-size:24px;margin-top:8px}.preview-card p{font-size:12px;min-height:38px}.dual-preview{position:relative;height:270px;margin:16px 16px 0;overflow:hidden;background:#dde7ee;border-radius:14px}.dual-preview iframe{border:0;display:block;transform-origin:0 0;pointer-events:none}.desktop-thumb{position:absolute;top:18px;left:12px;width:100%;height:214px;overflow:hidden;border:4px solid #263a4a;border-radius:10px;background:#edf2f6;box-shadow:0 10px 20px #20334620}.desktop-thumb iframe{width:1200px;height:840px;transform:scale(.29)}.phone-thumb{position:absolute;right:10px;bottom:8px;width:108px;height:229px;border:4px solid #243748;border-radius:19px;overflow:hidden;background:#edf2f6;box-shadow:0 5px 20px #172b3d2a}.phone-thumb iframe{width:390px;height:850px;transform:scale(.257)}.card-actions{padding:17px;display:flex;gap:8px}.card-actions button{flex:1;background:#fff;border:1px solid var(--line);padding:11px;border-radius:10px;color:var(--accent);font-size:12px;font-weight:600}.card-actions button:last-child{background:var(--ink);color:white;border-color:var(--ink)}.comparison-bar{min-height:42px;height:42px;padding:4px 20px}.comparison-bar button,.comparison-bar select{padding:5px 8px}.device-controls{display:flex;gap:4px}.device-controls button.selected{background:#ffffff30}.app{max-width:1240px;padding:0 40px 95px;min-height:calc(100dvh - 42px)}.app-header{position:sticky;top:42px;z-index:16;height:52px;padding:0;gap:16px;border-bottom:1px solid #cbd9e580;background:#edf3f7e6;backdrop-filter:blur(24px);box-shadow:0 0 0 1px #edf3f766}.brand{font-size:12px}.mark{height:26px;width:26px;border-radius:8px;font-size:12px}.header-date{display:flex;align-items:baseline;gap:8px;margin-right:auto;padding:10px 4px}.header-date strong{font-size:13px}.header-date span{font-size:10px;color:var(--muted)}.icon-btn{width:30px;height:30px;border-radius:10px;font-size:16px;background:#ffffff90}.scoreline{gap:6px;font-size:10px}.scoreline span{background:#ffffffa0;border:1px solid #ffffffc0;padding:4px 7px;border-radius:20px}.overview-tools{display:flex;justify-content:space-between;align-items:center;margin:28px 0 22px}.overview-tools h1{font-size:29px;letter-spacing:-1.1px;font-weight:600;margin-top:7px}.eyebrow{font-size:9px;letter-spacing:.14em}.round-add{border:1px solid white;background:#ffffffc0;box-shadow:0 3px 8px #20334608;border-radius:50%;width:40px;height:40px;font-size:23px;color:var(--accent)}.searchbox{min-height:40px!important;background:#ffffff80;border-color:#ffffffd0;margin:0 0 18px;border-radius:12px}.mosaic+.searchbox{margin-top:18px}.mosaic{grid-template-columns:1fr 1fr;gap:16px}.tile,.tile[data-key="todo"],.tile[data-key="habits"]{min-height:0;display:flex;flex-direction:column;background:#ffffffa8;color:var(--ink);border:1px solid #fffffff0;backdrop-filter:blur(22px);border-radius:22px;padding:19px;box-shadow:0 8px 24px #294b6407;overflow:hidden}.tile[data-key="todo"]{background:linear-gradient(135deg,#dfedf7c9,#f4f9fcdd)}.tile[data-key="todo"] .tile-icon{color:var(--accent)}.tile-top{flex:none;align-items:center}.tile-top>button:first-child{display:flex;align-items:center;gap:9px;flex:1;text-align:left;font-size:13px;font-weight:650;min-width:0}.tile-count{font-size:10px;color:var(--muted);font-weight:500;margin-left:auto}.open-section{font-size:14px;color:var(--muted);padding:6px}.tile-icon{font-size:16px}.tile-items{width:100%;margin:12px 0 6px;flex:1}.preview-row{display:flex;align-items:center;gap:10px;min-height:58px;width:100%;border-bottom:1px solid #cbd8e46b;text-align:left;padding:9px 0}.preview-row:last-child{border-bottom:0}.preview-row .check{width:20px;height:20px}.item-text{flex:1;min-width:0;text-align:left;padding:0}.item-text b{font-size:12px;font-weight:550;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.6}.item-text small{font-size:10px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.7}.note-dot{width:4px;height:25px;border-radius:3px;background:#82a5bd;flex:none}.row-arrow{font-size:12px;color:#8ba2b3}.tile-footer{width:100%;font-size:10px;text-align:left;color:var(--accent);padding:12px 0 0;margin-top:auto;border-top:1px solid #cbd8e46b}.session-preview{display:flex;width:100%;gap:16px;margin:15px 0}.session-preview button{text-align:left;flex:1;min-width:0}.session-preview small{display:block;font-size:9px;letter-spacing:.08em;color:var(--accent)}.session-preview b{display:block;font-size:12px;margin:6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.session-preview span{font-size:10px;color:var(--muted)}.habit-preview{display:flex;gap:8px;width:100%;padding:18px 0;flex:1}.habit-preview button{flex:1;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:9px;line-height:1.4}.habit-preview button>span{display:grid;place-items:center;font-size:18px;width:33px;height:33px;border:1px solid #c3d2de;border-radius:12px}.habit-preview .checked>span{border:1.5px solid #4e9878;background:#f4fbf7;color:#398665}.nav{width:min(530px,calc(100% - 28px));border-radius:19px;padding:5px;bottom:16px}.nav button{font-size:10px;min-height:44px}.nav span{font-size:18px}.page-head{margin-top:25px}.inline-capture{display:flex;gap:8px;margin-top:16px}.inline-capture input{background:#ffffffb0}.tile:hover{transform:translateY(-1px)}
@@ -820,46 +820,75 @@ body.is-dragging .wg-cell.slot{transition:background .12s}
 .wg-row.today .wg-day em{background:#fff;color:var(--blue);font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;margin-top:4px}
 .wg-hide{margin:-8px 0 18px}
 
-/* ---------- To Do page v2 ---------- */
-.td{padding:6px 0 24px}
-.td{max-width:100%;overflow-x:clip}
-.td .td-add{display:flex!important;flex-direction:row!important;grid-template-columns:none!important;height:auto!important;align-items:center;gap:6px;background:#fff;border:1px solid #E3E6EA;border-radius:12px;padding:4px 4px 4px 14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.td-add:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--b50)}
-.td-add textarea,.td-add input{flex:1 1 auto;width:auto!important;height:auto!important;min-width:0;border:0!important;outline:0;background:none!important;font-weight:500;font-size:15px;line-height:1.35;font-family:inherit;padding:9px 0!important;resize:none;box-shadow:none!important;min-height:0!important;color:#1B1B1B}
-.td-add select{flex:none;width:auto!important;margin:0!important;border:0;background:#F2F4F7;border-radius:8px;font-weight:600;font-size:12px;font-family:inherit;color:#3D4650;padding:7px 8px;height:32px;-webkit-appearance:none;appearance:none}
-.td-add .qf-add{flex:none;width:32px!important;height:32px!important;min-height:0!important;border-radius:8px!important;padding:0!important;display:grid;place-items:center;background:var(--navy)!important;box-shadow:none!important}
-.td-add .qf-add svg{width:16px;height:16px}
-.td-filters{display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none;margin:12px 0 4px;padding:0 0 2px}
-.td-filters::-webkit-scrollbar{display:none}
-.td-chip{flex:none;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:100px;border:1px solid #DDE1E6;background:#fff;font-weight:600;font-size:13px;font-family:inherit;color:#3D4650;white-space:nowrap;box-shadow:none!important;min-height:0!important}
-.td-chip span{font-weight:600;font-size:11px;color:#8A939C}
-.td-chip.on{background:var(--navy);border-color:var(--navy);color:#fff}.td-chip.on span{color:#B9CDE6}
-.td-v-overdue:not(.on){color:#B42318;border-color:#F3C9C4}.td-v-overdue:not(.on) span{color:#D9776C}
-.td-div{flex:none;width:1px;height:18px;background:#DDE1E6;margin:0 2px}
-.td-group{margin-top:18px}
-.td-h{display:flex;align-items:baseline;gap:7px;margin:0 2px 7px;font-weight:700;font-size:12px;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;color:#5D6772!important}
-.td-h span{font-weight:600;letter-spacing:0;color:#9AA2AB}
-.td-overdue .td-h{color:#B42318!important}
-.td-list{background:#fff;border:1px solid #E6E8EB;border-radius:12px;overflow:hidden}
-.td-row{display:flex;align-items:center;gap:12px;padding:0 12px 0 14px;min-height:52px;border-top:1px solid #EFF1F3;background:#fff}
-.td-row:first-child{border-top:0}
-.td-check{flex:none;width:22px!important;height:22px!important;min-height:0!important;border-radius:50%!important;border:1.6px solid #A9B1BA!important;background:#fff!important;padding:0!important;display:grid;place-items:center;font-size:12px;color:#fff!important;box-shadow:none!important}
-.td-row:not(.done) .td-check:active{background:var(--b50)!important;border-color:var(--blue)!important}
-.td-check.on{background:var(--blue)!important;border-color:var(--blue)!important}
-.td-copy{flex:1;min-width:0;text-align:left;padding:10px 0!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;display:block}
-.td-copy b{display:block;font-weight:500;font-size:15px;line-height:1.3;font-family:inherit;color:#1B1B1B;overflow-wrap:anywhere}
-.td-copy b .tb{margin-right:6px;vertical-align:1px}
-.td-copy small{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:3px;font-size:12px;color:#7A838C}
-.td-sep{color:#C3C9CF}
-.td-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
-.td-dot.td-w{background:#005CBC}.td-dot.td-p{background:#8B95A0}
-.td-overdue .td-copy small span:last-child,.td-overdue .td-copy small{color:#B42318}
-.td-overdue .td-copy small .td-sep{color:#E8B4AE}
-.td-row.done .td-copy b{color:#9AA2AB;text-decoration:line-through}
-.td-none{margin:0;padding:14px;border:1px dashed #DDE1E6;border-radius:12px;font-size:13px;color:#8A939C;text-align:center}
-.td-donebtn{display:inline-flex;gap:6px;margin:22px 2px 8px;padding:0!important;background:none!important;border:0!important;box-shadow:none!important;min-height:0!important;font-weight:600;font-size:13px;font-family:inherit;color:var(--blue)}
-.td-donebtn span{color:#9AA2AB}
-.td-row.drag-over,.td-group.drag-over .td-list{outline:2px solid var(--b100)}
+/* ---------- To Do page v3: Today + triage deck ---------- */
+.td3{--w:#005CBC;--p:#C2410C;padding:4px 0 28px;max-width:100%;overflow-x:clip;font-family:Inter,-apple-system,system-ui,sans-serif}
+.td3 button{font-family:inherit;box-shadow:none!important;min-height:0!important}
+.td3-hero{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 2px 14px}
+.td3-eyebrow{display:block;font-size:13px;font-weight:600;color:#7A838C;letter-spacing:.01em}
+.td3-hero h2{margin:2px 0 0;font-size:31px;line-height:1.08;font-weight:800;letter-spacing:-.025em;color:#0E1B2C!important}
+.td3-ring{--p:0;flex:none;width:54px;height:54px;border-radius:50%;background:conic-gradient(var(--navy) calc(var(--p)*1%),#E3E7EC 0);display:grid;place-items:center}
+.td3-ring span{width:44px;height:44px;border-radius:50%;background:var(--bg,#F3F5F9);display:grid;place-items:center;font-size:15px;font-weight:800;color:#0E1B2C;line-height:1}
+.td3-ring small{font-size:10px;font-weight:600;color:#8A939C}
+.td3-ring span{display:flex;align-items:center;justify-content:center}
+.td3-seg{display:flex;background:#E7EBF0;border-radius:10px;padding:3px;margin-bottom:12px}
+.td3-seg button{flex:1;height:30px;border:0!important;border-radius:8px!important;background:none!important;font-size:13px;font-weight:600;color:#5D6772;padding:0!important}
+.td3-seg button.on{background:#fff!important;color:#0E1B2C;box-shadow:0 1px 3px rgba(16,24,40,.12)!important}
+.td3-add{display:flex;align-items:center;gap:10px;height:48px;padding:0 6px 0 14px;background:#fff;border-radius:12px;border:1px solid #E3E6EA}
+.td3-add:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--b50)}
+.td3-plus{font-size:22px;font-weight:300;color:var(--blue);line-height:1}
+.td3-add input{flex:1;min-width:0;border:0!important;outline:0;background:none!important;font:inherit;font-size:15px;color:#1B1B1B;padding:0!important;height:auto!important;box-shadow:none!important}
+.td3-add input::placeholder{color:#9AA2AB}
+.td3-cat{flex:none;height:30px;padding:0 10px!important;border-radius:8px!important;border:0!important;font-size:12px;font-weight:700}
+.td3-cat.c-w{background:#E8F0FB!important;color:var(--w)}.td3-cat.c-p{background:#FDEEE6!important;color:var(--p)}
+.td3-list{list-style:none;margin:10px 0 0;padding:0}
+.td3-row{display:flex;align-items:flex-start;gap:12px;padding:11px 2px;border-bottom:1px solid #E6E9ED;position:relative}
+.td3-row.c-w .td3-c{color:var(--w)}.td3-row.c-p .td3-c{color:var(--p)}
+.td3-check{flex:none;width:24px!important;height:24px!important;margin-top:-1px;border-radius:50%!important;border:1.8px solid #B4BCC5!important;background:transparent!important;padding:0!important;display:grid;place-items:center;transition:.15s}
+.td3-check svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.td3-check.on{background:var(--navy)!important;border-color:var(--navy)!important}.td3-check.on svg{opacity:1}
+.td3-copy{flex:1;min-width:0;text-align:left;padding:0!important;border:0!important;background:none!important;display:block}
+.td3-copy>span:first-child{display:block;font-size:16px;line-height:1.35;font-weight:500;color:#14202E;overflow-wrap:anywhere}
+.td3-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.td3-tags em{font-style:normal;font-size:11.5px;font-weight:600;color:#7A838C}
+.td3-tags .td3-late{color:#B42318}.td3-tags .td3-p{color:#B42318;font-weight:800}.td3-tags .td3-w{color:#6941C6}
+.td3-row.done .td3-copy>span:first-child{color:#A3ABB4;text-decoration:line-through;text-decoration-color:#C3C9CF}
+.td3-row.done .td3-tags{opacity:.5}
+.td3-empty{margin:14px 2px 0;font-size:14px;color:#8A939C}.td3-empty.sm{font-size:13px;margin-top:10px}
+.td3-sec{margin-top:30px}
+.td3-sec h3,.td3-fold>button{display:flex;align-items:baseline;gap:8px;margin:0 2px 10px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#3D4650!important}
+.td3-sec h3 span{font-size:12px;font-weight:500;letter-spacing:0;text-transform:none;color:#8A939C}
+.td3-deck{position:relative;padding-bottom:0}
+.td3-deck.stack{padding-bottom:8px}.td3-deck.stack2{padding-bottom:16px}
+.td3-deck.stack::before,.td3-deck.stack2::after{content:"";position:absolute;left:10px;right:10px;bottom:8px;height:30px;border-radius:16px;background:#fff;border:1px solid #E3E6EA;z-index:0}
+.td3-deck.stack2::after{left:20px;right:20px;bottom:0;background:#FAFBFC}
+.td3-deck.stack2::before{bottom:8px}
+.td3-card{position:relative;z-index:1;background:#fff;border-radius:16px;border:1px solid #E3E6EA;box-shadow:0 10px 24px -14px rgba(16,24,40,.35);padding:16px 16px 12px;transition:transform .16s ease;touch-action:pan-y}
+.td3-card.go-r{box-shadow:inset 0 0 0 2px #2E9E4A,0 10px 24px -14px rgba(16,24,40,.35)}.td3-card.go-l{box-shadow:inset 0 0 0 2px #C3C9CF}
+.td3-card-cat{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.td3-card.c-w .td3-card-cat{color:var(--w)}.td3-card.c-p .td3-card-cat{color:var(--p)}
+.td3-card p{margin:6px 0 14px;font-size:19px;line-height:1.3;font-weight:650;letter-spacing:-.01em;color:#0E1B2C}
+.td3-when{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.td3-when button{height:38px;border-radius:10px!important;border:1px solid #DDE1E6!important;background:#F7F8FA!important;font-size:13px;font-weight:600;color:#1B2733;padding:0!important}
+.td3-when button:first-child{background:var(--navy)!important;border-color:var(--navy)!important;color:#fff}
+.td3-when button:active{transform:scale(.97)}
+.td3-card-foot{display:flex;gap:4px;margin-top:10px;border-top:1px solid #EFF1F3;padding-top:8px}
+.td3-card-foot button{height:32px;padding:0 10px!important;border:0!important;background:none!important;font-size:13px;font-weight:600;color:#5D6772;border-radius:8px!important}
+.td3-card-foot .td3-donebtn{margin-left:auto;color:#1E7B34}
+.td3-hint{margin:8px 2px 0;font-size:11.5px;color:#9AA2AB;text-align:center}
+.td3-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.td3-week button{height:62px;border-radius:12px!important;border:1px solid transparent!important;background:#fff!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0!important;color:#3D4650}
+.td3-week small{font-size:10.5px;font-weight:600;color:#8A939C}
+.td3-week b{font-size:17px;font-weight:700;color:#14202E}
+.td3-week i{font-style:normal;font-size:10px;line-height:1;height:10px;letter-spacing:1px;color:var(--blue)}
+.td3-week button.on{background:var(--navy)!important}.td3-week button.on b,.td3-week button.on small,.td3-week button.on i{color:#fff}
+.td3-week button.drag-over{border-color:var(--blue)!important}
+.td3-sub{margin-top:6px}
+.td3-more{margin:10px 2px 0;font-size:12.5px;color:#8A939C}
+.td3-fold{margin-top:18px;border-top:1px solid #E3E6EA;padding-top:4px}
+.td3-fold>button{width:100%;margin:0!important;padding:12px 2px!important;border:0!important;background:none!important;text-align:left}
+.td3-fold>button span{font-size:12px;font-weight:600;letter-spacing:0;color:#8A939C}
+.td3-fold>button svg{margin-left:auto;width:16px;height:16px;fill:none;stroke:#9AA2AB;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.td3-fold>button[aria-expanded="true"] svg{transform:rotate(90deg)}
 body[data-page="todo"] .page-head{display:none}
 </style>
 <script id="wire-js">
@@ -2461,66 +2490,125 @@ runCommand = function (raw, opt = {}) {
   return out;
 };
 
-// To Do page (v2): one add field, one filter row, grouped inset list
+// To Do page (v3): Today list + triage deck + 7-day strip. Saved views kept for Home/search.
 const VIEWS = {
   overdue: ['Overdue', t => t.date && t.date < today],
   priority: ['Priority', t => prio(t) > 0],
   waiting: ['Waiting', t => isWait(t)]
 };
-const TD_CATS = ['all', 'Work', 'Personal'];
-function tdWhen(t, showDate) {
-  const bits = [];
-  if (showDate && t.date) { const n = Math.round((date(t.date) - date(today)) / 864e5); bits.push(n >= -6 && n <= 6 ? fmt(t.date, { weekday: 'short' }) : fmt(t.date, { month: 'short', day: 'numeric' })); }
-  if (t.time) bits.push(t.time);
-  if (t.repeat && t.repeat !== 'none') bits.push('↻ ' + t.repeat);
-  return bits.join(' · ');
-}
-function tdRow(t, o = {}) {
-  const meta = [];
-  if (taskFilter === 'all' || VIEWS[taskFilter]) meta.push(`<i class="td-dot td-${t.category === 'Work' ? 'w' : 'p'}"></i>${esc(t.category || 'Personal')}`);
-  const when = tdWhen(t, o.date); if (when) meta.push(esc(when));
-  const badges = (prio(t) ? `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>` : '') + (isWait(t) ? '<span class="tb tb-w">Waiting</span>' : '');
-  return `<div class="td-row${t.done ? ' done' : ''}${isWait(t) ? ' is-wait' : ''}"${t.done ? '' : ` data-swipe="${t.id}"`} draggable="true" data-task-id="${t.id}">`
-    + `<button class="check td-check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button>`
-    + `<button class="td-copy" data-act="task-edit" data-id="${t.id}"><b>${badges}${esc(t.title)}</b>${meta.length ? `<small>${meta.join('<span class="td-sep">·</span>')}</small>` : ''}</button></div>`;
+let tdDay = '', tdOpen = { someday: false, waiting: false, done: false }, tdSkip = [];
+const tdCat = t => taskFilter === 'Work' ? t.category === 'Work' : taskFilter === 'Personal' ? t.category !== 'Work' : true;
+const tdLate = d => Math.round((date(today) - date(d)) / 864e5);
+const tdSat = () => { const d = date(today), n = (6 - d.getDay() + 7) % 7 || 7; return add(today, n); };
+const tdMon = () => { const d = date(today), n = (8 - d.getDay()) % 7 || 7; return add(today, n); };
+function tdLine(t, o = {}) {
+  const tags = [];
+  if (taskFilter === 'all') tags.push(`<em class="td3-c">${t.category === 'Work' ? 'Work' : 'Personal'}</em>`);
+  if (o.late && t.date < today) tags.push(`<em class="td3-late">${tdLate(t.date)}d late</em>`);
+  if (prio(t)) tags.push(`<em class="td3-p">${prio(t) === 1 ? '!!' : '!'}</em>`);
+  if (isWait(t)) tags.push('<em class="td3-w">waiting</em>');
+  if (t.time) tags.push(`<em class="td3-t">${esc(t.time)}</em>`);
+  if (o.showDate && t.date) tags.push(`<em class="td3-t">${fmt(t.date, { weekday: 'short', month: 'short', day: 'numeric' })}</em>`);
+  return `<li class="td3-row${t.done ? ' done' : ''} c-${t.category === 'Work' ? 'w' : 'p'}"${t.done ? '' : ` data-swipe="${t.id}"`} draggable="true" data-task-id="${t.id}">`
+    + `<button class="check td3-check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`
+    + `<button class="td3-copy" data-act="task-edit" data-id="${t.id}"><span>${esc(t.title)}</span>${tags.length ? `<span class="td3-tags">${tags.join('')}</span>` : ''}</button></li>`;
 }
 const tdSort = (a, b) => (prio(a) || 9) - (prio(b) || 9) || (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99');
-function tdGroup(key, label, list, dropDate, o = {}) {
-  if (!list.length && !o.always) return '';
-  return `<section class="td-group td-${key}" data-drop-date="${dropDate}"><h3 class="td-h">${label}<span>${list.length}</span></h3>`
-    + (list.length ? `<div class="td-list">${list.sort(tdSort).map(t => tdRow(t, o)).join('')}</div>` : `<p class="td-none">${o.none || 'Nothing here.'}</p>`) + '</section>';
-}
 todoView = function () {
-  if (!TD_CATS.includes(taskFilter) && !VIEWS[taskFilter]) taskFilter = 'all';
-  const open = data.tasks.filter(t => !t.done), inCat = t => !TD_CATS.includes(taskFilter) || taskFilter === 'all' || t.category === taskFilter;
-  const n = f => f === 'all' ? open.length : TD_CATS.includes(f) ? open.filter(t => t.category === f).length : open.filter(VIEWS[f][1]).length;
-  const chip = (f, l, cls = '') => `<button data-act="task-filter" data-filter="${f}" class="td-chip${cls}${taskFilter === f ? ' on' : ''}">${l}<span>${n(f)}</span></button>`;
-  const defCat = taskFilter === 'Work' ? 'Work' : 'Personal';
-  let h = `<form class="td-add" id="quick-task"><input name="title" aria-label="New to-do" placeholder="Add a to-do" maxlength="160" autocomplete="off" required>`
-    + `<select name="category" aria-label="Category"><option${defCat === 'Personal' ? ' selected' : ''}>Personal</option><option${defCat === 'Work' ? ' selected' : ''}>Work</option></select></form>`
-    + `<div class="td-filters">${TD_CATS.map(f => chip(f, f === 'all' ? 'All' : f)).join('')}<i class="td-div"></i>${Object.keys(VIEWS).filter(k => n(k)).map(k => chip(k, VIEWS[k][0], ' td-v td-v-' + k)).join('')}</div>`;
-  if (VIEWS[taskFilter]) {
-    h += tdGroup('view', VIEWS[taskFilter][0], open.filter(VIEWS[taskFilter][1]), '', { always: true, date: true, none: 'Nothing left in this view.' });
-  } else {
-    const list = open.filter(inCat), tom = add(today, 1);
-    const g = [
-      tdGroup('overdue', 'Overdue', list.filter(t => t.date && t.date < today), today, { date: true }),
-      tdGroup('today', 'Today', list.filter(t => t.date === today), today, { always: true, none: list.length ? 'Nothing due today.' : 'All clear.' }),
-      tdGroup('tomorrow', 'Tomorrow', list.filter(t => t.date === tom), tom),
-      tdGroup('later', 'Later', list.filter(t => t.date > tom), add(today, 2), { date: true }),
-      tdGroup('nodate', 'No date', list.filter(t => !t.date), '')
-    ];
-    h += g.join('');
+  if (!['all', 'Work', 'Personal'].includes(taskFilter)) taskFilter = 'all';
+  const open = data.tasks.filter(t => !t.done && tdCat(t));
+  const todayList = open.filter(t => t.date && t.date <= today && !t.someday).sort((a, b) => ((b.date < today) - (a.date < today)) || tdSort(a, b));
+  const doneToday = data.tasks.filter(t => t.done && tdCat(t) && (t.doneAt ? day(new Date(t.doneAt)) === today : t.date === today));
+  const deck = open.filter(t => !t.date && !t.someday).sort((a, b) => tdSkip.indexOf(a.id) - tdSkip.indexOf(b.id));
+  const someday = open.filter(t => t.someday), waiting = open.filter(t => isWait(t));
+  const total = todayList.length + doneToday.length, pct = total ? Math.round(doneToday.length / total * 100) : 100;
+  const left = todayList.length;
+  const seg = ['all', 'Work', 'Personal'].map(f => `<button data-act="task-filter" data-filter="${f}" class="${taskFilter === f ? 'on' : ''}">${f === 'all' ? 'All' : f}</button>`).join('');
+  let h = `<header class="td3-hero"><div><span class="td3-eyebrow">${fmt(today, { weekday: 'long', month: 'long', day: 'numeric' })}</span>`
+    + `<h2>${left ? `${left} left today` : total ? 'Today’s done.' : 'Clear day.'}</h2></div>`
+    + `<div class="td3-ring" style="--p:${pct}" aria-label="${doneToday.length} of ${total} done"><span>${doneToday.length}<small>/${total}</small></span></div></header>`
+    + `<div class="td3-seg" role="tablist">${seg}</div>`
+    + `<form class="td3-add" id="td3-add" autocomplete="off"><span class="td3-plus">+</span><input name="t" placeholder="Add to today…" maxlength="160" aria-label="New to-do"><button type="button" class="td3-cat c-${(tdAddCat()) === 'Work' ? 'w' : 'p'}" data-td="cat">${tdAddCat()}</button></form>`;
+  h += `<ul class="td3-list">${todayList.map(t => tdLine(t, { late: true })).join('')}${doneToday.map(t => tdLine(t)).join('')}</ul>`;
+  if (!todayList.length && !doneToday.length) h += `<p class="td3-empty">Nothing on today. Pull something in from the deck below.</p>`;
+  if (deck.length) {
+    const t = deck[0];
+    h += `<section class="td3-sec"><h3>Triage <span>${deck.length} without a date</span></h3>`
+      + `<div class="td3-deck${deck.length > 1 ? ' stack' : ''}${deck.length > 2 ? ' stack2' : ''}"><article class="td3-card c-${t.category === 'Work' ? 'w' : 'p'}" data-deck="${t.id}">`
+      + `<span class="td3-card-cat">${esc(t.category || 'Personal')}${isWait(t) ? ' · waiting' : ''}</span><p>${esc(t.title)}</p>`
+      + `<div class="td3-when">${[['today', 'Today'], ['tomorrow', 'Tomorrow'], ['weekend', 'Weekend'], ['nextweek', 'Next week'], ['someday', 'Someday']].map(([k, l]) => `<button data-td="when" data-v="${k}" data-id="${t.id}">${l}</button>`).join('')}</div>`
+      + `<div class="td3-card-foot"><button data-td="skip" data-id="${t.id}">Skip</button><button data-act="task-edit" data-id="${t.id}">Edit</button><button class="td3-donebtn" data-td="done" data-id="${t.id}">Done ✓</button></div>`
+      + `</article></div><p class="td3-hint">Swipe right for today, left to skip.</p></section>`;
   }
-  const doneList = data.tasks.filter(t => t.done && inCat(t)).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
-  if (doneList.length) h += `<button class="td-donebtn" data-act="done-toggle">${showDone ? 'Hide' : 'Show'} completed <span>${doneList.length}</span></button>`
-    + (showDone ? `<div class="td-list td-donelist">${doneList.slice(0, 50).map(t => tdRow(t, { date: true })).join('')}</div>` : '');
-  return `<div class="td">${h}</div>`;
+  // next 7 days
+  const days = Array.from({ length: 7 }, (_, i) => add(today, i + 1));
+  if (!days.includes(tdDay)) tdDay = '';
+  h += `<section class="td3-sec"><h3>Next 7 days</h3><div class="td3-week">${days.map(d => { const n = open.filter(t => t.date === d).length; return `<button data-td="day" data-v="${d}" class="${tdDay === d ? 'on' : ''}${n ? ' has' : ''}" data-drop-date="${d}"><small>${fmt(d, { weekday: 'narrow' })}</small><b>${date(d).getDate()}</b><i>${n ? '•'.repeat(Math.min(n, 3)) : ''}</i></button>`; }).join('')}</div>`;
+  const shown = tdDay ? open.filter(t => t.date === tdDay) : open.filter(t => t.date > today && t.date <= days[6]);
+  h += shown.length ? `<ul class="td3-list td3-sub">${shown.sort(tdSort).map(t => tdLine(t, { showDate: !tdDay })).join('')}</ul>` : `<p class="td3-empty sm">${tdDay ? 'Nothing on ' + fmt(tdDay, { weekday: 'long' }) + '.' : 'Nothing scheduled this week.'}</p>`;
+  const later = open.filter(t => t.date > days[6]).length;
+  if (later) h += `<p class="td3-more">+ ${later} further out</p>`;
+  h += `</section>`;
+  const fold = (k, label, list, o) => list.length ? `<section class="td3-fold"><button data-td="fold" data-v="${k}" aria-expanded="${tdOpen[k]}">${label}<span>${list.length}</span><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>${tdOpen[k] ? `<ul class="td3-list td3-sub">${list.sort(tdSort).map(t => tdLine(t, o)).join('')}</ul>` : ''}</section>` : '';
+  h += fold('waiting', 'Waiting on', waiting, { showDate: true }) + fold('someday', 'Someday', someday, {});
+  const olderDone = data.tasks.filter(t => t.done && tdCat(t) && !doneToday.includes(t)).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 30);
+  h += fold('done', 'Completed', olderDone, { showDate: true });
+  return `<div class="td3">${h}</div>`;
 };
+function tdAddCat() { try { return ls.get('2b-tdcat') || (taskFilter === 'Work' ? 'Work' : 'Personal'); } catch (e) { return 'Personal'; } }
+function tdWhen(id, v) {
+  const t = data.tasks.find(x => x.id === id); if (!t) return;
+  const prev = { date: t.date, someday: t.someday };
+  if (v === 'someday') { t.someday = true; } else { delete t.someday; t.date = v === 'today' ? today : v === 'tomorrow' ? add(today, 1) : v === 'weekend' ? tdSat() : tdMon(); }
+  t.updated = new Date().toISOString(); save(); render();
+  actionToast(`Moved to ${v === 'nextweek' ? 'next week' : v}.`, 'Undo', () => { t.date = prev.date; if (prev.someday) t.someday = true; else delete t.someday; save(); render(); });
+}
+function tdParse(raw) {
+  let s = raw.trim(), cat = tdAddCat(), d = today, someday = false;
+  s = s.replace(/^(w|work)\s*[:;]\s*/i, () => { cat = 'Work'; return ''; }).replace(/^(p|personal)\s*[:;]\s*/i, () => { cat = 'Personal'; return ''; });
+  const dows = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  s = s.replace(/\s+(today|tonight|tomorrow|tmrw|someday|later|weekend|next week|(sun|mon|tue|wed|thu|fri|sat)[a-z]*)$/i, (m, w) => {
+    w = w.toLowerCase();
+    if (w === 'tomorrow' || w === 'tmrw') d = add(today, 1);
+    else if (w === 'someday' || w === 'later') { someday = true; d = ''; }
+    else if (w === 'weekend') d = tdSat(); else if (w === 'next week') d = tdMon();
+    else if (w !== 'today' && w !== 'tonight') { const k = dows.indexOf(w.slice(0, 3)); const n = (k - date(today).getDay() + 7) % 7 || 7; d = add(today, n); }
+    return '';
+  });
+  return { title: s.trim(), category: cat, date: d, someday };
+}
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'td3-add') return; e.preventDefault(); e.stopPropagation();
+  const inp = e.target.querySelector('input'), v = tdParse(inp.value || ''); if (!v.title) return;
+  const t = { id: uid(), title: v.title, category: v.category, date: v.date, time: '', done: false, repeat: 'none', notes: '' }; if (v.someday) t.someday = true;
+  data.tasks.push(t); save(); render();
+  const ni = document.querySelector('#td3-add input'); if (ni) ni.focus();
+  if (v.date !== today) notify(v.someday ? 'Added to Someday.' : 'Added for ' + fmt(v.date, { weekday: 'long' }) + '.');
+}, true);
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-td]'); if (!b) return; e.preventDefault();
+  const k = b.dataset.td, id = b.dataset.id;
+  if (k === 'cat') { const n = tdAddCat() === 'Work' ? 'Personal' : 'Work'; try { ls.set('2b-tdcat', n); } catch (x) {} b.textContent = n; b.className = 'td3-cat c-' + (n === 'Work' ? 'w' : 'p'); return; }
+  if (k === 'when') return tdWhen(id, b.dataset.v);
+  if (k === 'skip') { tdSkip = tdSkip.filter(x => x !== id).concat(id); render(); return; }
+  if (k === 'done') { toggleTask(id); return; }
+  if (k === 'day') { tdDay = tdDay === b.dataset.v ? '' : b.dataset.v; render(); return; }
+  if (k === 'fold') { tdOpen[b.dataset.v] = !tdOpen[b.dataset.v]; render(); return; }
+});
+(function deckSwipe() {
+  let s = null;
+  document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.td3-card'); if (!c || e.target.closest('button')) return; s = { c, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0 }; }, { passive: true });
+  document.addEventListener('touchmove', e => { if (!s) return; s.dx = e.touches[0].clientX - s.x; if (Math.abs(e.touches[0].clientY - s.y) > Math.abs(s.dx)) return; s.c.style.transform = `translateX(${s.dx}px) rotate(${s.dx / 25}deg)`; s.c.classList.toggle('go-r', s.dx > 70); s.c.classList.toggle('go-l', s.dx < -70); }, { passive: true });
+  document.addEventListener('touchend', () => { if (!s) return; const { c, dx } = s; s = null; const id = c.dataset.deck;
+    if (dx > 70) { c.style.transform = 'translateX(120%) rotate(12deg)'; setTimeout(() => tdWhen(id, 'today'), 160); }
+    else if (dx < -70) { c.style.transform = 'translateX(-120%) rotate(-12deg)'; setTimeout(() => { tdSkip = tdSkip.filter(x => x !== id).concat(id); render(); }, 160); }
+    else { c.style.transform = ''; c.classList.remove('go-r', 'go-l'); } });
+})();
 
 // Badges on every task row (To Do page, Home, desktop tile)
 function decorateTasks() {
   document.querySelectorAll('[data-act="task-edit"][data-id]:not(.text-btn)').forEach(b => {
+    if (b.closest('.td3')) return;
     const t = data.tasks.find(x => x.id === b.dataset.id); if (!t || b.querySelector('.tb')) return;
     const title = b.querySelector('b,.tt') || b; let h = '';
     if (prio(t)) h += `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>`;

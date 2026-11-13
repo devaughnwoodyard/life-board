@@ -1596,66 +1596,125 @@ runCommand = function (raw, opt = {}) {
   return out;
 };
 
-// To Do page (v2): one add field, one filter row, grouped inset list
+// To Do page (v3): Today list + triage deck + 7-day strip. Saved views kept for Home/search.
 const VIEWS = {
   overdue: ['Overdue', t => t.date && t.date < today],
   priority: ['Priority', t => prio(t) > 0],
   waiting: ['Waiting', t => isWait(t)]
 };
-const TD_CATS = ['all', 'Work', 'Personal'];
-function tdWhen(t, showDate) {
-  const bits = [];
-  if (showDate && t.date) { const n = Math.round((date(t.date) - date(today)) / 864e5); bits.push(n >= -6 && n <= 6 ? fmt(t.date, { weekday: 'short' }) : fmt(t.date, { month: 'short', day: 'numeric' })); }
-  if (t.time) bits.push(t.time);
-  if (t.repeat && t.repeat !== 'none') bits.push('↻ ' + t.repeat);
-  return bits.join(' · ');
-}
-function tdRow(t, o = {}) {
-  const meta = [];
-  if (taskFilter === 'all' || VIEWS[taskFilter]) meta.push(`<i class="td-dot td-${t.category === 'Work' ? 'w' : 'p'}"></i>${esc(t.category || 'Personal')}`);
-  const when = tdWhen(t, o.date); if (when) meta.push(esc(when));
-  const badges = (prio(t) ? `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>` : '') + (isWait(t) ? '<span class="tb tb-w">Waiting</span>' : '');
-  return `<div class="td-row${t.done ? ' done' : ''}${isWait(t) ? ' is-wait' : ''}"${t.done ? '' : ` data-swipe="${t.id}"`} draggable="true" data-task-id="${t.id}">`
-    + `<button class="check td-check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button>`
-    + `<button class="td-copy" data-act="task-edit" data-id="${t.id}"><b>${badges}${esc(t.title)}</b>${meta.length ? `<small>${meta.join('<span class="td-sep">·</span>')}</small>` : ''}</button></div>`;
+let tdDay = '', tdOpen = { someday: false, waiting: false, done: false }, tdSkip = [];
+const tdCat = t => taskFilter === 'Work' ? t.category === 'Work' : taskFilter === 'Personal' ? t.category !== 'Work' : true;
+const tdLate = d => Math.round((date(today) - date(d)) / 864e5);
+const tdSat = () => { const d = date(today), n = (6 - d.getDay() + 7) % 7 || 7; return add(today, n); };
+const tdMon = () => { const d = date(today), n = (8 - d.getDay()) % 7 || 7; return add(today, n); };
+function tdLine(t, o = {}) {
+  const tags = [];
+  if (taskFilter === 'all') tags.push(`<em class="td3-c">${t.category === 'Work' ? 'Work' : 'Personal'}</em>`);
+  if (o.late && t.date < today) tags.push(`<em class="td3-late">${tdLate(t.date)}d late</em>`);
+  if (prio(t)) tags.push(`<em class="td3-p">${prio(t) === 1 ? '!!' : '!'}</em>`);
+  if (isWait(t)) tags.push('<em class="td3-w">waiting</em>');
+  if (t.time) tags.push(`<em class="td3-t">${esc(t.time)}</em>`);
+  if (o.showDate && t.date) tags.push(`<em class="td3-t">${fmt(t.date, { weekday: 'short', month: 'short', day: 'numeric' })}</em>`);
+  return `<li class="td3-row${t.done ? ' done' : ''} c-${t.category === 'Work' ? 'w' : 'p'}"${t.done ? '' : ` data-swipe="${t.id}"`} draggable="true" data-task-id="${t.id}">`
+    + `<button class="check td3-check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`
+    + `<button class="td3-copy" data-act="task-edit" data-id="${t.id}"><span>${esc(t.title)}</span>${tags.length ? `<span class="td3-tags">${tags.join('')}</span>` : ''}</button></li>`;
 }
 const tdSort = (a, b) => (prio(a) || 9) - (prio(b) || 9) || (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99');
-function tdGroup(key, label, list, dropDate, o = {}) {
-  if (!list.length && !o.always) return '';
-  return `<section class="td-group td-${key}" data-drop-date="${dropDate}"><h3 class="td-h">${label}<span>${list.length}</span></h3>`
-    + (list.length ? `<div class="td-list">${list.sort(tdSort).map(t => tdRow(t, o)).join('')}</div>` : `<p class="td-none">${o.none || 'Nothing here.'}</p>`) + '</section>';
-}
 todoView = function () {
-  if (!TD_CATS.includes(taskFilter) && !VIEWS[taskFilter]) taskFilter = 'all';
-  const open = data.tasks.filter(t => !t.done), inCat = t => !TD_CATS.includes(taskFilter) || taskFilter === 'all' || t.category === taskFilter;
-  const n = f => f === 'all' ? open.length : TD_CATS.includes(f) ? open.filter(t => t.category === f).length : open.filter(VIEWS[f][1]).length;
-  const chip = (f, l, cls = '') => `<button data-act="task-filter" data-filter="${f}" class="td-chip${cls}${taskFilter === f ? ' on' : ''}">${l}<span>${n(f)}</span></button>`;
-  const defCat = taskFilter === 'Work' ? 'Work' : 'Personal';
-  let h = `<form class="td-add" id="quick-task"><input name="title" aria-label="New to-do" placeholder="Add a to-do" maxlength="160" autocomplete="off" required>`
-    + `<select name="category" aria-label="Category"><option${defCat === 'Personal' ? ' selected' : ''}>Personal</option><option${defCat === 'Work' ? ' selected' : ''}>Work</option></select></form>`
-    + `<div class="td-filters">${TD_CATS.map(f => chip(f, f === 'all' ? 'All' : f)).join('')}<i class="td-div"></i>${Object.keys(VIEWS).filter(k => n(k)).map(k => chip(k, VIEWS[k][0], ' td-v td-v-' + k)).join('')}</div>`;
-  if (VIEWS[taskFilter]) {
-    h += tdGroup('view', VIEWS[taskFilter][0], open.filter(VIEWS[taskFilter][1]), '', { always: true, date: true, none: 'Nothing left in this view.' });
-  } else {
-    const list = open.filter(inCat), tom = add(today, 1);
-    const g = [
-      tdGroup('overdue', 'Overdue', list.filter(t => t.date && t.date < today), today, { date: true }),
-      tdGroup('today', 'Today', list.filter(t => t.date === today), today, { always: true, none: list.length ? 'Nothing due today.' : 'All clear.' }),
-      tdGroup('tomorrow', 'Tomorrow', list.filter(t => t.date === tom), tom),
-      tdGroup('later', 'Later', list.filter(t => t.date > tom), add(today, 2), { date: true }),
-      tdGroup('nodate', 'No date', list.filter(t => !t.date), '')
-    ];
-    h += g.join('');
+  if (!['all', 'Work', 'Personal'].includes(taskFilter)) taskFilter = 'all';
+  const open = data.tasks.filter(t => !t.done && tdCat(t));
+  const todayList = open.filter(t => t.date && t.date <= today && !t.someday).sort((a, b) => ((b.date < today) - (a.date < today)) || tdSort(a, b));
+  const doneToday = data.tasks.filter(t => t.done && tdCat(t) && (t.doneAt ? day(new Date(t.doneAt)) === today : t.date === today));
+  const deck = open.filter(t => !t.date && !t.someday).sort((a, b) => tdSkip.indexOf(a.id) - tdSkip.indexOf(b.id));
+  const someday = open.filter(t => t.someday), waiting = open.filter(t => isWait(t));
+  const total = todayList.length + doneToday.length, pct = total ? Math.round(doneToday.length / total * 100) : 100;
+  const left = todayList.length;
+  const seg = ['all', 'Work', 'Personal'].map(f => `<button data-act="task-filter" data-filter="${f}" class="${taskFilter === f ? 'on' : ''}">${f === 'all' ? 'All' : f}</button>`).join('');
+  let h = `<header class="td3-hero"><div><span class="td3-eyebrow">${fmt(today, { weekday: 'long', month: 'long', day: 'numeric' })}</span>`
+    + `<h2>${left ? `${left} left today` : total ? 'Today’s done.' : 'Clear day.'}</h2></div>`
+    + `<div class="td3-ring" style="--p:${pct}" aria-label="${doneToday.length} of ${total} done"><span>${doneToday.length}<small>/${total}</small></span></div></header>`
+    + `<div class="td3-seg" role="tablist">${seg}</div>`
+    + `<form class="td3-add" id="td3-add" autocomplete="off"><span class="td3-plus">+</span><input name="t" placeholder="Add to today…" maxlength="160" aria-label="New to-do"><button type="button" class="td3-cat c-${(tdAddCat()) === 'Work' ? 'w' : 'p'}" data-td="cat">${tdAddCat()}</button></form>`;
+  h += `<ul class="td3-list">${todayList.map(t => tdLine(t, { late: true })).join('')}${doneToday.map(t => tdLine(t)).join('')}</ul>`;
+  if (!todayList.length && !doneToday.length) h += `<p class="td3-empty">Nothing on today. Pull something in from the deck below.</p>`;
+  if (deck.length) {
+    const t = deck[0];
+    h += `<section class="td3-sec"><h3>Triage <span>${deck.length} without a date</span></h3>`
+      + `<div class="td3-deck${deck.length > 1 ? ' stack' : ''}${deck.length > 2 ? ' stack2' : ''}"><article class="td3-card c-${t.category === 'Work' ? 'w' : 'p'}" data-deck="${t.id}">`
+      + `<span class="td3-card-cat">${esc(t.category || 'Personal')}${isWait(t) ? ' · waiting' : ''}</span><p>${esc(t.title)}</p>`
+      + `<div class="td3-when">${[['today', 'Today'], ['tomorrow', 'Tomorrow'], ['weekend', 'Weekend'], ['nextweek', 'Next week'], ['someday', 'Someday']].map(([k, l]) => `<button data-td="when" data-v="${k}" data-id="${t.id}">${l}</button>`).join('')}</div>`
+      + `<div class="td3-card-foot"><button data-td="skip" data-id="${t.id}">Skip</button><button data-act="task-edit" data-id="${t.id}">Edit</button><button class="td3-donebtn" data-td="done" data-id="${t.id}">Done ✓</button></div>`
+      + `</article></div><p class="td3-hint">Swipe right for today, left to skip.</p></section>`;
   }
-  const doneList = data.tasks.filter(t => t.done && inCat(t)).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0));
-  if (doneList.length) h += `<button class="td-donebtn" data-act="done-toggle">${showDone ? 'Hide' : 'Show'} completed <span>${doneList.length}</span></button>`
-    + (showDone ? `<div class="td-list td-donelist">${doneList.slice(0, 50).map(t => tdRow(t, { date: true })).join('')}</div>` : '');
-  return `<div class="td">${h}</div>`;
+  // next 7 days
+  const days = Array.from({ length: 7 }, (_, i) => add(today, i + 1));
+  if (!days.includes(tdDay)) tdDay = '';
+  h += `<section class="td3-sec"><h3>Next 7 days</h3><div class="td3-week">${days.map(d => { const n = open.filter(t => t.date === d).length; return `<button data-td="day" data-v="${d}" class="${tdDay === d ? 'on' : ''}${n ? ' has' : ''}" data-drop-date="${d}"><small>${fmt(d, { weekday: 'narrow' })}</small><b>${date(d).getDate()}</b><i>${n ? '•'.repeat(Math.min(n, 3)) : ''}</i></button>`; }).join('')}</div>`;
+  const shown = tdDay ? open.filter(t => t.date === tdDay) : open.filter(t => t.date > today && t.date <= days[6]);
+  h += shown.length ? `<ul class="td3-list td3-sub">${shown.sort(tdSort).map(t => tdLine(t, { showDate: !tdDay })).join('')}</ul>` : `<p class="td3-empty sm">${tdDay ? 'Nothing on ' + fmt(tdDay, { weekday: 'long' }) + '.' : 'Nothing scheduled this week.'}</p>`;
+  const later = open.filter(t => t.date > days[6]).length;
+  if (later) h += `<p class="td3-more">+ ${later} further out</p>`;
+  h += `</section>`;
+  const fold = (k, label, list, o) => list.length ? `<section class="td3-fold"><button data-td="fold" data-v="${k}" aria-expanded="${tdOpen[k]}">${label}<span>${list.length}</span><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>${tdOpen[k] ? `<ul class="td3-list td3-sub">${list.sort(tdSort).map(t => tdLine(t, o)).join('')}</ul>` : ''}</section>` : '';
+  h += fold('waiting', 'Waiting on', waiting, { showDate: true }) + fold('someday', 'Someday', someday, {});
+  const olderDone = data.tasks.filter(t => t.done && tdCat(t) && !doneToday.includes(t)).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 30);
+  h += fold('done', 'Completed', olderDone, { showDate: true });
+  return `<div class="td3">${h}</div>`;
 };
+function tdAddCat() { try { return ls.get('2b-tdcat') || (taskFilter === 'Work' ? 'Work' : 'Personal'); } catch (e) { return 'Personal'; } }
+function tdWhen(id, v) {
+  const t = data.tasks.find(x => x.id === id); if (!t) return;
+  const prev = { date: t.date, someday: t.someday };
+  if (v === 'someday') { t.someday = true; } else { delete t.someday; t.date = v === 'today' ? today : v === 'tomorrow' ? add(today, 1) : v === 'weekend' ? tdSat() : tdMon(); }
+  t.updated = new Date().toISOString(); save(); render();
+  actionToast(`Moved to ${v === 'nextweek' ? 'next week' : v}.`, 'Undo', () => { t.date = prev.date; if (prev.someday) t.someday = true; else delete t.someday; save(); render(); });
+}
+function tdParse(raw) {
+  let s = raw.trim(), cat = tdAddCat(), d = today, someday = false;
+  s = s.replace(/^(w|work)\s*[:;]\s*/i, () => { cat = 'Work'; return ''; }).replace(/^(p|personal)\s*[:;]\s*/i, () => { cat = 'Personal'; return ''; });
+  const dows = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  s = s.replace(/\s+(today|tonight|tomorrow|tmrw|someday|later|weekend|next week|(sun|mon|tue|wed|thu|fri|sat)[a-z]*)$/i, (m, w) => {
+    w = w.toLowerCase();
+    if (w === 'tomorrow' || w === 'tmrw') d = add(today, 1);
+    else if (w === 'someday' || w === 'later') { someday = true; d = ''; }
+    else if (w === 'weekend') d = tdSat(); else if (w === 'next week') d = tdMon();
+    else if (w !== 'today' && w !== 'tonight') { const k = dows.indexOf(w.slice(0, 3)); const n = (k - date(today).getDay() + 7) % 7 || 7; d = add(today, n); }
+    return '';
+  });
+  return { title: s.trim(), category: cat, date: d, someday };
+}
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'td3-add') return; e.preventDefault(); e.stopPropagation();
+  const inp = e.target.querySelector('input'), v = tdParse(inp.value || ''); if (!v.title) return;
+  const t = { id: uid(), title: v.title, category: v.category, date: v.date, time: '', done: false, repeat: 'none', notes: '' }; if (v.someday) t.someday = true;
+  data.tasks.push(t); save(); render();
+  const ni = document.querySelector('#td3-add input'); if (ni) ni.focus();
+  if (v.date !== today) notify(v.someday ? 'Added to Someday.' : 'Added for ' + fmt(v.date, { weekday: 'long' }) + '.');
+}, true);
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-td]'); if (!b) return; e.preventDefault();
+  const k = b.dataset.td, id = b.dataset.id;
+  if (k === 'cat') { const n = tdAddCat() === 'Work' ? 'Personal' : 'Work'; try { ls.set('2b-tdcat', n); } catch (x) {} b.textContent = n; b.className = 'td3-cat c-' + (n === 'Work' ? 'w' : 'p'); return; }
+  if (k === 'when') return tdWhen(id, b.dataset.v);
+  if (k === 'skip') { tdSkip = tdSkip.filter(x => x !== id).concat(id); render(); return; }
+  if (k === 'done') { toggleTask(id); return; }
+  if (k === 'day') { tdDay = tdDay === b.dataset.v ? '' : b.dataset.v; render(); return; }
+  if (k === 'fold') { tdOpen[b.dataset.v] = !tdOpen[b.dataset.v]; render(); return; }
+});
+(function deckSwipe() {
+  let s = null;
+  document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.td3-card'); if (!c || e.target.closest('button')) return; s = { c, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0 }; }, { passive: true });
+  document.addEventListener('touchmove', e => { if (!s) return; s.dx = e.touches[0].clientX - s.x; if (Math.abs(e.touches[0].clientY - s.y) > Math.abs(s.dx)) return; s.c.style.transform = `translateX(${s.dx}px) rotate(${s.dx / 25}deg)`; s.c.classList.toggle('go-r', s.dx > 70); s.c.classList.toggle('go-l', s.dx < -70); }, { passive: true });
+  document.addEventListener('touchend', () => { if (!s) return; const { c, dx } = s; s = null; const id = c.dataset.deck;
+    if (dx > 70) { c.style.transform = 'translateX(120%) rotate(12deg)'; setTimeout(() => tdWhen(id, 'today'), 160); }
+    else if (dx < -70) { c.style.transform = 'translateX(-120%) rotate(-12deg)'; setTimeout(() => { tdSkip = tdSkip.filter(x => x !== id).concat(id); render(); }, 160); }
+    else { c.style.transform = ''; c.classList.remove('go-r', 'go-l'); } });
+})();
 
 // Badges on every task row (To Do page, Home, desktop tile)
 function decorateTasks() {
   document.querySelectorAll('[data-act="task-edit"][data-id]:not(.text-btn)').forEach(b => {
+    if (b.closest('.td3')) return;
     const t = data.tasks.find(x => x.id === b.dataset.id); if (!t || b.querySelector('.tb')) return;
     const title = b.querySelector('b,.tt') || b; let h = '';
     if (prio(t)) h += `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>`;
