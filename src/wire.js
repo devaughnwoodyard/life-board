@@ -2071,36 +2071,39 @@ document.addEventListener('submit', e => {
 TABS.length = 0; TABS.push(['notes', 'Notes', 'notes'], ['workouts', 'Train', 'train']);
 let ntFilter = ls.get('2b-ntf', 'all'), ntOld = false, ntDone = false, ntTodo = false;
 const ntDueTxt = d => { const n = Math.round((date(d) - date(today)) / 864e5); return n < -1 ? `${-n} days late` : n === -1 ? 'Yesterday' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n < 7 ? fmt(d, { weekday: 'long' }) : fmt(d, { month: 'short', day: 'numeric' }); };
-function ntItems() {
-  const tasks = data.tasks.map(t => ({ k: 't', id: t.id, title: t.title, sub: String(t.notes || '').replace(/^Bail rule:.*$/m, '').trim(), todo: true, due: t.date || '', time: t.time || '', done: !!t.done, at: t.doneAt || parseInt(String(t.id).slice(0, 8), 36) || 0, tag: (isWait(t) ? 'waiting' : '') + (t.repeat && t.repeat !== 'none' ? ' ↻' : ''), pr: prio(t) }));
-  const notes = data.notes.filter(n => !isPhrase(n)).map(n => ({ k: 'n', id: n.id, title: n.title || 'Untitled', sub: plain(String(n.body || '').replace(/<(div|p|br|li)\b/gi, ' · <$1')).replace(/\s+/g, ' ').replace(/^[\s·]+/, '').trim(), todo: !!n.todo, due: n.due || '', time: '', done: !!n.todo && !!n.done, at: Date.parse(n.updated || n.entered || '') || 0, tag: n.folder && n.folder !== 'General' ? n.folder : '', pr: 0 }));
+const ntShort = d => { const n = Math.round((date(d) - date(today)) / 864e5); return n < 0 ? `${-n}d late` : n === 0 ? 'Today' : n === 1 ? 'Tmrw' : n < 7 ? fmt(d, { weekday: 'short' }) : fmt(d, { month: 'short', day: 'numeric' }); };
+const ntBody = n => plain(String(n.body || '').replace(/<(div|p|br|li)\b/gi, '\n<$1')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
+let ntAll = false;
+function ntTodos() {
+  const tasks = data.tasks.map(t => ({ k: 't', id: t.id, title: t.title, sub: String(t.notes || '').replace(/^Bail rule:.*$/m, '').trim(), cat: t.category === 'Work' ? 'Work' : 'Personal', due: t.date || '', time: t.time || '', done: !!t.done, at: t.doneAt || 0, pr: prio(t), wait: isWait(t) }));
+  const notes = data.notes.filter(n => n.todo && !isPhrase(n)).map(n => ({ k: 'n', id: n.id, title: n.title || 'Untitled', sub: ntBody(n), cat: n.tab === 'Work' ? 'Work' : 'Personal', due: n.due || '', time: '', done: !!n.done, at: Date.parse(n.updated || '') || 0, pr: 0, wait: false }));
   return tasks.concat(notes);
 }
-function ntRow(x) {
-  const late = x.todo && !x.done && x.due && x.due < today;
-  const lead = x.todo ? `<button class="nt-c${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`
-    : `<button class="nt-c nt-dash" data-nt="make" data-id="${x.id}" aria-label="Make ${esc(x.title)} a to-do"></button>`;
-  const meta = [];
-  if (x.todo && !x.done) meta.push(`<label class="nt-due${late ? ' late' : ''}${x.due ? '' : ' none'}">${x.due ? ntDueTxt(x.due) + (x.time ? ' · ' + hm12(x.time) : '') : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label>`);
-  if (x.pr) meta.push(`<em class="nt-p">${x.pr === 1 ? '!!' : '!'}</em>`);
-  if (x.tag) meta.push(`<em>${esc(x.tag)}</em>`);
-  if (x.todo && x.k === 'n' && !x.done) meta.push(`<button class="nt-un" data-nt="unmake" data-id="${x.id}">not a to-do</button>`);
-  return `<li class="nt-row${x.done ? ' done' : ''}${late ? ' late' : ''}"${x.k === 't' && !x.done ? ` data-swipe="${x.id}" data-task-id="${x.id}"` : ''}>${lead}<div class="nt-b"><button class="nt-t" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><b>${esc(x.title)}</b>${x.sub ? `<small>${esc(x.sub.slice(0, 110))}</small>` : ''}</button>${meta.length ? `<div class="nt-m">${meta.join('')}</div>` : ''}</div></li>`;
+function ntTodoTile(x) {
+  const late = !x.done && x.due && x.due < today;
+  return `<li class="nt-tile nt-todo${late ? ' late' : ''}${x.done ? ' done' : ''}${x.due === today && !x.done ? ' now' : ''}"${x.k === 't' && !x.done ? ` data-task-id="${x.id}" draggable="true"` : ''}>
+    <div class="nt-top"><button class="nt-cat c-${x.cat === 'Work' ? 'w' : 'p'}" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
+      <label class="nt-due${late ? ' late' : ''}${x.due ? '' : ' none'}">${x.due ? ntShort(x.due) : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label></div>
+    <button class="nt-body" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><b>${x.pr ? `<em>${x.pr === 1 ? '!! ' : '! '}</em>` : ''}${esc(x.title)}</b>${x.sub || x.time || x.wait ? `<small>${esc([x.time ? hm12(x.time) : '', x.wait ? 'waiting' : '', x.sub].filter(Boolean).join(' · '))}</small>` : ''}</button>
+    <button class="nt-c${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button></li>`;
+}
+function ntNoteTile(n) {
+  const body = ntBody(n);
+  return `<li class="nt-tile nt-note"><button class="nt-body" data-act="note-edit" data-id="${n.id}"><b>${esc(n.title || 'Untitled')}</b>${body ? `<small>${esc(body.slice(0, 160))}</small>` : ''}</button><button class="nt-c nt-dash" data-nt="make" data-id="${n.id}" aria-label="Make ${esc(n.title || 'this note')} a to-do"></button></li>`;
 }
 function ntList() {
-  const all = ntItems(), open = all.filter(x => !x.done);
-  const f = ntFilter === 'todo' ? open.filter(x => x.todo) : ntFilter === 'thought' ? open.filter(x => !x.todo) : open;
-  const late = f.filter(x => x.todo && x.due && x.due < today).sort((a, b) => a.due.localeCompare(b.due));
-  const now = f.filter(x => x.todo && x.due === today).sort((a, b) => (a.pr || 9) - (b.pr || 9) || (a.time || '99').localeCompare(b.time || '99'));
-  const rest = f.filter(x => !late.includes(x) && !now.includes(x)).sort((a, b) => b.at - a.at);
-  const done = all.filter(x => x.done).sort((a, b) => b.at - a.at);
-  const n = { all: open.length, todo: open.filter(x => x.todo).length, thought: open.filter(x => !x.todo).length };
-  const sec = (label, list, cls = '') => list.length ? `${label ? `<h3 class="nt-h ${cls}">${label}<span>${list.length}</span></h3>` : ''}<ul class="nt-list">${list.map(ntRow).join('')}</ul>` : '';
+  const notes = data.notes.filter(n => !n.todo && !isPhrase(n)).sort((a, b) => String(b.updated || b.entered || '').localeCompare(String(a.updated || a.entered || '')));
+  const todos = ntTodos(), open = todos.filter(x => !x.done), done = todos.filter(x => x.done).sort((a, b) => b.at - a.at);
+  open.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.pr || 9) - (b.pr || 9) || (a.time || '99').localeCompare(b.time || '99'));
+  const shown = ntAll ? notes : notes.slice(0, 6);
   return `<div class="nt"><form class="nt-add" id="nt-add" autocomplete="off"><button type="button" class="nt-c ${ntTodo ? '' : 'nt-dash'}" data-nt="mode" aria-pressed="${ntTodo}" aria-label="Save as a to-do"></button><textarea name="t" rows="1" placeholder="${ntTodo ? 'New to-do… (add “tomorrow” or “fri” for a date)' : 'Write a note…'}" maxlength="400" aria-label="New note"></textarea><button class="primary nt-go" type="submit" aria-label="Save">${svgI(CI.plus)}</button></form>
-    <div class="nt-f">${[['all', 'All'], ['todo', 'To-dos'], ['thought', 'Thoughts']].map(([k, l]) => `<button data-nt="filter" data-v="${k}" class="${ntFilter === k ? 'on' : ''}">${l}<span>${n[k]}</span></button>`).join('')}</div>
-    ${sec('Overdue', late, 'late')}${sec('Today', now)}${sec(late.length || now.length ? 'Everything else' : '', rest)}${f.length ? '' : `<p class="nt-empty">${ntFilter === 'todo' ? 'No open to-dos.' : 'Nothing here yet. Write the first one above.'}</p>`}
+    <h3 class="nt-h">Notes<span>${notes.length}</span></h3>
+    ${notes.length ? `<ul class="nt-grid">${shown.map(ntNoteTile).join('')}</ul>` : '<p class="nt-empty">No notes yet. Write one above.</p>'}
+    ${notes.length > 6 ? `<button class="nt-more" data-nt="all">${ntAll ? 'Show fewer notes' : `Open notes (${notes.length})`}</button>` : ''}
+    <h3 class="nt-h">To-dos<span>${open.length}</span></h3>
+    ${open.length ? `<ul class="nt-grid">${open.map(ntTodoTile).join('')}</ul>` : '<p class="nt-empty">No open to-dos.</p>'}
     <div class="nt-foot">${done.length ? `<button data-nt="done">${ntDone ? 'Hide' : 'Show'} completed (${done.length})</button>` : '<span></span>'}<button data-nt="old">Folders &amp; files ›</button></div>
-    ${ntDone ? `<ul class="nt-list">${done.slice(0, 40).map(ntRow).join('')}</ul>` : ''}</div>`;
+    ${ntDone ? `<ul class="nt-grid">${done.slice(0, 30).map(ntTodoTile).join('')}</ul>` : ''}</div>`;
 }
 const _renderS = render;
 render = function () {
@@ -2121,6 +2124,8 @@ document.addEventListener('click', e => {
   if (k === 'filter') { ntFilter = b.dataset.v; ls.set('2b-ntf', ntFilter); render(); return; }
   if (k === 'mode') { ntTodo = !ntTodo; const v = document.querySelector('#nt-add textarea').value; render(); const t = document.querySelector('#nt-add textarea'); t.value = v; t.focus(); return; }
   if (k === 'done') { ntDone = !ntDone; render(); return; }
+  if (k === 'all') { ntAll = !ntAll; render(); return; }
+  if (k === 'cat') { if (b.dataset.k === 't') { const t = data.tasks.find(x => x.id === id); if (t) { t.category = t.category === 'Work' ? 'Personal' : 'Work'; t.updated = new Date().toISOString(); } } else { const n = ntNote(id); if (n) { n.tab = n.tab === 'Work' ? 'Personal' : 'Work'; ntTouch(n); } } save(); render(); return; }
   if (k === 'old') { ntOld = true; render(); scrollTo(0, 0); return; }
   if (k === 'new') { ntOld = false; render(); scrollTo(0, 0); return; }
   if (k === 'check') { if (b.dataset.k === 't') return toggleTask(id); const n = ntNote(id); if (!n) return; n.done = !n.done; ntTouch(n); save(); render(); if (n.done) undoToast('Done.', () => { n.done = false; save(); render(); }); return; }
