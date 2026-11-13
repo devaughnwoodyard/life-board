@@ -241,6 +241,18 @@ async function checkUpdate() {
   } catch (e) {}
 }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (!newDay()) checkUpdate(); } });
+// Never run an older build than one this phone has already shown: if startup lands on an old copy, go around every cache once
+(function noRevert() {
+  if (!BUILD || location.protocol !== 'https:') return;
+  let seen = []; try { seen = JSON.parse(localStorage.getItem('2b-builds') || '[]'); } catch (e) {}
+  const i = seen.indexOf(BUILD), latest = seen[seen.length - 1];
+  if (i >= 0 && i < seen.length - 1) {
+    let tried = ''; try { tried = sessionStorage.getItem('2b-norevert') || ''; } catch (e) {}
+    if (tried !== latest) { try { sessionStorage.setItem('2b-norevert', latest); } catch (e) {} location.replace('./?v=' + latest + '&t=' + Date.now()); }
+    return;
+  }
+  if (i < 0) { seen.push(BUILD); try { localStorage.setItem('2b-builds', JSON.stringify(seen.slice(-40))); } catch (e) {} }
+})();
 // iPhone home-screen apps often resume a frozen page without firing visibilitychange, so also check on launch, on resume and every 10 minutes
 addEventListener('pageshow', () => { if (!newDay()) checkUpdate(); });
 addEventListener('focus', () => { if (!newDay()) checkUpdate(); });
