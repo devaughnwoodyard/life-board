@@ -2042,15 +2042,22 @@ function shotShrink(file) {
     img.src = url;
   });
 }
+function shotMsg(title, text) { modal(title, `<p class="mr-help" style="font-size:15px">${text}</p><div class="form-actions"><button class="primary" type="button" data-act="close">OK</button></div>`, { kind: 'shot', form: false }); }
 async function shotRead(file) {
-  if (!cfg.url) { notify('Connect Google sync first (the dot in the header).'); return; }
-  notify('Reading the screenshot…');
+  if (!cfg.url) { shotMsg('Screenshot not read', 'The app is not connected to Google sync on this device, so there is nothing to read it with. Tap the dot in the top bar to connect.'); return; }
+  modal('Reading your screenshot…', '<p class="mr-help" style="font-size:15px">This takes a few seconds. Keep the app open.</p>', { kind: 'shot', form: false });
   try {
     const b64 = await shotShrink(file);
     const r = await api({ action: 'image', b64, mime: 'image/jpeg', today, weekday: fmt(today, { weekday: 'long' }) });
-    if (!r.todos || !r.todos.length) { notify('Nothing to do in that screenshot.'); return; }
+    forceClose();
+    if (!r.todos || !r.todos.length) { shotMsg('Nothing found', 'Claude read the screenshot but did not find anything to do in it. Nothing was added.'); return; }
     shotReview(r.todos);
-  } catch (e) { notify(/no key/.test(e.message) ? 'Screenshot reading needs the Claude key in your sync script.' : /unknown action/.test(e.message) ? 'Your sync script needs the latest update first.' : 'Could not read it: ' + e.message); }
+  } catch (e) {
+    forceClose();
+    shotMsg('Screenshot not read', /no key/.test(e.message) ? 'Your Google sync script has no Claude API key yet, so the screenshot could not be read. Nothing was added and the image was not saved. Add a script property named ANTHROPIC_KEY, then try again.'
+      : /unknown action/.test(e.message) ? 'This phone is connected to an older copy of the sync script that cannot read screenshots. Nothing was added.'
+      : 'Something went wrong, so nothing was added: ' + esc(e.message));
+  }
 }
 function shotReview(list) {
   modal('From your screenshot', `<form id="shot-form" autocomplete="off">${list.map((t, i) => `<div class="shot-it"><label class="shot-on"><input type="checkbox" name="on${i}" checked aria-label="Add this to-do"></label><div class="shot-f">
