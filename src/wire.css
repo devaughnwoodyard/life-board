@@ -1041,3 +1041,20 @@ body.kb-open .sheet.note-an .toolbar.an-tools{margin-bottom:6px!important}
 .sheet.note-an .at-tools button.on .tt-p{color:#D0331A}
 .sheet.note-an .at-tools button.on svg{stroke:#C28A00}
 #modal-root .sheet.note-an textarea#note-title,#modal-root .sheet.note-an textarea#f-title{padding:4px 0!important;margin:0!important;border:0!important;background:none!important;box-shadow:none!important;text-align:left!important;width:100%!important}
+
+/* due date shown on the right of each to-do */
+.an-dt.has{width:auto;min-width:44px;height:24px;top:7px;padding:0 9px;border-radius:12px;background:#F2F2F7;color:#3A3A3C}
+.an-dt.has b{font-size:12px;font-weight:600;white-space:nowrap}
+.an-dt.has.late{background:#FDE7E4;color:#C0341A}
+.an-dt.has.now{background:#FBF1D6;color:#9A6B00}
+.an-todos .an-b{padding-right:150px!important}
+.an-todos .an-chip{right:74px}
+
+/* note rows: tappable notebook chip on the right, like to-dos */
+.an-card .an-note .an-sw{display:block}
+.an-note .an-tb{border-top:0;position:relative}
+.an-note .an-b{padding-right:96px!important}
+.an-note .an-chip{position:absolute;top:8px;right:14px;border:0!important;box-shadow:none!important;min-height:0!important;font-family:inherit;cursor:pointer}
+.an-row.an-note + .an-row.an-note{border-top:1px solid #E5E5EA}
+.an-chip.an-personal{background:#EFEFF4;color:#5B5B60}
+.sheet.note-an .an-ncat .tt-cat{font-size:13px;font-weight:600;color:#3A3A3C}

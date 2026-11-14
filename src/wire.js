@@ -2118,20 +2118,22 @@ function ntTodoTile(x) {
 }
 function ntTodoRow(x) {
   const late = !x.done && x.due && x.due < today, now = !x.done && x.due === today;
-  const when = x.due ? ntShort(x.due) + (x.time && x.due === today ? ' · ' + hm12(x.time) : '') : '';
+  const dn = x.due ? Math.round((date(x.due) - date(today)) / 864e5) : 0;
+  const when = x.due ? (dn < 0 ? `Overdue ${-dn} day${dn === -1 ? '' : 's'}` : dn === 0 ? 'Due today' : dn === 1 ? 'Due tomorrow' : 'Due ' + fmt(x.due, { weekday: 'long' }).replace(/^(\w+)$/, '$1')) + (x.time ? ' · ' + hm12(x.time) : '') : '';
   const prev = [x.wait ? 'Waiting' : '', x.sub].filter(Boolean).join(' · ');
   return `<li class="an-row an-todo${x.done ? ' done' : ''}${late ? ' late' : ''}" data-sw="${x.k}" data-id="${x.id}"><div class="an-sw">
     <button class="an-ck${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>
     <div class="an-tb"><button class="an-b" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><span class="an-top"><b>${x.pr ? `<em class="an-pr">${x.pr === 1 ? '!!' : '!'}</em> ` : ''}${esc(x.title)}</b></span>
       <span class="an-prev">${when ? `<time class="${late ? 'late' : now ? 'now' : ''}">${esc(when)}</time> ` : ''}${esc(prev) || (when ? '' : 'No date')}</span></button>
       <button class="an-chip an-${x.cat === 'Work' ? 'work' : 'personal'}" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
-      <label class="an-dt" aria-label="Due date for ${esc(x.title)}">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}"></label></div></div></li>`;
+      <label class="an-dt${x.due ? ' has' : ''}${late ? ' late' : now ? ' now' : ''}" aria-label="Due date for ${esc(x.title)}">${x.due ? `<b>${fmt(x.due, { month: 'short', day: 'numeric' })}</b>` : svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}"></label></div></div></li>`;
 }
 const ntWhen = iso => { if (!iso) return ''; const d = day(new Date(iso)), n = Math.round((date(today) - date(d)) / 864e5); return n <= 0 ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : n === 1 ? 'Yesterday' : n < 7 ? fmt(d, { weekday: 'long' }) : new Date(iso).toLocaleDateString([], { month: 'numeric', day: 'numeric', year: '2-digit' }); };
 function ntNoteRow(n) {
-  const body = ntBody(n).replace(/\n+/g, ' '), chip = n.tab && n.tab !== 'Personal' ? n.tab : '', folder = n.folder && n.folder !== 'General' ? n.folder : '';
-  return `<li class="an-row" data-sw="n" data-id="${n.id}"><div class="an-sw"><button class="an-b" data-act="note-edit" data-id="${n.id}"><span class="an-top"><b>${esc(n.title || 'New Note')}</b>${chip || folder ? `<i class="an-chip an-${esc(String(chip || 'folder').toLowerCase())}">${esc(chip || folder)}</i>` : ''}</span>
-    <span class="an-prev"><time>${esc(ntWhen(n.updated || n.entered))}</time> ${esc(body.slice(0, 220)) || 'No additional text'}</span>${chip && folder ? `<span class="an-folder">${svgI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>')}${esc(folder)}</span>` : ''}</button></div></li>`;
+  const body = ntBody(n).replace(/\n+/g, ' '), tab = n.tab === 'Work' || n.tab === 'Spanish' ? n.tab : 'Personal', folder = n.folder && n.folder !== 'General' ? n.folder : '';
+  return `<li class="an-row an-note" data-sw="n" data-id="${n.id}"><div class="an-sw"><div class="an-tb"><button class="an-b" data-act="note-edit" data-id="${n.id}"><span class="an-top"><b>${esc(n.title || 'New Note')}</b></span>
+    <span class="an-prev"><time>${esc(ntWhen(n.updated || n.entered))}</time> ${esc(body.slice(0, 220)) || 'No additional text'}</span>${folder ? `<span class="an-folder">${svgI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>')}${esc(folder)}</span>` : ''}</button>
+    <button class="an-chip an-${tab.toLowerCase()}" data-nt="ncat" data-id="${n.id}" aria-label="Switch notebook">${tab}</button></div></div></li>`;
 }
 function ntNoteGroups(list) {
   const g = [['Today', []], ['Previous 7 Days', []], ['Previous 30 Days', []], ['Older', []]];
@@ -2174,6 +2176,7 @@ document.addEventListener('click', e => {
   if (k === 'mode') { ntTodo = !ntTodo; const v = document.querySelector('#nt-add textarea').value; render(); const t = document.querySelector('#nt-add textarea'); t.value = v; t.focus(); return; }
   if (k === 'done') { ntDone = !ntDone; render(); return; }
   if (k === 'all') { ntAll = !ntAll; render(); return; }
+  if (k === 'ncat') { const n = ntNote(id); if (!n) return; n.tab = n.tab === 'Work' ? 'Personal' : 'Work'; save(); render(); return; }
   if (k === 'clear') { const gt = data.tasks.filter(t => t.done), gn = data.notes.filter(n => n.todo && n.done && !isPhrase(n)); if (!gt.length && !gn.length) return;
     data.tasks = data.tasks.filter(t => !t.done); data.notes = data.notes.filter(n => !gn.includes(n)); ntDone = false; save(); render();
     undoToast(`Cleared ${gt.length + gn.length} completed.`, () => { data.tasks = data.tasks.concat(gt); data.notes = data.notes.concat(gn); save(); render(); }); return; }
@@ -2295,7 +2298,8 @@ noteEditor = function (id) {
   title.insertAdjacentHTML('beforebegin', `<p class="an-date">${when.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })} at ${when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}<i class="an-chip" data-an="more"></i></p>`);
   const chip = form.querySelector('.an-date .an-chip'), tabSel = panel.querySelector('select[name="tab"]'), folder = panel.querySelector('#note-folder');
   const paintChip = () => { const t = tabSel ? tabSel.value : 'Personal', f = folder && folder.value && folder.value !== 'General' ? folder.value : ''; chip.textContent = [t !== 'Personal' ? t : '', f].filter(Boolean).join(' · ') || 'Personal'; chip.className = 'an-chip an-' + String(t).toLowerCase(); };
-  paintChip(); panel.addEventListener('input', paintChip); panel.addEventListener('change', paintChip);
+  const paintTab = () => { const b = form.querySelector('.an-ncat .tt-cat'); if (b && tabSel) b.textContent = tabSel.value; };
+  paintChip(); paintTab(); panel.addEventListener('input', () => { paintChip(); paintTab(); }); panel.addEventListener('change', () => { paintChip(); paintTab(); });
   title.placeholder = 'Title'; body.dataset.ph = 'Start writing…';
   // tools: one pill at the bottom (it rides just above the keyboard), text styles behind Aa
   if (tb) {
@@ -2303,6 +2307,7 @@ noteEditor = function (id) {
     tb.querySelectorAll('button[data-format]').forEach(b => { const c = b.dataset.format; if (c === 'insertUnorderedList') { b.innerHTML = svgI(AI.list); b.setAttribute('aria-label', 'Bulleted list'); } else if (c === 'insertOrderedList') { b.innerHTML = svgI(AI.num); b.setAttribute('aria-label', 'Numbered list'); } else fmt.appendChild(b); });
     const img = tb.querySelector('[data-act="note-image"]'); if (img) { img.innerHTML = svgI(AI.clip); img.setAttribute('aria-label', 'Add an image'); }
     tb.insertAdjacentHTML('afterbegin', '<button type="button" class="an-aa" data-an="aa" aria-label="Text style" aria-expanded="false">Aa</button>');
+    tb.insertAdjacentHTML('beforeend', `<button type="button" data-an="cat" class="an-ncat" aria-label="Switch notebook"><span class="tt-cat">${esc((sheet.querySelector('select[name="tab"]') || {}).value || 'Personal')}</span></button>`);
     tb.classList.add('an-tools');
     const sc = document.createElement('div'); sc.className = 'an-scroll';
     [...form.children].forEach(el => { if (el !== tb) sc.appendChild(el); });
@@ -2323,6 +2328,7 @@ document.addEventListener('click', e => {
   if (k === 'share') { const text = [title.value.trim(), (body.innerText || '').trim()].filter(Boolean).join('\n\n'); if (!text) return;
     if (navigator.share) navigator.share({ title: title.value.trim() || 'Note', text }).catch(() => {}); else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => notify('Copied.')).catch(() => {}); return; }
   if (k === 'more') { const p = form.querySelector('.an-panel'), m = sheet.querySelector('[data-an="more"][aria-expanded]'); p.hidden = !p.hidden; m.setAttribute('aria-expanded', String(!p.hidden)); if (!p.hidden) sheet.scrollTo ? sheet.scrollTo(0, 0) : 0; return; }
+  if (k === 'cat') { const sel = form.querySelector('select[name="tab"]'); if (!sel) return; sel.value = sel.value === 'Work' ? 'Personal' : 'Work'; sel.dispatchEvent(new Event('change', { bubbles: true })); return; }
   if (k === 'aa') { const f = form.querySelector('.an-fmt'); f.hidden = !f.hidden; b.setAttribute('aria-expanded', String(!f.hidden)); return; }
 }, true);
 
