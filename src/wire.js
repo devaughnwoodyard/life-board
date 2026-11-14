@@ -2116,9 +2116,16 @@ function ntTodoTile(x) {
     <div class="nt-bot"><button class="nt-cat" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
       <label class="nt-due${x.due ? '' : ' none'}">${x.due ? ntShort(x.due) + (x.time && x.due === today ? ' ' + hm12(x.time).replace(':00', '').replace(' ', '').toLowerCase().replace('m', '') : '') : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label></div></li>`;
 }
-function ntNoteTile(n) {
-  const body = ntBody(n).replace(/\n/g, ' · ');
-  return `<li class="nt-tile nt-note"><button class="nt-body" data-act="note-edit" data-id="${n.id}"><b>${esc(n.title || 'Untitled')}</b><small>${esc(body.slice(0, 80)) || '&nbsp;'}</small></button></li>`;
+const ntWhen = iso => { if (!iso) return ''; const d = day(new Date(iso)), n = Math.round((date(today) - date(d)) / 864e5); return n <= 0 ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : n === 1 ? 'Yesterday' : n < 7 ? fmt(d, { weekday: 'long' }) : new Date(iso).toLocaleDateString([], { month: 'numeric', day: 'numeric', year: '2-digit' }); };
+function ntNoteRow(n) {
+  const body = ntBody(n).replace(/\n+/g, ' '), chip = n.tab && n.tab !== 'Personal' ? n.tab : '', folder = n.folder && n.folder !== 'General' ? n.folder : '';
+  return `<li class="an-row"><button class="an-b" data-act="note-edit" data-id="${n.id}"><span class="an-top"><b>${esc(n.title || 'New Note')}</b>${chip || folder ? `<i class="an-chip an-${esc(String(chip || 'folder').toLowerCase())}">${esc(chip || folder)}</i>` : ''}</span>
+    <span class="an-prev"><time>${esc(ntWhen(n.updated || n.entered))}</time> ${esc(body.slice(0, 220)) || 'No additional text'}</span>${chip && folder ? `<span class="an-folder">${svgI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>')}${esc(folder)}</span>` : ''}</button></li>`;
+}
+function ntNoteGroups(list) {
+  const g = [['Today', []], ['Previous 7 Days', []], ['Previous 30 Days', []], ['Older', []]];
+  list.forEach(n => { const iso = n.updated || n.entered, k = iso ? Math.round((date(today) - date(day(new Date(iso)))) / 864e5) : 999; g[k <= 0 ? 0 : k <= 7 ? 1 : k <= 30 ? 2 : 3][1].push(n); });
+  return g.filter(x => x[1].length).map(([label, l]) => `<h4 class="an-h">${label}</h4><ul class="an-card">${l.map(ntNoteRow).join('')}</ul>`).join('');
 }
 function ntList() {
   const notes = data.notes.filter(n => !n.todo && !isPhrase(n)).sort((a, b) => String(b.updated || b.entered || '').localeCompare(String(a.updated || a.entered || '')));
@@ -2127,9 +2134,10 @@ function ntList() {
   const shown = ntAll ? notes : notes.slice(0, 6);
   const nLate = open.filter(x => x.due && x.due < today).length, nNow = open.filter(x => x.due === today).length;
   return `<div class="nt nt3">
-    <h3 class="nt-h">Notes<span>${notes.length}</span>${notes.length > 6 ? `<button data-nt="all">${ntAll ? 'Show fewer' : 'Open all ›'}</button>` : ''}</h3>
-    ${notes.length ? `<ul class="nt-grid">${shown.map(ntNoteTile).join('')}</ul>` : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
-    <h3 class="nt-h">To-dos<span>${open.length}</span></h3>
+    <h2 class="an-title">Notes<span>${notes.length}</span></h2>
+    ${notes.length ? ntNoteGroups(shown) : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
+    ${notes.length > 6 ? `<button class="an-more" data-nt="all">${ntAll ? 'Show fewer' : `Open all ${notes.length} notes`}</button>` : ''}
+    <h2 class="an-title">To-dos<span>${open.length}</span></h2>
     ${open.length ? `<ul class="nt-grid">${open.map(ntTodoTile).join('')}</ul><p class="nt-sum">${[nLate ? nLate + ' late' : '', nNow ? nNow + ' today' : '', (open.length - nLate - nNow) ? (open.length - nLate - nNow) + ' later' : ''].filter(Boolean).join(' · ')}</p>` : '<p class="nt-empty">No open to-dos.</p>'}
     <div class="nt-foot">${done.length ? `<button data-nt="done">${ntDone ? 'Hide' : 'Show'} completed (${done.length})</button>` : '<span></span>'}<button data-nt="old">Folders &amp; files ›</button></div>
     ${ntDone ? `<ul class="nt-grid">${done.slice(0, 30).map(ntTodoTile).join('')}</ul>` : ''}</div>`;
@@ -2246,6 +2254,7 @@ document.addEventListener('submit', e => {
   undoToast(`Added ${[addedN.length ? addedN.length + ' note' + (addedN.length > 1 ? 's' : '') : '', addedT.length ? addedT.length + ' to-do' + (addedT.length > 1 ? 's' : '') : ''].filter(Boolean).join(' and ')}.`, () => { data.tasks = data.tasks.filter(t => !addedT.includes(t)); data.notes = data.notes.filter(n => !addedN.includes(n)); save(); render(); });
 }, true);
 
+try { render(); } catch (e) { console.error(e); }
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
 
