@@ -967,3 +967,26 @@ body.kb-open .an-fmt{bottom:68px}
 .modal-backdrop:has(.sheet.note-an){background:#fff!important}
 .sheet.note-an textarea#note-title{text-align:left!important}
 .sheet.note-an .sheet-title{background:#fff!important}
+
+/* ---------- to-dos as Apple Notes-style rows ---------- */
+.an-todos .an-row{display:flex;align-items:flex-start;gap:12px}
+.an-todos{padding-left:14px}
+.an-ck{flex:none;width:24px;height:24px;margin-top:11px;border-radius:50%!important;border:1.8px solid #C7C7CC!important;background:#fff!important;box-shadow:none!important;padding:0!important;min-height:0!important;display:grid;place-items:center}
+.an-ck svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.an-ck.on{background:#E0B43A!important;border-color:#E0B43A!important}.an-ck.on svg{opacity:1}
+.an-tb{position:relative;flex:1;min-width:0;border-top:1px solid #E5E5EA}
+.an-todos .an-row{border-top:0}
+.an-todos .an-row:first-child .an-tb{border-top:0}
+.an-todos .an-b{padding-right:88px!important}
+.an-todos .an-top b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.an-todos .an-prev{-webkit-line-clamp:1}
+.an-todos .an-prev time.late{color:#D0331A;font-weight:600}
+.an-todos .an-prev time.now{color:#C28A00;font-weight:600}
+.an-pr{font-style:normal;color:#D0331A}
+.an-todos .an-chip{position:absolute;top:11px;right:44px;border:0!important;box-shadow:none!important;min-height:0!important;font-family:inherit;cursor:pointer}
+.an-dt{position:absolute;top:6px;right:8px;width:32px;height:32px;display:grid;place-items:center;color:#8E8E93;overflow:hidden}
+.an-dt svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+.an-dt input{position:absolute;inset:0;opacity:0;width:100%;height:100%;border:0;padding:0;-webkit-appearance:none;appearance:none}
+.an-todo.done .an-top b{color:#AEAEB2;text-decoration:line-through}
+.an-todo.done .an-chip,.an-todo.done .an-dt{opacity:.45}
+.nt-sum{margin:8px 0 0}

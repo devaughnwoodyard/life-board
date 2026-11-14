@@ -2116,6 +2116,17 @@ function ntTodoTile(x) {
     <div class="nt-bot"><button class="nt-cat" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
       <label class="nt-due${x.due ? '' : ' none'}">${x.due ? ntShort(x.due) + (x.time && x.due === today ? ' ' + hm12(x.time).replace(':00', '').replace(' ', '').toLowerCase().replace('m', '') : '') : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label></div></li>`;
 }
+function ntTodoRow(x) {
+  const late = !x.done && x.due && x.due < today, now = !x.done && x.due === today;
+  const when = x.due ? ntShort(x.due) + (x.time && x.due === today ? ' · ' + hm12(x.time) : '') : '';
+  const prev = [x.wait ? 'Waiting' : '', x.sub].filter(Boolean).join(' · ');
+  return `<li class="an-row an-todo${x.done ? ' done' : ''}${late ? ' late' : ''}"${x.k === 't' && !x.done ? ` data-swipe="${x.id}" data-task-id="${x.id}"` : ''}>
+    <button class="an-ck${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>
+    <div class="an-tb"><button class="an-b" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><span class="an-top"><b>${x.pr ? `<em class="an-pr">${x.pr === 1 ? '!!' : '!'}</em> ` : ''}${esc(x.title)}</b></span>
+      <span class="an-prev">${when ? `<time class="${late ? 'late' : now ? 'now' : ''}">${esc(when)}</time> ` : ''}${esc(prev) || (when ? '' : 'No date')}</span></button>
+      <button class="an-chip an-${x.cat === 'Work' ? 'work' : 'personal'}" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
+      <label class="an-dt" aria-label="Due date for ${esc(x.title)}">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}"></label></div></li>`;
+}
 const ntWhen = iso => { if (!iso) return ''; const d = day(new Date(iso)), n = Math.round((date(today) - date(d)) / 864e5); return n <= 0 ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : n === 1 ? 'Yesterday' : n < 7 ? fmt(d, { weekday: 'long' }) : new Date(iso).toLocaleDateString([], { month: 'numeric', day: 'numeric', year: '2-digit' }); };
 function ntNoteRow(n) {
   const body = ntBody(n).replace(/\n+/g, ' '), chip = n.tab && n.tab !== 'Personal' ? n.tab : '', folder = n.folder && n.folder !== 'General' ? n.folder : '';
@@ -2138,10 +2149,10 @@ function ntList() {
     ${notes.length ? (ntAll ? ntNoteGroups(shown) : `<ul class="an-card">${shown.map(ntNoteRow).join('')}</ul>`) : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
     ${notes.length > NSHOW ? `<button class="an-more" data-nt="all">${ntAll ? 'Show fewer' : `Open all ${notes.length} notes`}</button>` : ''}
     <h2 class="an-title">To-dos<span>${open.length}</span></h2>
-    ${open.length ? `<ul class="nt-grid">${open.map(ntTodoTile).join('')}</ul><p class="nt-sum">${[nLate ? nLate + ' late' : '', nNow ? nNow + ' today' : '', (open.length - nLate - nNow) ? (open.length - nLate - nNow) + ' later' : ''].filter(Boolean).join(' · ')}</p>` : '<p class="nt-empty">No open to-dos.</p>'}
+    ${open.length ? `<ul class="an-card an-todos">${open.map(ntTodoRow).join('')}</ul><p class="nt-sum">${[nLate ? nLate + ' late' : '', nNow ? nNow + ' today' : '', (open.length - nLate - nNow) ? (open.length - nLate - nNow) + ' later' : ''].filter(Boolean).join(' · ')}</p>` : '<p class="nt-empty">No open to-dos.</p>'}
     <div class="nt-foot">${done.length ? `<button data-nt="done">${ntDone ? 'Hide' : 'Show'} completed (${done.length})</button>` : '<span></span>'}<button data-nt="old">Folders &amp; files ›</button></div>
     ${ntDone && done.length ? `<button class="nt-clear" data-nt="clear">Clear ${done.length} completed</button>` : ''}
-    ${ntDone ? `<ul class="nt-grid">${done.slice(0, 30).map(ntTodoTile).join('')}</ul>` : ''}</div>`;
+    ${ntDone ? `<ul class="an-card an-todos">${done.slice(0, 30).map(ntTodoRow).join('')}</ul>` : ''}</div>`;
 }
 const _renderS = render;
 render = function () {
