@@ -2303,7 +2303,12 @@ noteEditor = function (id) {
     tb.querySelectorAll('button[data-format]').forEach(b => { const c = b.dataset.format; if (c === 'insertUnorderedList') { b.innerHTML = svgI(AI.list); b.setAttribute('aria-label', 'Bulleted list'); } else if (c === 'insertOrderedList') { b.innerHTML = svgI(AI.num); b.setAttribute('aria-label', 'Numbered list'); } else fmt.appendChild(b); });
     const img = tb.querySelector('[data-act="note-image"]'); if (img) { img.innerHTML = svgI(AI.clip); img.setAttribute('aria-label', 'Add an image'); }
     tb.insertAdjacentHTML('afterbegin', '<button type="button" class="an-aa" data-an="aa" aria-label="Text style" aria-expanded="false">Aa</button>');
-    tb.classList.add('an-tools'); form.appendChild(fmt); form.appendChild(tb);
+    tb.classList.add('an-tools');
+    const sc = document.createElement('div'); sc.className = 'an-scroll';
+    [...form.children].forEach(el => { if (el !== tb) sc.appendChild(el); });
+    form.appendChild(sc); form.appendChild(fmt); form.appendChild(tb);
+    if (!id) { title.focus(); setTimeout(() => { if (document.activeElement !== title) title.focus(); }, 40); }   // moving the fields drops the cursor
+    sc.addEventListener('click', e => { if (e.target === sc) { body.focus(); const r = document.createRange(); r.selectNodeContents(body); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } });
     [fmt, tb].forEach(el => el.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); }));   // keep the cursor (and keyboard) where it is
   }
   const snap = () => [title.value, body.innerHTML, tabSel && tabSel.value, folder && folder.value].join('\u0001');
@@ -2399,6 +2404,29 @@ taskEditor = function (id, d) {
     chip.textContent = c; chip.className = 'an-chip an-' + String(c).toLowerCase(); };
   paint(); panel.addEventListener('input', paint); panel.addEventListener('change', paint); panel.addEventListener('click', () => setTimeout(paint, 0));
   title.placeholder = 'New to-do';
+  const sc = document.createElement('div'); sc.className = 'an-scroll';
+  [...form.children].forEach(el => { if (!el.classList.contains('form-actions')) sc.appendChild(el); });
+  form.insertBefore(sc, form.firstChild);
+  sc.addEventListener('click', e => { if (e.target === sc) notes.focus(); });
+  if (!id) { title.focus(); setTimeout(() => { if (document.activeElement !== title) title.focus(); }, 40); }
+  const pInp = form.querySelector('[name="p"]'), wInp = form.querySelector('[name="wait"]');
+  const tools = document.createElement('div'); tools.className = 'toolbar an-tools at-tools';
+  tools.innerHTML = `<button type="button" data-tt="date" aria-label="Due date">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}</button>`
+    + `<button type="button" data-tt="cat" aria-label="Switch Work or Personal"><span class="tt-cat"></span></button>`
+    + `<button type="button" data-tt="prio" aria-label="Priority"><span class="tt-p"></span></button>`
+    + `<button type="button" data-tt="wait" aria-label="Waiting on someone">${svgI('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}</button>`;
+  form.appendChild(tools);
+  tools.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+  const paintTools = () => { tools.querySelector('.tt-cat').textContent = cat ? cat.value : 'Personal'; const pv = pInp ? pInp.value : ''; tools.querySelector('.tt-p').textContent = pv === '1' ? '!!' : pv === '2' ? '!' : '!';
+    tools.querySelector('[data-tt="prio"]').classList.toggle('on', !!pv); tools.querySelector('[data-tt="wait"]').classList.toggle('on', !!(wInp && wInp.value)); tools.querySelector('[data-tt="date"]').classList.toggle('on', !!(dt && dt.value)); };
+  paintTools();
+  tools.addEventListener('click', e => { const b = e.target.closest('[data-tt]'); if (!b) return; e.preventDefault(); const k = b.dataset.tt;
+    if (k === 'date' && dt) { try { dt.showPicker(); } catch (x) { form.querySelector('.an-panel').hidden = false; dt.focus(); } }
+    if (k === 'cat' && cat) { const o = [...cat.options].map(x => x.value), i = o.indexOf(cat.value); cat.value = o[(i + 1) % o.length]; cat.dispatchEvent(new Event('change', { bubbles: true })); }
+    if (k === 'prio') { const nb = { '': '2', '2': '1', '1': '' }[pInp.value || ''], pb = form.querySelector(`[data-pv="${nb}"]`); pb ? pb.click() : (pInp.value = nb); }
+    if (k === 'wait') { const wb = form.querySelector('[data-wv]'); wb ? wb.click() : (wInp.value = wInp.value ? '' : '1'); }
+    setTimeout(() => { paint(); paintTools(); }, 0); });
+  if (dt) dt.addEventListener('change', () => { paint(); paintTools(); });
   const snap = () => [...form.querySelectorAll('input,select,textarea')].map(x => x.type === 'checkbox' ? x.checked : x.value).join('\u0001');
   sheet.dataset.snap = snap(); sheet._snap = snap;
 };

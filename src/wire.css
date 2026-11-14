@@ -1023,3 +1023,21 @@ body.kb-open .an-fmt{bottom:68px}
 .an-todos .an-chip{top:8px}
 .an-dt{top:3px}
 .an-todos .an-sw{gap:10px}
+
+/* ---------- editors fill the visible screen; tools sit just above the keyboard ---------- */
+.modal-backdrop:has(.sheet.note-an){position:fixed!important;inset:0!important;padding:0!important;align-items:stretch!important;background:#fff!important}
+.sheet.note-an{position:fixed!important;left:0!important;right:0!important;top:var(--vvt,0px)!important;height:var(--vvh,100dvh)!important;max-height:none!important;width:100%!important;max-width:none!important;margin:0!important;border-radius:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;padding:0!important;background:#fff!important}
+body.kb-open .sheet.note-an{padding-top:0!important}
+.sheet.note-an .sheet-title{flex:none}
+.sheet.note-an #editor{flex:1 1 auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;padding:0!important}
+.an-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 20px 20px;display:flex;flex-direction:column;background:#fff;cursor:text}
+.an-scroll .rich-editor,.an-scroll .an-notes{flex:1 0 auto}
+.sheet.note-an .toolbar.an-tools{position:static!important;flex:none!important;margin:6px 12px calc(10px + env(safe-area-inset-bottom,0px))!important;bottom:auto!important}
+body.kb-open .sheet.note-an .toolbar.an-tools{margin-bottom:6px!important}
+.an-fmt{position:static!important;flex:none;margin:0 12px 6px!important}
+.at-tools .tt-cat{font-size:13px;font-weight:600;color:#3A3A3C}
+.at-tools .tt-p{font-size:20px;font-weight:800;color:#8E8E93}
+.sheet.note-an .at-tools button.on{background:#F2F2F7!important}
+.sheet.note-an .at-tools button.on .tt-p{color:#D0331A}
+.sheet.note-an .at-tools button.on svg{stroke:#C28A00}
+#modal-root .sheet.note-an textarea#note-title,#modal-root .sheet.note-an textarea#f-title{padding:4px 0!important;margin:0!important;border:0!important;background:none!important;box-shadow:none!important;text-align:left!important;width:100%!important}
