@@ -2131,15 +2131,16 @@ function ntList() {
   const notes = data.notes.filter(n => !n.todo && !isPhrase(n)).sort((a, b) => String(b.updated || b.entered || '').localeCompare(String(a.updated || a.entered || '')));
   const todos = ntTodos(), open = todos.filter(x => !x.done), done = todos.filter(x => x.done).sort((a, b) => b.at - a.at);
   open.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999') || (a.pr || 9) - (b.pr || 9) || (a.time || '99').localeCompare(b.time || '99'));
-  const shown = ntAll ? notes : notes.slice(0, 6);
+  const NSHOW = 4, shown = ntAll ? notes : notes.slice(0, NSHOW);
   const nLate = open.filter(x => x.due && x.due < today).length, nNow = open.filter(x => x.due === today).length;
-  return `<div class="nt nt3">
+  return `<div class="nt nt3${ntAll ? ' an-open' : ''}">
     <h2 class="an-title">Notes<span>${notes.length}</span></h2>
-    ${notes.length ? ntNoteGroups(shown) : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
-    ${notes.length > 6 ? `<button class="an-more" data-nt="all">${ntAll ? 'Show fewer' : `Open all ${notes.length} notes`}</button>` : ''}
+    ${notes.length ? (ntAll ? ntNoteGroups(shown) : `<ul class="an-card">${shown.map(ntNoteRow).join('')}</ul>`) : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
+    ${notes.length > NSHOW ? `<button class="an-more" data-nt="all">${ntAll ? 'Show fewer' : `Open all ${notes.length} notes`}</button>` : ''}
     <h2 class="an-title">To-dos<span>${open.length}</span></h2>
     ${open.length ? `<ul class="nt-grid">${open.map(ntTodoTile).join('')}</ul><p class="nt-sum">${[nLate ? nLate + ' late' : '', nNow ? nNow + ' today' : '', (open.length - nLate - nNow) ? (open.length - nLate - nNow) + ' later' : ''].filter(Boolean).join(' · ')}</p>` : '<p class="nt-empty">No open to-dos.</p>'}
     <div class="nt-foot">${done.length ? `<button data-nt="done">${ntDone ? 'Hide' : 'Show'} completed (${done.length})</button>` : '<span></span>'}<button data-nt="old">Folders &amp; files ›</button></div>
+    ${ntDone && done.length ? `<button class="nt-clear" data-nt="clear">Clear ${done.length} completed</button>` : ''}
     ${ntDone ? `<ul class="nt-grid">${done.slice(0, 30).map(ntTodoTile).join('')}</ul>` : ''}</div>`;
 }
 const _renderS = render;
@@ -2162,6 +2163,9 @@ document.addEventListener('click', e => {
   if (k === 'mode') { ntTodo = !ntTodo; const v = document.querySelector('#nt-add textarea').value; render(); const t = document.querySelector('#nt-add textarea'); t.value = v; t.focus(); return; }
   if (k === 'done') { ntDone = !ntDone; render(); return; }
   if (k === 'all') { ntAll = !ntAll; render(); return; }
+  if (k === 'clear') { const gt = data.tasks.filter(t => t.done), gn = data.notes.filter(n => n.todo && n.done && !isPhrase(n)); if (!gt.length && !gn.length) return;
+    data.tasks = data.tasks.filter(t => !t.done); data.notes = data.notes.filter(n => !gn.includes(n)); ntDone = false; save(); render();
+    undoToast(`Cleared ${gt.length + gn.length} completed.`, () => { data.tasks = data.tasks.concat(gt); data.notes = data.notes.concat(gn); save(); render(); }); return; }
   if (k === 'cat') { if (b.dataset.k === 't') { const t = data.tasks.find(x => x.id === id); if (t) { t.category = t.category === 'Work' ? 'Personal' : 'Work'; t.updated = new Date().toISOString(); } } else { const n = ntNote(id); if (n) { n.tab = n.tab === 'Work' ? 'Personal' : 'Work'; ntTouch(n); } } save(); render(); return; }
   if (k === 'old') { ntOld = true; render(); scrollTo(0, 0); return; }
   if (k === 'new') { ntOld = false; render(); scrollTo(0, 0); return; }
@@ -2252,6 +2256,58 @@ document.addEventListener('submit', e => {
     else { const n = { id: uid(), title, tab: v['cat' + i] === 'Work' ? 'Work' : 'Personal', folder: 'General', body: String(x.body || '').split('\n').map(l => `<div>${esc(l) || '<br>'}</div>`).join(''), entered: now, updated: now }; data.notes.push(n); addedN.push(n); } });
   forceClose(); if (!addedT.length && !addedN.length) return; save(); render();
   undoToast(`Added ${[addedN.length ? addedN.length + ' note' + (addedN.length > 1 ? 's' : '') : '', addedT.length ? addedT.length + ' to-do' + (addedT.length > 1 ? 's' : '') : ''].filter(Boolean).join(' and ')}.`, () => { data.tasks = data.tasks.filter(t => !addedT.includes(t)); data.notes = data.notes.filter(n => !addedN.includes(n)); save(); render(); });
+}, true);
+
+/* ==================== Note editor, Apple Notes style: full page, big title, round buttons, tools above the keyboard ==================== */
+const AI = {
+  back: '<path d="M15 5l-7 7 7 7"/>', undo: '<path d="M9 14l-5-5 5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>', share: '<path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/>',
+  more: '<circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/>',
+  ok: '<path d="M5 12.5l4.5 4.5L19 7"/>', list: '<circle cx="5" cy="7" r="2"/><circle cx="5" cy="17" r="2"/><path d="M11 7h9M11 17h9"/>', num: '<path d="M10 7h10M10 17h10"/><path d="M4 5l1.5-1v6M3.5 15.5c1-1.2 3-.8 3 .6 0 1-1.6 1.6-3 3.4h3.2" stroke-width="1.5"/>',
+  clip: '<path d="M20 11.5l-8 8a5 5 0 0 1-7-7l8.500-8.500a3.5 3.5 0 0 1 5 5L10 17.500a2 2 0 0 1-3-3l7.500-7.500"/>'
+};
+const _noteEditorA = noteEditor;
+noteEditor = function (id) {
+  _noteEditorA(id);
+  const sheet = document.querySelector('#modal-root .sheet'), form = sheet && sheet.querySelector('#editor'); if (!form) return;
+  sheet.classList.remove('note-new'); sheet.classList.add('note-full', 'note-an');
+  const n = id && data.notes.find(x => x.id === id), title = form.querySelector('#note-title'), body = form.querySelector('#rich-body'), row2 = form.querySelector('.row2'), tb = form.querySelector('.toolbar');
+  const st = sheet.querySelector('.sheet-title');
+  st.innerHTML = `<button type="button" class="an-rb" data-an="back" aria-label="Back to notes">${svgI(AI.back)}</button><span class="an-sp"></span><button type="button" class="an-rb" data-an="undo" aria-label="Undo">${svgI(AI.undo)}</button>`
+    + `<span class="an-pill"><button type="button" data-an="share" aria-label="Share">${svgI(AI.share)}</button><button type="button" data-an="more" aria-label="Tag, folder and delete" aria-expanded="false">${svgI(AI.more)}</button></span>`
+    + `<button type="button" class="an-rb an-ok" data-an="save" aria-label="Done">${svgI(AI.ok)}</button><button type="button" data-act="close" hidden></button>`;
+  // tag, folder and delete live behind the ... button
+  const panel = document.createElement('div'); panel.className = 'an-panel'; panel.hidden = true;
+  if (row2) panel.appendChild(row2);
+  const del = form.querySelector('.form-actions .danger'); if (del) { del.textContent = 'Delete note'; panel.appendChild(del); }
+  form.insertBefore(panel, form.firstChild);
+  const when = n && (n.updated || n.entered) ? new Date(n.updated || n.entered) : new Date();
+  title.insertAdjacentHTML('beforebegin', `<p class="an-date">${when.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' })} at ${when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}<i class="an-chip" data-an="more"></i></p>`);
+  const chip = form.querySelector('.an-date .an-chip'), tabSel = panel.querySelector('select[name="tab"]'), folder = panel.querySelector('#note-folder');
+  const paintChip = () => { const t = tabSel ? tabSel.value : 'Personal', f = folder && folder.value && folder.value !== 'General' ? folder.value : ''; chip.textContent = [t !== 'Personal' ? t : '', f].filter(Boolean).join(' · ') || 'Personal'; chip.className = 'an-chip an-' + String(t).toLowerCase(); };
+  paintChip(); panel.addEventListener('input', paintChip); panel.addEventListener('change', paintChip);
+  title.placeholder = 'Title'; body.dataset.ph = 'Start writing…';
+  // tools: one pill at the bottom (it rides just above the keyboard), text styles behind Aa
+  if (tb) {
+    const fmt = document.createElement('div'); fmt.className = 'an-fmt'; fmt.hidden = true;
+    tb.querySelectorAll('button[data-format]').forEach(b => { const c = b.dataset.format; if (c === 'insertUnorderedList') { b.innerHTML = svgI(AI.list); b.setAttribute('aria-label', 'Bulleted list'); } else if (c === 'insertOrderedList') { b.innerHTML = svgI(AI.num); b.setAttribute('aria-label', 'Numbered list'); } else fmt.appendChild(b); });
+    const img = tb.querySelector('[data-act="note-image"]'); if (img) { img.innerHTML = svgI(AI.clip); img.setAttribute('aria-label', 'Add an image'); }
+    tb.insertAdjacentHTML('afterbegin', '<button type="button" class="an-aa" data-an="aa" aria-label="Text style" aria-expanded="false">Aa</button>');
+    tb.classList.add('an-tools'); form.appendChild(fmt); form.appendChild(tb);
+    [fmt, tb].forEach(el => el.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); }));   // keep the cursor (and keyboard) where it is
+  }
+  const snap = () => [title.value, body.innerHTML, tabSel && tabSel.value, folder && folder.value].join('\u0001');
+  sheet.dataset.snap = snap(); sheet._snap = snap;
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-an]'); if (!b) return; const sheet = b.closest('.sheet.note-an'); if (!sheet) return; e.preventDefault(); e.stopPropagation();
+  const form = sheet.querySelector('#editor'), title = form.querySelector('#note-title'), body = form.querySelector('#rich-body'), k = b.dataset.an;
+  const empty = !title.value.trim() && !(body.innerText || '').trim() && !body.querySelector('img');
+  if (k === 'save' || k === 'back') { if (empty || (k === 'back' && sheet._snap && sheet._snap() === sheet.dataset.snap)) { forceClose(); return; } form.requestSubmit(); return; }
+  if (k === 'undo') { document.execCommand('undo'); return; }
+  if (k === 'share') { const text = [title.value.trim(), (body.innerText || '').trim()].filter(Boolean).join('\n\n'); if (!text) return;
+    if (navigator.share) navigator.share({ title: title.value.trim() || 'Note', text }).catch(() => {}); else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => notify('Copied.')).catch(() => {}); return; }
+  if (k === 'more') { const p = form.querySelector('.an-panel'), m = sheet.querySelector('[data-an="more"][aria-expanded]'); p.hidden = !p.hidden; m.setAttribute('aria-expanded', String(!p.hidden)); if (!p.hidden) sheet.scrollTo ? sheet.scrollTo(0, 0) : 0; return; }
+  if (k === 'aa') { const f = form.querySelector('.an-fmt'); f.hidden = !f.hidden; b.setAttribute('aria-expanded', String(!f.hidden)); return; }
 }, true);
 
 try { render(); } catch (e) { console.error(e); }
