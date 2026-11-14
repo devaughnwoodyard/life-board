@@ -990,3 +990,36 @@ body.kb-open .an-fmt{bottom:68px}
 .an-todo.done .an-top b{color:#AEAEB2;text-decoration:line-through}
 .an-todo.done .an-chip,.an-todo.done .an-dt{opacity:.45}
 .nt-sum{margin:8px 0 0}
+
+/* ---------- swipe rows ---------- */
+.an-row[data-sw]{position:relative;background:#fff}
+.an-sw{position:relative;z-index:1;background:#fff;will-change:transform}
+.an-todos .an-sw{display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0}
+.an-todos .an-row{display:block}
+.an-row.sw-on::before{content:"";position:absolute;inset:0;z-index:0}
+.an-row.sw-on::after{position:absolute;top:50%;transform:translateY(-50%);z-index:0;font-size:13px;font-weight:700;color:#fff}
+.an-row.sw-del::before{background:#B9B9BE}.an-row.sw-del.sw-go::before{background:#FF3B30}
+.an-row.sw-del::after{content:"Delete";left:14px}
+.an-row.sw-copy::before{background:#B9B9BE}.an-row.sw-copy.sw-go::before{background:#0A84FF}
+.an-row.sw-copy::after{content:"Copy";right:16px}
+.an-card{padding-left:0!important}
+.an-card .an-sw{padding-left:16px}
+.an-todos .an-sw{padding-left:14px}
+.an-cf{margin:0 0 6px;font-size:15px;line-height:1.45;color:#3A3A3C}
+.an-cf b{color:#000}
+/* ---------- to-do screen ---------- */
+.sheet.todo-an textarea#f-title{flex:none;border:0!important;background:none!important;box-shadow:none!important;outline:0;padding:4px 0!important;border-radius:0;font-size:28px!important;line-height:1.2;font-weight:700!important;letter-spacing:-.02em;color:#1C1C1E;min-height:38px!important;width:100%;resize:none}
+.an-notes{flex:none;width:100%;border:0!important;background:none!important;box-shadow:none!important;outline:0;resize:none;padding:6px 0 24px!important;font:inherit;font-size:17px!important;line-height:1.45;color:#1C1C1E;min-height:120px}
+.an-notes::placeholder{color:#C7C7CC}
+.an-date[data-at]{cursor:pointer}
+.an-due.late{color:#D0331A;font-weight:600}.an-due.now{color:#C28A00;font-weight:600}
+.sheet.todo-an .an-panel .row2{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px!important}
+.sheet.todo-an .an-panel .tx-row{margin:0 0 10px}
+.sheet.todo-an .form-actions{display:none!important}
+/* tighter rows to match the smaller text */
+.an-b{padding:7px 12px 8px 0!important}
+.an-ck{width:20px;height:20px;margin-top:8px}
+.an-ck svg{width:12px;height:12px}
+.an-todos .an-chip{top:8px}
+.an-dt{top:3px}
+.an-todos .an-sw{gap:10px}

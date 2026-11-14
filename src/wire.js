@@ -2120,18 +2120,18 @@ function ntTodoRow(x) {
   const late = !x.done && x.due && x.due < today, now = !x.done && x.due === today;
   const when = x.due ? ntShort(x.due) + (x.time && x.due === today ? ' · ' + hm12(x.time) : '') : '';
   const prev = [x.wait ? 'Waiting' : '', x.sub].filter(Boolean).join(' · ');
-  return `<li class="an-row an-todo${x.done ? ' done' : ''}${late ? ' late' : ''}"${x.k === 't' && !x.done ? ` data-swipe="${x.id}" data-task-id="${x.id}"` : ''}>
+  return `<li class="an-row an-todo${x.done ? ' done' : ''}${late ? ' late' : ''}" data-sw="${x.k}" data-id="${x.id}"><div class="an-sw">
     <button class="an-ck${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>
     <div class="an-tb"><button class="an-b" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><span class="an-top"><b>${x.pr ? `<em class="an-pr">${x.pr === 1 ? '!!' : '!'}</em> ` : ''}${esc(x.title)}</b></span>
       <span class="an-prev">${when ? `<time class="${late ? 'late' : now ? 'now' : ''}">${esc(when)}</time> ` : ''}${esc(prev) || (when ? '' : 'No date')}</span></button>
       <button class="an-chip an-${x.cat === 'Work' ? 'work' : 'personal'}" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
-      <label class="an-dt" aria-label="Due date for ${esc(x.title)}">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}"></label></div></li>`;
+      <label class="an-dt" aria-label="Due date for ${esc(x.title)}">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}"></label></div></div></li>`;
 }
 const ntWhen = iso => { if (!iso) return ''; const d = day(new Date(iso)), n = Math.round((date(today) - date(d)) / 864e5); return n <= 0 ? new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : n === 1 ? 'Yesterday' : n < 7 ? fmt(d, { weekday: 'long' }) : new Date(iso).toLocaleDateString([], { month: 'numeric', day: 'numeric', year: '2-digit' }); };
 function ntNoteRow(n) {
   const body = ntBody(n).replace(/\n+/g, ' '), chip = n.tab && n.tab !== 'Personal' ? n.tab : '', folder = n.folder && n.folder !== 'General' ? n.folder : '';
-  return `<li class="an-row"><button class="an-b" data-act="note-edit" data-id="${n.id}"><span class="an-top"><b>${esc(n.title || 'New Note')}</b>${chip || folder ? `<i class="an-chip an-${esc(String(chip || 'folder').toLowerCase())}">${esc(chip || folder)}</i>` : ''}</span>
-    <span class="an-prev"><time>${esc(ntWhen(n.updated || n.entered))}</time> ${esc(body.slice(0, 220)) || 'No additional text'}</span>${chip && folder ? `<span class="an-folder">${svgI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>')}${esc(folder)}</span>` : ''}</button></li>`;
+  return `<li class="an-row" data-sw="n" data-id="${n.id}"><div class="an-sw"><button class="an-b" data-act="note-edit" data-id="${n.id}"><span class="an-top"><b>${esc(n.title || 'New Note')}</b>${chip || folder ? `<i class="an-chip an-${esc(String(chip || 'folder').toLowerCase())}">${esc(chip || folder)}</i>` : ''}</span>
+    <span class="an-prev"><time>${esc(ntWhen(n.updated || n.entered))}</time> ${esc(body.slice(0, 220)) || 'No additional text'}</span>${chip && folder ? `<span class="an-folder">${svgI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>')}${esc(folder)}</span>` : ''}</button></div></li>`;
 }
 function ntNoteGroups(list) {
   const g = [['Today', []], ['Previous 7 Days', []], ['Previous 30 Days', []], ['Older', []]];
@@ -2319,6 +2319,97 @@ document.addEventListener('click', e => {
     if (navigator.share) navigator.share({ title: title.value.trim() || 'Note', text }).catch(() => {}); else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => notify('Copied.')).catch(() => {}); return; }
   if (k === 'more') { const p = form.querySelector('.an-panel'), m = sheet.querySelector('[data-an="more"][aria-expanded]'); p.hidden = !p.hidden; m.setAttribute('aria-expanded', String(!p.hidden)); if (!p.hidden) sheet.scrollTo ? sheet.scrollTo(0, 0) : 0; return; }
   if (k === 'aa') { const f = form.querySelector('.an-fmt'); f.hidden = !f.hidden; b.setAttribute('aria-expanded', String(!f.hidden)); return; }
+}, true);
+
+/* ==================== Swipe a note or to-do: right = delete, left = copy. Both ask first. ==================== */
+function anItem(k, id) { return k === 't' ? data.tasks.find(t => t.id === id) : data.notes.find(n => n.id === id); }
+function anConfirm(kind, k, id) {
+  const it = anItem(k, id); if (!it) return;
+  const what = k === 't' ? 'to-do' : (it.todo ? 'to-do' : 'note'), name = esc(it.title || 'Untitled');
+  modal(kind === 'del' ? `Delete this ${what}?` : `Copy this ${what}?`,
+    `<p class="an-cf"><b>${name}</b><br>${kind === 'del' ? 'It will be removed from all your devices.' : 'A copy will be added at the top.'}</p>
+     <div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button type="button" class="${kind === 'del' ? 'danger' : 'primary'}" data-swc="${kind}" data-k="${k}" data-id="${id}">${kind === 'del' ? 'Delete' : 'Copy'}</button></div>`, { kind: 'swipe', form: false });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-swc]'); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const k = b.dataset.k, id = b.dataset.id, it = anItem(k, id); forceClose(); if (!it) return;
+  const list = k === 't' ? 'tasks' : 'notes';
+  if (b.dataset.swc === 'del') {
+    data[list] = data[list].filter(x => x !== it); save(); render();
+    undoToast('Deleted.', () => { data[list].push(it); save(); render(); });
+  } else {
+    const now = new Date().toISOString(), c = JSON.parse(JSON.stringify(it));
+    c.id = uid(); c.done = false; delete c.doneAt; if (k === 't') c.updated = now; else { c.entered = now; c.updated = now; }
+    data[list].push(c); save(); render(); notify('Copied.');
+  }
+}, true);
+(function anSwipe() {
+  let s = null, eat = false;
+  const W = 80;
+  document.addEventListener('touchstart', e => {
+    const row = e.target.closest && e.target.closest('.an-row[data-sw]'); if (!row || e.touches.length > 1) return;
+    if (e.target.closest('input')) return;
+    s = { row, sw: row.querySelector('.an-sw'), x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, on: false };
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!s) return; const dx = e.touches[0].clientX - s.x, dy = e.touches[0].clientY - s.y;
+    if (!s.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { s = null; return; } if (Math.abs(dx) < 12) return; s.on = true; s.row.classList.add('sw-on'); }
+    s.dx = Math.max(-140, Math.min(140, dx));
+    s.sw.style.transform = `translateX(${s.dx}px)`;
+    s.row.classList.toggle('sw-del', s.dx > 0); s.row.classList.toggle('sw-copy', s.dx < 0);
+    s.row.classList.toggle('sw-go', Math.abs(s.dx) >= W);
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+  const end = () => {
+    if (!s) return; const { row, sw, dx, on } = s; s = null; if (!on) return;
+    eat = true; setTimeout(() => { eat = false; }, 400);
+    sw.style.transition = 'transform .18s ease'; sw.style.transform = '';
+    setTimeout(() => { sw.style.transition = ''; row.classList.remove('sw-on', 'sw-del', 'sw-copy', 'sw-go'); }, 200);
+    if (Math.abs(dx) >= W) anConfirm(dx > 0 ? 'del' : 'copy', row.dataset.sw, row.dataset.id);
+  };
+  document.addEventListener('touchend', end, { passive: true });
+  document.addEventListener('touchcancel', end, { passive: true });
+  document.addEventListener('click', e => { if (eat && e.target.closest('.an-row')) { e.preventDefault(); e.stopPropagation(); } }, true);
+})();
+
+/* ==================== To-do screen in the Apple Notes style ==================== */
+const _taskEditorA = taskEditor;
+taskEditor = function (id, d) {
+  _taskEditorA(id, d);
+  const sheet = document.querySelector('#modal-root .sheet.task-sheet'), form = sheet && sheet.querySelector('#editor'); if (!form) return;
+  const t = data.tasks.find(x => x.id === id) || {};
+  sheet.classList.add('note-full', 'note-an', 'todo-an');
+  const title = form.querySelector('#f-title');
+  const st = sheet.querySelector('.sheet-title');
+  st.innerHTML = `<button type="button" class="an-rb" data-at="back" aria-label="Back">${svgI(AI.back)}</button><span class="an-sp"></span><button type="button" class="an-rb" data-at="undo" aria-label="Undo">${svgI(AI.undo)}</button>`
+    + `<span class="an-pill"><button type="button" data-at="share" aria-label="Share">${svgI(AI.share)}</button><button type="button" data-at="more" aria-label="Date, category, priority and delete" aria-expanded="false">${svgI(AI.more)}</button></span>`
+    + `<button type="button" class="an-rb an-ok" data-at="save" aria-label="Done">${svgI(AI.ok)}</button><button type="button" data-act="close" hidden></button>`;
+  const panel = document.createElement('div'); panel.className = 'an-panel'; panel.hidden = true;
+  [...form.children].forEach(el => { if (el !== title && !el.classList.contains('form-actions')) panel.appendChild(el); });
+  const del = form.querySelector('.form-actions .danger'); if (del) { del.textContent = 'Delete to-do'; panel.appendChild(del); }
+  form.insertBefore(panel, form.firstChild);
+  title.insertAdjacentHTML('beforebegin', `<p class="an-date" data-at="more"><span class="an-due"></span><i class="an-chip"></i></p>`);
+  title.insertAdjacentHTML('afterend', `<textarea name="notes" class="an-notes" rows="3" placeholder="Notes" aria-label="Notes">${esc(t.notes || '')}</textarea>`);
+  const notes = form.querySelector('.an-notes'), dt = form.querySelector('#f-date'), tm = form.querySelector('#f-time'), cat = form.querySelector('#f-category');
+  const grow = el => { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; };
+  notes.addEventListener('input', () => grow(notes)); setTimeout(() => grow(notes), 0);
+  const paint = () => { const d0 = dt && dt.value, due = form.querySelector('.an-due'), chip = form.querySelector('.an-chip'), c = cat ? cat.value : 'Personal';
+    due.textContent = d0 ? (d0 < today ? 'Overdue · ' : 'Due ') + ntDueTxt(d0) + (tm && tm.value ? ' at ' + hm12(tm.value) : '') : 'No due date';
+    due.className = 'an-due' + (d0 && d0 < today ? ' late' : d0 === today ? ' now' : '');
+    chip.textContent = c; chip.className = 'an-chip an-' + String(c).toLowerCase(); };
+  paint(); panel.addEventListener('input', paint); panel.addEventListener('change', paint); panel.addEventListener('click', () => setTimeout(paint, 0));
+  title.placeholder = 'New to-do';
+  const snap = () => [...form.querySelectorAll('input,select,textarea')].map(x => x.type === 'checkbox' ? x.checked : x.value).join('\u0001');
+  sheet.dataset.snap = snap(); sheet._snap = snap;
+};
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-at]'); if (!b) return; const sheet = b.closest('.sheet.todo-an'); if (!sheet) return; e.preventDefault(); e.stopPropagation();
+  const form = sheet.querySelector('#editor'), title = form.querySelector('#f-title'), k = b.dataset.at;
+  if (k === 'save' || k === 'back') { if (!title.value.trim() || (k === 'back' && sheet._snap && sheet._snap() === sheet.dataset.snap)) { forceClose(); return; } form.requestSubmit(); return; }
+  if (k === 'undo') { document.execCommand('undo'); return; }
+  if (k === 'share') { const text = [title.value.trim(), form.querySelector('.an-notes').value.trim()].filter(Boolean).join('\n\n'); if (!text) return;
+    if (navigator.share) navigator.share({ title: title.value.trim(), text }).catch(() => {}); else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => notify('Copied.')).catch(() => {}); return; }
+  if (k === 'more') { const p = form.querySelector('.an-panel'), m = sheet.querySelector('.an-pill [data-at="more"]'); p.hidden = !p.hidden; m.setAttribute('aria-expanded', String(!p.hidden)); return; }
 }, true);
 
 try { render(); } catch (e) { console.error(e); }

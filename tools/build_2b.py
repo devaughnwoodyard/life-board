@@ -38,6 +38,14 @@ app = app.replace('<title>2nd Brain</title>' + head, head, 1)
 app = app.rstrip()
 if app.endswith("</html>"): app = app[:-7]
 if app.endswith("</body>"): app = app[:-7]
+# all text 30% smaller (font sizes only; spacing and tap targets stay); never below 9px
+SHRINK = 0.7
+def _fs(m): return m.group(1) + str(max(9, round(float(m.group(2)) * SHRINK, 1))).rstrip('0').rstrip('.') + 'px'
+def shrink(c):
+    c = re.sub(r'(font-size:\s*)(\d+(?:\.\d+)?)px', _fs, c)
+    return re.sub(r'(font:[^;{}]*?\b)(\d+(?:\.\d+)?)px', _fs, c)
+app = re.sub(r'(<style[^>]*>)(.*?)(</style>)', lambda m: m.group(1) + shrink(m.group(2)) + m.group(3), app, flags=re.S)
+css = shrink(css)
 app += "\n<style id=\"wire-css\">\n" + css + "</style>\n<script id=\"wire-js\">\n" + js + "</script>\n</body></html>\n"
 
 build = hashlib.sha1(app.encode()).hexdigest()[:8]
