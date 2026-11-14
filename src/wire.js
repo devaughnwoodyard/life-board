@@ -1877,6 +1877,12 @@ function ntNoteRow(n) {
     <span class="an-prev"><time>${esc(ntWhen(n.updated || n.entered))}</time> ${esc(body.slice(0, 220)) || 'No additional text'}</span>${folder ? `<span class="an-folder">${svgI('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>')}${esc(folder)}</span>` : ''}</button>
     <button class="an-chip an-${tab.toLowerCase()}" data-nt="ncat" data-id="${n.id}" aria-label="Switch notebook">${tab}</button></div></div></li>`;
 }
+// The four most recent notes, as one row of tiles
+function ntNoteTile(n) {
+  const body = ntBody(n).replace(/\n+/g, ' '), tab = n.tab === 'Work' || n.tab === 'Spanish' ? n.tab : 'Personal';
+  return `<div class="an-tile"><button class="an-tile-b" data-act="note-edit" data-id="${n.id}"><b>${esc(n.title || 'New Note')}</b><span>${esc(body.slice(0, 90))}</span><time>${esc(ntWhen(n.updated || n.entered))}</time></button>
+    <button class="an-chip an-${tab.toLowerCase()}" data-nt="ncat" data-id="${n.id}" aria-label="Switch notebook">${tab}</button></div>`;
+}
 function ntNoteGroups(list) {
   const g = [['Today', []], ['Previous 7 Days', []], ['Previous 30 Days', []], ['Older', []]];
   list.forEach(n => { const iso = n.updated || n.entered, k = iso ? Math.round((date(today) - date(day(new Date(iso)))) / 864e5) : 999; g[k <= 0 ? 0 : k <= 7 ? 1 : k <= 30 ? 2 : 3][1].push(n); });
@@ -1890,7 +1896,7 @@ function ntList() {
   const nLate = open.filter(x => x.due && x.due < today).length, nNow = open.filter(x => x.due === today).length;
   return `<div class="nt nt3${ntAll ? ' an-open' : ''}">
     <h2 class="an-title">Notes<span>${notes.length}</span></h2>
-    ${notes.length ? (ntAll ? ntNoteGroups(shown) : `<ul class="an-card">${shown.map(ntNoteRow).join('')}</ul>`) : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
+    ${notes.length ? (ntAll ? ntNoteGroups(shown) : `<div class="an-tiles">${shown.map(ntNoteTile).join('')}</div>`) : '<p class="nt-empty">No notes yet. Tap + to write one.</p>'}
     ${notes.length > NSHOW ? `<button class="an-more" data-nt="all">${ntAll ? 'Show fewer' : `Open all ${notes.length} notes`}</button>` : ''}
     <h2 class="an-title">To-dos<span>${open.length}</span></h2>
     ${open.length ? `<ul class="an-card an-todos">${open.map(ntTodoRow).join('')}</ul><p class="nt-sum">${[nLate ? nLate + ' late' : '', nNow ? nNow + ' today' : '', (open.length - nLate - nNow) ? (open.length - nLate - nNow) + ' later' : ''].filter(Boolean).join(' · ')}</p>` : '<p class="nt-empty">No open to-dos.</p>'}
@@ -2148,17 +2154,40 @@ taskEditor = function (id, d) {
   if (!id) { title.focus(); setTimeout(() => { if (document.activeElement === document.body) title.focus(); }, 40); }
   const pInp = form.querySelector('[name="p"]'), wInp = form.querySelector('[name="wait"]');
   const tools = document.createElement('div'); tools.className = 'toolbar an-tools at-tools';
-  tools.innerHTML = `<button type="button" data-tt="date" aria-label="Due date">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}</button>`
+  // The date control is a real date field laid over the icon: iPhone only opens its picker from a direct tap on the field
+  tools.innerHTML = `<button type="button" data-tt="ul" aria-label="Bulleted list">${svgI(AI.list)}</button><button type="button" data-tt="ol" aria-label="Numbered list">${svgI(AI.num)}</button>`
+    + `<label class="tt-d" data-tt="date">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}<input type="date" class="tt-di" aria-label="Due date" value="${esc((form.querySelector('#f-date') || {}).value || '')}"></label>`
     + `<button type="button" data-tt="cat" aria-label="Switch Work or Personal"><span class="tt-cat"></span></button>`
     + `<button type="button" data-tt="prio" aria-label="Priority"><span class="tt-p"></span></button>`
     + `<button type="button" data-tt="wait" aria-label="Waiting on someone">${svgI('<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>')}</button>`;
   form.appendChild(tools);
   tools.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); });
+  const di = tools.querySelector('.tt-di');
+  di.addEventListener('change', () => { if (!dt) return; dt.value = di.value; dt.dispatchEvent(new Event('change', { bubbles: true })); });
+  // Bullets and numbers in the notes box: the buttons toggle the mark on the current lines, Return carries it on
+  const MARK = /^(\s*)(• |\d+\. )/;
+  const listToggle = kind => {
+    if (document.activeElement !== notes) { notes.focus(); notes.selectionStart = notes.selectionEnd = notes.value.length; }
+    const v = notes.value, a0 = notes.selectionStart, b0 = notes.selectionEnd, ls0 = v.lastIndexOf('\n', a0 - 1) + 1, le = v.indexOf('\n', b0), end = le < 0 ? v.length : le;
+    const lines = v.slice(ls0, end).split('\n'), is = l => kind === 'ul' ? /^\s*• /.test(l) : /^\s*\d+\. /.test(l), all = lines.every(is);
+    let n = 0; const out = lines.map(l => { const bare = l.replace(MARK, '$1'); return all ? bare : (kind === 'ul' ? '• ' : (++n) + '. ') + bare; }).join('\n');
+    notes.value = v.slice(0, ls0) + out + v.slice(end); const pos = ls0 + out.length; notes.selectionStart = notes.selectionEnd = pos; notes.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  notes.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing || notes.selectionStart !== notes.selectionEnd) return;
+    const v = notes.value, c = notes.selectionStart, ls0 = v.lastIndexOf('\n', c - 1) + 1, line = v.slice(ls0, c), m = line.match(MARK); if (!m) return;
+    e.preventDefault();
+    if (!line.slice(m[0].length).trim()) { notes.value = v.slice(0, ls0) + v.slice(c); notes.selectionStart = notes.selectionEnd = ls0; }   // empty item: end the list
+    else { const mk = m[2][0] === '•' ? '• ' : (parseInt(m[2], 10) + 1) + '. ', ins = '\n' + m[1] + mk; notes.value = v.slice(0, c) + ins + v.slice(c); notes.selectionStart = notes.selectionEnd = c + ins.length; }
+    notes.dispatchEvent(new Event('input', { bubbles: true }));
+  });
   const paintTools = () => { tools.querySelector('.tt-cat').textContent = cat ? cat.value : 'Personal'; const pv = pInp ? pInp.value : ''; tools.querySelector('.tt-p').textContent = pv === '1' ? '!!' : pv === '2' ? '!' : '!';
-    tools.querySelector('[data-tt="prio"]').classList.toggle('on', !!pv); tools.querySelector('[data-tt="wait"]').classList.toggle('on', !!(wInp && wInp.value)); tools.querySelector('[data-tt="date"]').classList.toggle('on', !!(dt && dt.value)); };
+    tools.querySelector('[data-tt="prio"]').classList.toggle('on', !!pv); tools.querySelector('[data-tt="wait"]').classList.toggle('on', !!(wInp && wInp.value)); tools.querySelector('[data-tt="date"]').classList.toggle('on', !!(dt && dt.value)); if (dt && di.value !== dt.value) di.value = dt.value; };
   paintTools();
-  tools.addEventListener('click', e => { const b = e.target.closest('[data-tt]'); if (!b) return; e.preventDefault(); const k = b.dataset.tt;
-    if (k === 'date' && dt) { try { dt.showPicker(); } catch (x) { form.querySelector('.an-panel').hidden = false; dt.focus(); } }
+  tools.addEventListener('click', e => { const b = e.target.closest('[data-tt]'); if (!b) return; const k = b.dataset.tt;
+    if (k === 'date') return;   // the date field handles its own tap
+    e.preventDefault();
+    if (k === 'ul' || k === 'ol') { listToggle(k); return; }
     if (k === 'cat' && cat) { const o = [...cat.options].map(x => x.value), i = o.indexOf(cat.value); cat.value = o[(i + 1) % o.length]; cat.dispatchEvent(new Event('change', { bubbles: true })); }
     if (k === 'prio') { const nb = { '': '2', '2': '1', '1': '' }[pInp.value || ''], pb = form.querySelector(`[data-pv="${nb}"]`); pb ? pb.click() : (pInp.value = nb); }
     if (k === 'wait') { const wb = form.querySelector('[data-wv]'); wb ? wb.click() : (wInp.value = wInp.value ? '' : '1'); }
