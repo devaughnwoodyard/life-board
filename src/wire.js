@@ -29,6 +29,9 @@ const ICONS = {
 
 addEventListener('error', e => { try { notify('App error: ' + (e.message || e)); } catch (x) {} });
 addEventListener('unhandledrejection', e => { try { notify('App error: ' + ((e.reason && e.reason.message) || e.reason)); } catch (x) {} });
+// Date labels: one reusable formatter per style (building a new one on every call was a quarter of each screen draw)
+const _dtf = {};
+fmt = function (s, opts = { month: 'short', day: 'numeric' }) { const k = JSON.stringify(opts); return (_dtf[k] || (_dtf[k] = new Intl.DateTimeFormat(undefined, opts))).format(date(s)); };
 /* ---------- 1. Real app, not a preview ---------- */
 let firstRun = false;
 if (data.__demo) {
@@ -1002,43 +1005,13 @@ function paintStatus() {
 
 /* ---------- 9. Decorate the rendered page ---------- */
 const _render = render;
-/* ---------- Check-in: physical, emotional, mental (1–5) + mood (1–10), about four taps ---------- */
+/* ---------- Synced prefs (names) ---------- */
 if (!Array.isArray(data.checkins)) data.checkins = [];
 if (!Array.isArray(data.prefs)) data.prefs = [];
 function namesPref() { return data.prefs.find(x => x.id === 'names'); }
 function setNames(v) { let p = namesPref(); if (!p) { p = { id: 'names', value: '' }; data.prefs.push(p); } if (p.value !== v) { p.value = v; p.updated = new Date().toISOString(); } cfg.names = v; saveCfg(); }
 // first run on a device that already had names: share them
 (function () { const p = namesPref(); if (p && p.value != null) cfg.names = p.value; else if (cfg.names) setNames(cfg.names); })();
-const CI_SCALE = ['Rough', 'Low', 'OK', 'Good', 'Great'];
-let ciDraft = {};
-function checkinSheet() {
-  ciDraft = {};
-  const row = (key, label) => `<div class="ci-q"><b>${label}</b><div class="ci-opts" data-key="${key}">${CI_SCALE.map((l, i) => `<button type="button" data-2b="ci-pick" data-key="${key}" data-v="${i + 1}" aria-pressed="false">${l}</button>`).join('')}</div></div>`;
-  modal('Check in', `<p class="ci-sub">How are you doing right now?</p>${row('physical', 'Physically')}${row('emotional', 'Emotionally')}${row('mental', 'Mentally')}
-    <div class="ci-q"><b>Mood <small>1–10 · tap to save</small></b><div class="ci-mood">${Array.from({ length: 10 }, (_, i) => `<button type="button" data-2b="ci-mood" data-v="${i + 1}">${i + 1}</button>`).join('')}</div></div>`, { kind: '2b-checkin', form: false });
-}
-function saveCheckin(mood) {
-  const c = { id: uid(), at: new Date().toISOString(), date: today, physical: ciDraft.physical || null, emotional: ciDraft.emotional || null, mental: ciDraft.mental || null, mood };
-  data.checkins.push(c); save(); forceClose(); render();
-  undoToast(`Checked in · mood ${mood}/10.`, () => { data.checkins = data.checkins.filter(x => x !== c); save(); render(); });
-}
-function checkinCard() {
-  const all = data.checkins.slice().sort((a, b) => String(b.at).localeCompare(String(a.at)));
-  const days = Array.from({ length: 14 }, (_, i) => add(today, i - 13));
-  const avg = (l, k) => { const v = l.map(c => c[k]).filter(x => x != null); return v.length ? v.reduce((s, x) => s + x, 0) / v.length : null; };
-  const wk = all.filter(c => c.date > add(today, -7)), prevWk = all.filter(c => c.date <= add(today, -7) && c.date > add(today, -14));
-  const dimAvg = k => { const a = avg(wk, k); if (a == null) return '<span class="ci-na">–</span>'; const pa = avg(prevWk, k); const tr = pa == null ? '' : a > pa + 0.25 ? '<em class="up">▲</em>' : a < pa - 0.25 ? '<em class="dn">▼</em>' : '<em>•</em>';
-    return `<b>${CI_SCALE[Math.round(a) - 1]}</b>${tr}`; };
-  const moodW = avg(wk, 'mood'), moodP = avg(prevWk, 'mood');
-  const label = (c, k) => c[k] ? CI_SCALE[c[k] - 1] : '–';
-  return `<section class="ci-card"><div class="ci-h"><b>Check-ins</b><button data-2b="checkin">+ Check in</button></div>
-    <div class="ci-sum"><div><small>Mood · 7 days</small><b>${moodW == null ? '–' : moodW.toFixed(1)}</b>${moodW != null && moodP != null ? `<em class="${moodW >= moodP ? 'up' : 'dn'}">${moodW >= moodP ? '▲' : '▼'} ${Math.abs(moodW - moodP).toFixed(1)}</em>` : ''}</div>
-      <div><small>Physical</small>${dimAvg('physical')}</div><div><small>Emotional</small>${dimAvg('emotional')}</div><div><small>Mental</small>${dimAvg('mental')}</div></div>
-    <div class="ci-k">MOOD · LAST 14 DAYS</div>
-    <div class="ci-bars">${days.map(d => { const l = all.filter(c => c.date === d); const m = l.length ? l.reduce((s, c) => s + c.mood, 0) / l.length : null; return `<div class="ci-bar${d === today ? ' td' : ''}" title="${esc(fmt(d))}${m ? ': ' + m.toFixed(1) : ''}"><small>${m ? Math.round(m) : ''}</small><i style="height:${m ? m * 10 : 0}%"></i><span>${fmt(d, { weekday: 'narrow' })}</span></div>`; }).join('')}</div>
-    <div class="ci-k">LOG</div>${all.length ? `<div class="ci-log">${all.slice(0, 8).map(c => `<div class="ci-row"><span class="ci-when">${esc(new Date(c.at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</span><span class="ci-m">${c.mood}</span><span class="ci-d">${label(c, 'physical')} · ${label(c, 'emotional')} · ${label(c, 'mental')}</span></div>`).join('')}</div>` : '<p class="ci-last">No check-ins yet. Tap + and Check in.</p>'}
-  </section>`;
-}
 
 /* ---------- 8b. Notes: folder cards that open into a list, notes that expand in place ---------- */
 const openFolders = new Set(ls.get('2b-openf', [])), openNotes = new Set();
@@ -1065,16 +1038,13 @@ function decorateNotes() {
   if (html) document.querySelectorAll('#page-content > .empty').forEach(e => e.remove());
 }
 
-// Remember when a to-do was checked off; Home keeps it for 5 minutes, then drops it
-const DONE_SHOW_MS = 5 * 60e3;
+// Remember when a to-do was checked off
 const _toggleTask = toggleTask;
 toggleTask = function (id) {
   const t = data.tasks.find(x => x.id === id);
   if (t) { if (t.done) delete t.doneAt; else t.doneAt = Date.now(); }
   _toggleTask(id);
-  if (t && t.done) setTimeout(() => { if (page === 'home' && !$('#modal-root').children.length) render(); }, DONE_SHOW_MS + 1000);
 };
-const recentlyDone = t => t.done && t.doneAt && Date.now() - t.doneAt < DONE_SHOW_MS;
 // Text boxes that wrap and grow as you type (Enter saves)
 function autoGrow(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight + 2, 480) + 'px'; }
 function growify(input, onEnter) {
@@ -1153,7 +1123,7 @@ eventEditor = function (id) {
   t.placeholder = 'What’s happening? Type @ to add a person';
   attachMentions(t);
   if (!root.querySelector('.focus-sink')) root.insertAdjacentHTML('afterbegin', '<input class="focus-sink" hidden tabindex="-1" aria-hidden="true">');
-  if (!id) { t.focus(); setTimeout(() => { if (document.activeElement !== t) t.focus(); }, 40); }
+  if (!id) { t.focus(); setTimeout(() => { if (document.activeElement === document.body) t.focus(); }, 40); }
 };
 // On save: any leftover @Name becomes Name, and new names join your list
 document.addEventListener('submit', e => {
@@ -1203,7 +1173,7 @@ noteEditor = function (id) {
     const btn = `<button type="button" class="primary g-btn" data-2b="g-sum" data-id="${n0.id}">${n0.summary ? 'Redo summary' : 'Summary'}</button>`;
     sheet.querySelector('.toolbar')?.insertAdjacentHTML('beforebegin', summaryBlock(n0) + btn);
   }
-  if (!id && t) { t.focus(); setTimeout(() => { if (document.activeElement !== t) t.focus(); }, 40); }   // same tap that opened it, so the phone keyboard comes up
+  if (!id && t) { t.focus(); setTimeout(() => { if (document.activeElement === document.body) t.focus(); }, 40); }   // same tap that opened it, so the phone keyboard comes up
 };
 document.addEventListener('submit', e => {
   const f = e.target; if (f.id !== 'editor' || !f.querySelector('#rich-body')) return;
@@ -1226,15 +1196,9 @@ const CI = {
   search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>'
 };
 const svgI = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
-const TABS = [['todo', 'To Do', 'todo'], ['notes', 'Notes', 'notes'], ['home', 'Home', 'home'], ['workouts', 'Train', 'train'], ['habits', 'Habits', 'hab']];
+const TABS = [['notes', 'Notes', 'notes'], ['workouts', 'Train', 'train']];
 const short = t => String(t || '').split(/[:(]/)[0].trim() || t;
 const hm12 = hm => { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
-function dueLabel(t) {
-  if (!t.date) return 'No date';
-  const d = t.date === today ? 'Today' : t.date === add(today, 1) ? 'Tomorrow' : t.date < today ? 'Overdue · ' + fmt(t.date) : t.date < add(today, 7) ? fmt(t.date, { weekday: 'short', month: 'short', day: 'numeric' }) : fmt(t.date);
-  return d + (t.time ? ' · ' + hm12(t.time) : '');
-}
-const openTasksSorted = () => data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
 const PAGE_NAME = { home: 'Monday', todo: 'To Do', calendar: 'Calendar', workouts: 'Training', notes: 'Notes', habits: 'Habits' };
 function cmdHeader() {
   const h = document.querySelector('.app-header'); if (!h) return;
@@ -1248,61 +1212,7 @@ function cmdNav() {
   n.innerHTML = TABS.map(t => `<button class="cmd-tab${page === t[0] ? ' active' : ''}${t[0] === 'home' ? ' cmd-home-tab' : ''}" data-act="nav" data-page="${t[0]}" aria-current="${page === t[0] ? 'page' : 'false'}">${svgI(CI[t[2]])}${t[1]}</button>`).join('');
   if (!document.getElementById('cmd-fab')) document.body.insertAdjacentHTML('beforeend', `<button class="cmd-fab" id="cmd-fab" data-2b="qa" aria-label="Add a to-do or note">${svgI(CI.plus)}</button>`);
 }
-function cmdPills() {
-  const tt = taskToday();
-  return `<div class="cmd-pills"><button class="cmd-pill" data-act="nav" data-page="todo"><small>To-dos</small><b>${tt.filter(t => t.done).length}/${tt.length}</b></button><button class="cmd-pill" data-act="nav" data-page="workouts"><small>Training</small><b>${workoutScore()}%</b></button><button class="cmd-pill" data-act="nav" data-page="habits"><small>Habits</small><b>${habitScore()}%</b></button></div>`;
-}
-function cmdHome() {
-  const t12 = hm => { if (!hm) return 'All day'; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
-  const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
-  const kindKey = k => ({ Run: 'run', Bike: 'bike', Swim: 'swim', Strength: 'strength', Yoga: 'yoga' })[k] || 'other';
-  const sess = ws.map(w => `<button class="cmd-sess${overPlan(w) ? ' over' : ''}" data-act="${w.actual == null ? 'workout-log' : 'workout-edit'}" data-id="${w.id}">${sportIcon(w.kind)}<span style="flex:1;min-width:0"><span class="t">${esc(short(w.title))}</span><span class="d"><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}${w.garmin && w.garmin.hr ? ' · ' + w.garmin.hr + ' bpm' : ''}</span>` : ''}</span></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</button>`).join('');
-  const open = openTasksSorted();
-  const doneToday = data.tasks.filter(recentlyDone).sort((a, b) => b.doneAt - a.doneAt);
-  const tl = open.slice(0, 6).concat(doneToday.slice(0, Math.max(0, 6 - open.length)));
-  const tasks = tl.map(t => `<div class="cmd-task${t.done ? ' done' : ''}"><button class="check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}">${t.done ? '✓' : ''}</button><button class="t" data-act="task-edit" data-id="${t.id}"><span class="tt">${esc(t.title)}</span><span class="ts${t.date && t.date < today && !t.done ? ' late' : ''}">${esc(t.category || 'Personal')} · ${esc(dueLabel(t))}</span></button></div>`).join('') + (open.length > 6 ? `<button class="cmd-more" data-act="nav" data-page="todo">+ ${open.length - 6} more</button>` : '');
-  const nowHM = new Date().toTimeString().slice(0, 5);
-  const withKind = e => { if (e.gcal) return e; const k = eventKind(e); return Object.assign({}, e, { kind: k.appt ? 'appt' : k.people.length ? 'people' : '', people: k.people }); };
-  let next = data.events.filter(e => e.date === today && (!e.time || e.time >= nowHM)).sort((a, b) => (a.time || '00').localeCompare(b.time || '00'))[0]
-    || data.events.filter(e => e.date > today).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))[0];
-  if (next) next = withKind(next);
-  const ph = phrases().filter(p => p.passes.length < 5 && p.en);
-  const p0 = ph.sort((a, b) => a.passes.length - b.passes.length)[0];
-  return cmdPills() + `<div class="cmd-home">
-    <section class="cmd-card"><div class="cmd-h"><h2>Today's training</h2><button data-act="nav" data-page="workouts">Week</button></div>${sess || '<p class="cmd-empty">No sessions planned today.</p>'}</section>
-    <section class="cmd-card${tasks ? '' : ' cmd-tap'}"${tasks ? '' : ' data-2b="qa-todo"'}><div class="cmd-h"><h2>To do</h2><button data-act="nav" data-page="todo">All</button></div>${tasks || '<p class="cmd-empty cmd-start">+ Tap to write a to-do</p>'}</section>
-    <section class="cmd-card cmd-split"><div><div class="cmd-k">UP NEXT</div>${next ? `<b>${esc(next.title)}</b><small>${next.date === today ? t12(next.time) : esc(fmtDay(next.date))}${next.kind === 'people' ? ' · with people' : next.kind === 'appt' ? ' · appointment' : ''}</small>` : '<b>Nothing scheduled</b><small>Your calendar is clear</small>'}<button data-act="nav" data-page="calendar">Calendar</button></div><i></i>
-      <div><div class="cmd-k">SPANISH</div>${p0 ? `<b lang="es">${esc(p0.es)}</b><small>${ph.length} learning</small><button data-2b="quiz-start">Quiz me</button>` : '<b>No phrases yet</b><small>Add one in Notes › Spanish</small><button data-2b="sp-open">Add a phrase</button>'}</div></section>
-  </div>`;
-}
-// Desktop Home: four equal tiles that fit the window; a tile opens its page, the controls inside work in place
 const isDesk = () => innerWidth >= 900;
-function cmdHomeDesk() {
-  const t12 = hm => { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? ' AM' : ' PM'); };
-  const head = (icon, title, count, extra = '') => `<div class="dk-h"><span class="dk-ic">${svgI(CI[icon])}</span><h2>${title}</h2>${count != null ? `<span class="dk-c">${count}</span>` : ''}${extra}<span class="dk-open">Open ›</span></div>`;
-  const hmf = m => { m = Math.round(m); return m >= 60 ? Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') : m + 'm'; };
-  // training
-  const ws = data.workouts.filter(w => w.date === today).sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
-  const days = Array.from({ length: 7 }, (_, i) => add(monday(today), i)), wk = data.workouts.filter(w => days.includes(w.date));
-  const disc = ['Swim', 'Bike', 'Run', 'Strength', 'Yoga'].map(k => { const l = wk.filter(w => w.kind === k); if (!l.length) return ''; const p = l.reduce((s, w) => s + (+w.target || 0), 0), a = l.reduce((s, w) => s + (+w.actual || 0), 0);
-    return `<div class="dk-disc">${sportIcon(k)}<b>${k}</b><span><span class="v-act">${hmf(a)}</span> <span class="v-sep">/</span> <span class="v-pln">${hmf(p)}</span></span><i class="dk-bar"><i style="width:${p ? Math.min(100, Math.round(a / p * 100)) : 0}%"></i></i></div>`; }).join('');
-  const train = `<section class="dk-tile" data-act="nav" data-page="workouts">${head('train', 'Training', workoutScore() + '%')}<div class="dk-body">
-    <div class="dk-k">TODAY</div>${ws.map(w => `<div class="dk-row${overPlan(w) ? ' over' : ''}">${sportIcon(w.kind)}<span class="dk-t"><b>${esc(short(w.title))}</b><small><span style="color:#585858">${esc(w.slot)} · </span><span class="v-pln">${w.unplanned ? 'Unplanned' : w.kind === 'Run' && w.miles ? w.miles + ' mi' : w.target + ' min'}</span>${w.actual != null ? ` · <span class="v-act">${w.kind === 'Run' && w.garmin && w.garmin.mi ? w.garmin.mi + ' mi' : Math.round(w.actual) + ' min'}</span>` : ''}</small></span>${w.actual != null ? '<span class="cmd-done">Done</span>' : ''}</div>`).join('') || '<p class="cmd-empty">Rest day.</p>'}
-    <div class="dk-k">THIS WEEK · ACTUAL / PLANNED</div><div class="dk-discs">${disc}</div></div></section>`;
-  // to do
-  const open = data.tasks.filter(t => !t.done).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99'));
-  const tt = taskToday(), N = 6;
-  const todo = `<section class="dk-tile"${open.length ? ' data-act="nav" data-page="todo"' : ' data-2b="qa-todo"'}>${head('todo', 'To do', `${tt.filter(t => t.done).length}/${tt.length}`)}<div class="dk-body">${open.slice(0, N).map(t => `<div class="dk-row"><button class="check" data-act="task-toggle" data-id="${t.id}" aria-label="Complete ${esc(t.title)}"></button><span class="dk-t"><b>${esc(t.title)}</b><small class="${t.date && t.date < today ? 'late' : ''}">${esc(t.category || 'Personal')} · ${esc(dueLabel(t))}</small></span></div>`).join('') || '<p class="cmd-empty cmd-start">All clear. Click to write a to-do.</p>'}${open.length > N ? `<p class="dk-more">+ ${open.length - N} more</p>` : ''}</div><button class="dk-add" data-2b="qa-todo">+ Add a to-do</button></section>`;
-  // notes (+ Spanish quiz shortcut)
-  const groups = [...new Map(data.notes.filter(n => !isPhrase(n)).sort((a, b) => String(b.lastOpened || b.updated || '').localeCompare(String(a.lastOpened || a.updated || ''))).map(n => [n.tab + '|' + n.folder, n])).values()].slice(0, 4);
-  const learning = phrases().filter(p => p.passes.length < 5 && p.en);
-  const notes = `<section class="dk-tile" data-act="nav" data-page="notes">${head('notes', 'Notes', data.notes.filter(n => !isPhrase(n)).length)}<div class="dk-body">${groups.map(n => { const c = data.notes.filter(x => x.tab === n.tab && x.folder === n.folder).length; return `<div class="dk-row">${FOLDER_SVG}<span class="dk-t"><b>${esc(n.folder)}</b><small>${esc(n.tab)} · ${c} note${c === 1 ? '' : 's'}</small></span></div>`; }).join('') || '<p class="cmd-empty">No notes yet.</p>'}
-    <div class="dk-sp"><span class="dk-t"><b lang="es">Spanish${learning[0] ? ' · ' + esc(learning[0].es) : ''}</b><small>${learning.length} learning</small></span>${learning.length ? '<button class="dk-quiz" data-2b="quiz-start">Quiz me</button>' : '<button class="dk-quiz" data-2b="sp-open">Add phrase</button>'}</div></div><button class="dk-add" data-2b="qa-note">+ New note</button></section>`;
-  // habits
-  const last7 = Array.from({ length: 7 }, (_, i) => add(today, i - 6));
-  const habits = `<section class="dk-tile" data-act="nav" data-page="habits">${head('hab', 'Habits', habitScore() + '%', '<span class="dk-sub">last 7 full days</span>')}<div class="dk-body">${data.habits.map(h => `<div class="dk-row"><button class="tick ${h.days.includes(today) ? 'on' : ''}" data-act="habit-tick" data-id="${h.id}" data-date="${today}" aria-pressed="${h.days.includes(today)}" aria-label="${esc(h.title)} today">${h.days.includes(today) ? '✓' : '○'}</button><span class="dk-t"><b>${esc(h.title)}</b><small>${esc(h.goal || '')}</small></span><span class="dk-dots">${last7.map(d => `<i class="${h.days.includes(d) ? 'on' : ''}${d === today ? ' td' : ''}"></i>`).join('')}</span></div>`).join('')}</div></section>`;
-  return cmdPills() + `<div class="dk-grid">${train}${todo}${notes}${habits}</div>`;
-}
 let wasDesk = isDesk();
 addEventListener('resize', () => { if (isDesk() !== wasDesk) { wasDesk = isDesk(); document.body.dataset.device = innerWidth < 700 ? 'mobile' : 'desktop'; if (!$('#modal-root').children.length) render(); } });
 
@@ -1310,11 +1220,10 @@ function qaSheet() {
   if (document.querySelector('.qa-dial')) { qaClose(); return; }
   qaClose();
   const fab = document.getElementById('cmd-fab'); fab && fab.classList.add('open');
-  document.body.insertAdjacentHTML('beforeend', `<div class="qa-scrim" data-2b="qa-close"></div><div class="qa-dial" role="menu" aria-label="Add">
+  document.body.insertAdjacentHTML('beforeend', `<div class="qa-scrim" data-2b="qa-close"></div><div class="qa-dial three" role="menu" aria-label="Add">
     <button class="qa-act a1" role="menuitem" data-2b="qa-todo"><span>${svgI(CI.todo)}</span><b>To-do</b></button>
-    <button class="qa-act a5" role="menuitem" data-2b="qa-event"><span>${svgI(CI.cal)}</span><b>Event</b></button>
     <button class="qa-act a2" role="menuitem" data-2b="qa-note"><span>${svgI(CI.notes)}</span><b>Note</b></button>
-    <button class="qa-act a3" role="menuitem" data-2b="qa-checkin"><span>${svgI('<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/>')}</span><b>Check in</b></button></div>`);
+    <button class="qa-act a3" role="menuitem" data-imp="open"><span>${svgI('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>')}</span><b>Import</b></button></div>`);
   requestAnimationFrame(() => document.querySelector('.qa-dial')?.classList.add('in'));
 }
 function qaClose() { document.querySelectorAll('.qa-scrim,.qa-sheet,.qa-dial').forEach(x => x.remove()); document.getElementById('cmd-fab')?.classList.remove('open'); }
@@ -1325,14 +1234,8 @@ render = function () {
   _render();
   document.body.dataset.page = page;
   cmdHeader(); cmdNav();
-  if (page === 'home') { const pc = document.getElementById('page-content'); if (pc) pc.innerHTML = isDesk() ? cmdHomeDesk() : cmdHome(); }
   try { sessionStorage.setItem('2b-view', JSON.stringify({ page, noteTab, week, month, selectedDate, taskFilter, y: page === lastPage ? scrollY : 0 })); } catch (e) {}
   lastPage = page;
-  const qf = document.getElementById('quick-task');
-  if (qf) { const ti = growify(qf.querySelector('input[name="title"]')); if (ti) ti.placeholder = 'Add a to-do'; }
-  if (qf && !qf.querySelector('.qf-add')) qf.insertAdjacentHTML('beforeend', `<button class="primary qf-add" type="submit" aria-label="Add to-do">${svgI(CI.plus)}</button>`);
-  const acts = document.querySelector('.header-actions');
-  if (acts && !acts.querySelector('.sync-dot')) acts.insertAdjacentHTML('afterbegin', `<button class="icon-btn mic-btn" data-2b="capture-mic" aria-label="Voice capture">${ICONS.mic}</button><button class="icon-btn sync-dot" data-2b="sync-settings" aria-label="Google sync settings"><i></i></button>`);
   paintStatus();
   // calendar: red = with people, yellow = appointment
   document.querySelectorAll('.agenda-item > button[data-act="event-edit"]').forEach(b => {
@@ -1400,9 +1303,6 @@ render = function () {
     const w = data.workouts.find(x => x.id === el.dataset.id), sp = el.querySelector('span'); if (!w || !sp) return;
     sp.innerHTML = `<span class="v-pln">${w.target} min</span> · ${w.actual == null ? 'Log session' : `<span class="v-act">${w.actual} min done</span>`}`;
   });
-  if (page === 'habits' && !document.querySelector('.ci-card')) document.getElementById('page-content')?.insertAdjacentHTML('beforeend', checkinCard());
-  if (page === 'habits') { const sm = document.querySelector('#page-content .stats > div small'); if (sm) sm.textContent = 'Last 7 full days (today not counted)'; }
-  document.querySelectorAll('.scoreline span[title^="Trailing"]').forEach(x => x.title = 'Habit efficiency: last 7 full days, not counting today');
   decorateSportIcons();
   document.querySelectorAll('.session').forEach(el => {
     const b = el.querySelector('[data-act="workout-edit"]'); const w = b && data.workouts.find(x => x.id === b.dataset.id);
@@ -1461,15 +1361,9 @@ addEventListener('click', async e => {
     case 'zoom': cfg.zoom = Number(b.dataset.v); saveCfg(); applyZoom(); forceClose(); render(); syncSheet(); break;
     case 'qa': qaSheet(); break;
     case 'qa-close': qaClose(); break;
-    case 'qa-event': qaClose(); forceClose(); selectedDate = today; eventEditor(); setTimeout(() => document.querySelector('#modal-root #f-title')?.focus(), 40); break;
-    case 'qa-checkin': case 'checkin': qaClose(); forceClose(); checkinSheet(); break;
-    case 'ci-pick': { ciDraft[b.dataset.key] = Number(b.dataset.v); b.parentElement.querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', String(on)); }); break; }
-    case 'ci-mood': saveCheckin(Number(b.dataset.v)); break;
     case 'qa-todo': qaClose(); taskEditor(''); break;
     case 'qa-note': qaClose(); { const keep = noteFolder; noteFolder = 'all'; noteEditor(); noteFolder = keep; } break;
-    case 'qa-folder': qaClose(); { const keepT = noteTab, keepF = noteFolder; noteTab = b.dataset.tab; noteFolder = b.dataset.folder; noteEditor(); noteTab = keepT; noteFolder = keepF; } break;
-    case 'qa-phrase': case 'sp-open': qaClose(); forceClose(); noteTab = 'Spanish'; noteFolder = 'all'; go('notes'); setTimeout(() => document.getElementById('sp-es')?.focus(), 80); break;
-    case 'qa-voice': qaClose(); forceClose(); captureSheet(true); break;
+    case 'sp-open': qaClose(); forceClose(); noteTab = 'Spanish'; noteFolder = 'all'; go('notes'); setTimeout(() => document.getElementById('sp-es')?.focus(), 80); break;
     case 'n-on': await pushOn(b); break;
     case 'n-test': { b.disabled = true; try { const r = await api({ action: 'pushTest' }); notify(r.sent ? 'Test sent.' : 'Test failed: ' + r.error); } catch (err) { notify('Test failed: ' + err.message); } b.disabled = false; break; }
     case 'folder-toggle': { const k = fKey(b.dataset.tab, b.dataset.folder); if (openFolders.has(k)) openFolders.delete(k); else { openFolders.add(k); const st = new Date().toISOString(); data.notes.filter(n => n.tab === b.dataset.tab && n.folder === b.dataset.folder).forEach(n => n.lastOpened = st); _save(); } ls.set('2b-openf', [...openFolders]); render(); break; }
@@ -1595,8 +1489,6 @@ try {
   }
 } catch (e) {}
 addEventListener('pagehide', () => { try { const v = JSON.parse(sessionStorage.getItem('2b-view') || '{}'); v.y = scrollY; sessionStorage.setItem('2b-view', JSON.stringify(v)); } catch (e) {} });
-render();
-if (cfg.url) { if (navType === 'reload') fullRefresh(true); else sync(); }
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 /* ---------- 10. Section 4: priority + waiting, faster capture, swipe, saved views, Home extras, sync hygiene, calendar reminders ---------- */
 const isWait = t => !!t && !!t.wait && t.wait !== '0';
@@ -1617,79 +1509,10 @@ runCommand = function (raw, opt = {}) {
   return out;
 };
 
-// To Do page (v3): Today list + triage deck + 7-day strip. Saved views kept for Home/search.
-const VIEWS = {
-  overdue: ['Overdue', t => t.date && t.date < today],
-  priority: ['Priority', t => prio(t) > 0],
-  waiting: ['Waiting', t => isWait(t)]
-};
-let tdDay = '', tdOpen = { someday: false, waiting: false, done: false }, tdSkip = [];
-const tdCat = t => taskFilter === 'Work' ? t.category === 'Work' : taskFilter === 'Personal' ? t.category !== 'Work' : true;
-const tdLate = d => Math.round((date(today) - date(d)) / 864e5);
+// Parsing a typed to-do line (used by Import): "w: email Tony fri" → Work, Friday
 const tdSat = () => { const d = date(today), n = (6 - d.getDay() + 7) % 7 || 7; return add(today, n); };
 const tdMon = () => { const d = date(today), n = (8 - d.getDay()) % 7 || 7; return add(today, n); };
-function tdLine(t, o = {}) {
-  const tags = [];
-  if (taskFilter === 'all') tags.push(`<em class="td3-c">${t.category === 'Work' ? 'Work' : 'Personal'}</em>`);
-  if (o.late && t.date < today) tags.push(`<em class="td3-late">${tdLate(t.date)}d late</em>`);
-  if (prio(t)) tags.push(`<em class="td3-p">${prio(t) === 1 ? '!!' : '!'}</em>`);
-  if (isWait(t)) tags.push('<em class="td3-w">waiting</em>');
-  if (t.time) tags.push(`<em class="td3-t">${esc(t.time)}</em>`);
-  if (o.showDate && t.date) tags.push(`<em class="td3-t">${fmt(t.date, { weekday: 'short', month: 'short', day: 'numeric' })}</em>`);
-  return `<li class="td3-row${t.done ? ' done' : ''} c-${t.category === 'Work' ? 'w' : 'p'}"${t.done ? '' : ` data-swipe="${t.id}"`} draggable="true" data-task-id="${t.id}">`
-    + `<button class="check td3-check${t.done ? ' on' : ''}" data-act="task-toggle" data-id="${t.id}" aria-label="${t.done ? 'Reopen' : 'Complete'} ${esc(t.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>`
-    + `<button class="td3-copy" data-act="task-edit" data-id="${t.id}"><span>${esc(t.title)}</span>${tags.length ? `<span class="td3-tags">${tags.join('')}</span>` : ''}</button></li>`;
-}
-const tdSort = (a, b) => (prio(a) || 9) - (prio(b) || 9) || (a.date || '9999').localeCompare(b.date || '9999') || (a.time || '99').localeCompare(b.time || '99');
-todoView = function () {
-  if (!['all', 'Work', 'Personal'].includes(taskFilter)) taskFilter = 'all';
-  const open = data.tasks.filter(t => !t.done && tdCat(t));
-  const todayList = open.filter(t => t.date && t.date <= today && !t.someday).sort((a, b) => ((b.date < today) - (a.date < today)) || tdSort(a, b));
-  const doneToday = data.tasks.filter(t => t.done && tdCat(t) && (t.doneAt ? day(new Date(t.doneAt)) === today : t.date === today));
-  const deck = open.filter(t => !t.date && !t.someday).sort((a, b) => tdSkip.indexOf(a.id) - tdSkip.indexOf(b.id));
-  const someday = open.filter(t => t.someday), waiting = open.filter(t => isWait(t));
-  const total = todayList.length + doneToday.length, pct = total ? Math.round(doneToday.length / total * 100) : 100;
-  const left = todayList.length;
-  const seg = ['all', 'Work', 'Personal'].map(f => `<button data-act="task-filter" data-filter="${f}" class="${taskFilter === f ? 'on' : ''}">${f === 'all' ? 'All' : f}</button>`).join('');
-  let h = `<header class="td3-hero"><div><span class="td3-eyebrow">${fmt(today, { weekday: 'long', month: 'long', day: 'numeric' })}</span>`
-    + `<h2>${left ? `${left} left today` : total ? 'Today’s done.' : 'Clear day.'}</h2></div>`
-    + `<div class="td3-ring" style="--p:${pct}" aria-label="${doneToday.length} of ${total} done"><span>${doneToday.length}<small>/${total}</small></span></div></header>`
-    + `<div class="td3-seg" role="tablist">${seg}</div>`
-    + `<form class="td3-add" id="td3-add" autocomplete="off"><span class="td3-plus">+</span><input name="t" placeholder="Add to today…" maxlength="160" aria-label="New to-do"><button type="button" class="td3-cat c-${(tdAddCat()) === 'Work' ? 'w' : 'p'}" data-td="cat">${tdAddCat()}</button></form>`;
-  h += `<ul class="td3-list">${todayList.map(t => tdLine(t, { late: true })).join('')}${doneToday.map(t => tdLine(t)).join('')}</ul>`;
-  if (!todayList.length && !doneToday.length) h += `<p class="td3-empty">Nothing on today. Pull something in from the deck below.</p>`;
-  if (deck.length) {
-    const t = deck[0];
-    h += `<section class="td3-sec"><h3>Triage <span>${deck.length} without a date</span></h3>`
-      + `<div class="td3-deck${deck.length > 1 ? ' stack' : ''}${deck.length > 2 ? ' stack2' : ''}"><article class="td3-card c-${t.category === 'Work' ? 'w' : 'p'}" data-deck="${t.id}">`
-      + `<span class="td3-card-cat">${esc(t.category || 'Personal')}${isWait(t) ? ' · waiting' : ''}</span><p>${esc(t.title)}</p>`
-      + `<div class="td3-when">${[['today', 'Today'], ['tomorrow', 'Tomorrow'], ['weekend', 'Weekend'], ['nextweek', 'Next week'], ['someday', 'Someday']].map(([k, l]) => `<button data-td="when" data-v="${k}" data-id="${t.id}">${l}</button>`).join('')}</div>`
-      + `<div class="td3-card-foot"><button data-td="skip" data-id="${t.id}">Skip</button><button data-act="task-edit" data-id="${t.id}">Edit</button><button class="td3-donebtn" data-td="done" data-id="${t.id}">Done ✓</button></div>`
-      + `</article></div><p class="td3-hint">Swipe right for today, left to skip.</p></section>`;
-  }
-  // next 7 days
-  const days = Array.from({ length: 7 }, (_, i) => add(today, i + 1));
-  if (!days.includes(tdDay)) tdDay = '';
-  h += `<section class="td3-sec"><h3>Next 7 days</h3><div class="td3-week">${days.map(d => { const n = open.filter(t => t.date === d).length; return `<button data-td="day" data-v="${d}" class="${tdDay === d ? 'on' : ''}${n ? ' has' : ''}" data-drop-date="${d}"><small>${fmt(d, { weekday: 'narrow' })}</small><b>${date(d).getDate()}</b><i>${n ? '•'.repeat(Math.min(n, 3)) : ''}</i></button>`; }).join('')}</div>`;
-  const shown = tdDay ? open.filter(t => t.date === tdDay) : open.filter(t => t.date > today && t.date <= days[6]);
-  h += shown.length ? `<ul class="td3-list td3-sub">${shown.sort(tdSort).map(t => tdLine(t, { showDate: !tdDay })).join('')}</ul>` : `<p class="td3-empty sm">${tdDay ? 'Nothing on ' + fmt(tdDay, { weekday: 'long' }) + '.' : 'Nothing scheduled this week.'}</p>`;
-  const later = open.filter(t => t.date > days[6]).length;
-  if (later) h += `<p class="td3-more">+ ${later} further out</p>`;
-  h += `</section>`;
-  const fold = (k, label, list, o) => list.length ? `<section class="td3-fold"><button data-td="fold" data-v="${k}" aria-expanded="${tdOpen[k]}">${label}<span>${list.length}</span><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>${tdOpen[k] ? `<ul class="td3-list td3-sub">${list.sort(tdSort).map(t => tdLine(t, o)).join('')}</ul>` : ''}</section>` : '';
-  h += fold('waiting', 'Waiting on', waiting, { showDate: true }) + fold('someday', 'Someday', someday, {});
-  const olderDone = data.tasks.filter(t => t.done && tdCat(t) && !doneToday.includes(t)).sort((a, b) => (b.doneAt || 0) - (a.doneAt || 0)).slice(0, 30);
-  h += fold('done', 'Completed', olderDone, { showDate: true });
-  return `<div class="td3">${h}</div>`;
-};
 function tdAddCat() { try { return ls.get('2b-tdcat') || (taskFilter === 'Work' ? 'Work' : 'Personal'); } catch (e) { return 'Personal'; } }
-function tdWhen(id, v) {
-  const t = data.tasks.find(x => x.id === id); if (!t) return;
-  const prev = { date: t.date, someday: t.someday };
-  if (v === 'someday') { t.someday = true; } else { delete t.someday; t.date = v === 'today' ? today : v === 'tomorrow' ? add(today, 1) : v === 'weekend' ? tdSat() : tdMon(); }
-  t.updated = new Date().toISOString(); save(); render();
-  actionToast(`Moved to ${v === 'nextweek' ? 'next week' : v}.`, 'Undo', () => { t.date = prev.date; if (prev.someday) t.someday = true; else delete t.someday; save(); render(); });
-}
 function tdParse(raw) {
   let s = raw.trim(), cat = tdAddCat(), d = today, someday = false;
   s = s.replace(/^(w|work)\s*[:;]\s*/i, () => { cat = 'Work'; return ''; }).replace(/^(p|personal)\s*[:;]\s*/i, () => { cat = 'Personal'; return ''; });
@@ -1704,38 +1527,11 @@ function tdParse(raw) {
   });
   return { title: s.trim(), category: cat, date: d, someday };
 }
-document.addEventListener('submit', e => {
-  if (e.target.id !== 'td3-add') return; e.preventDefault(); e.stopPropagation();
-  const inp = e.target.querySelector('input'), v = tdParse(inp.value || ''); if (!v.title) return;
-  const t = { id: uid(), title: v.title, category: v.category, date: v.date, time: '', done: false, repeat: 'none', notes: '' }; if (v.someday) t.someday = true;
-  data.tasks.push(t); save(); render();
-  const ni = document.querySelector('#td3-add input'); if (ni) ni.focus();
-  if (v.date !== today) notify(v.someday ? 'Added to Someday.' : 'Added for ' + fmt(v.date, { weekday: 'long' }) + '.');
-}, true);
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-td]'); if (!b) return; e.preventDefault();
-  const k = b.dataset.td, id = b.dataset.id;
-  if (k === 'cat') { const n = tdAddCat() === 'Work' ? 'Personal' : 'Work'; try { ls.set('2b-tdcat', n); } catch (x) {} b.textContent = n; b.className = 'td3-cat c-' + (n === 'Work' ? 'w' : 'p'); return; }
-  if (k === 'when') return tdWhen(id, b.dataset.v);
-  if (k === 'skip') { tdSkip = tdSkip.filter(x => x !== id).concat(id); render(); return; }
-  if (k === 'done') { toggleTask(id); return; }
-  if (k === 'day') { tdDay = tdDay === b.dataset.v ? '' : b.dataset.v; render(); return; }
-  if (k === 'fold') { tdOpen[b.dataset.v] = !tdOpen[b.dataset.v]; render(); return; }
-});
-(function deckSwipe() {
-  let s = null;
-  document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.td3-card'); if (!c || e.target.closest('button')) return; s = { c, x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0 }; }, { passive: true });
-  document.addEventListener('touchmove', e => { if (!s) return; s.dx = e.touches[0].clientX - s.x; if (Math.abs(e.touches[0].clientY - s.y) > Math.abs(s.dx)) return; s.c.style.transform = `translateX(${s.dx}px) rotate(${s.dx / 25}deg)`; s.c.classList.toggle('go-r', s.dx > 70); s.c.classList.toggle('go-l', s.dx < -70); }, { passive: true });
-  document.addEventListener('touchend', () => { if (!s) return; const { c, dx } = s; s = null; const id = c.dataset.deck;
-    if (dx > 70) { c.style.transform = 'translateX(120%) rotate(12deg)'; setTimeout(() => tdWhen(id, 'today'), 160); }
-    else if (dx < -70) { c.style.transform = 'translateX(-120%) rotate(-12deg)'; setTimeout(() => { tdSkip = tdSkip.filter(x => x !== id).concat(id); render(); }, 160); }
-    else { c.style.transform = ''; c.classList.remove('go-r', 'go-l'); } });
-})();
 
 // Badges on every task row (To Do page, Home, desktop tile)
 function decorateTasks() {
   document.querySelectorAll('[data-act="task-edit"][data-id]:not(.text-btn)').forEach(b => {
-    if (b.closest('.td3')) return;
+    if (b.closest('.an-row')) return;
     const t = data.tasks.find(x => x.id === b.dataset.id); if (!t || b.querySelector('.tb')) return;
     const title = b.querySelector('b,.tt') || b; let h = '';
     if (prio(t)) h += `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>`;
@@ -1743,35 +1539,6 @@ function decorateTasks() {
     if (h) title.insertAdjacentHTML('afterbegin', h);
     const row = b.closest('.task,.cmd-task,.dk-row'); if (row && !t.done) { row.dataset.swipe = t.id; row.classList.toggle('is-wait', isWait(t)); }
   });
-  document.querySelectorAll('.dk-row .check[data-id]').forEach(c => { const t = data.tasks.find(x => x.id === c.dataset.id); const tt = c.parentElement.querySelector('.dk-t b'); if (!t || !tt || tt.querySelector('.tb')) return; let h = ''; if (prio(t)) h += `<span class="tb tb-p${prio(t)}">${prio(t) === 1 ? '!!' : '!'}</span>`; if (isWait(t)) h += '<span class="tb tb-w">Waiting</span>'; if (h) tt.insertAdjacentHTML('afterbegin', h); });
-}
-
-// RPE for plan/Garmin sessions is kept in a synced pref (those sessions are rebuilt from the plan sheet)
-function rpeMap() { const p = (data.prefs || []).find(x => x.id === 'rpe'); try { return p ? JSON.parse(p.value || '{}') : {}; } catch (e) { return {}; } }
-function setRPE(w, v) {
-  if (!/^g[pa]-/.test(String(w.id))) { w.actualEffort = v; return; }
-  const m = rpeMap(); m[w.id] = v; let p = data.prefs.find(x => x.id === 'rpe'); if (!p) { p = { id: 'rpe', value: '{}' }; data.prefs.push(p); }
-  p.value = JSON.stringify(m); p.updated = new Date().toISOString();
-}
-// Home extras: RPE on finished sessions, habit ticks, Spanish due today
-function homeExtras() {
-  if (page !== 'home' || isDesk()) return;
-  const cards = document.querySelectorAll('.cmd-home > .cmd-card');
-  const trainCard = cards[0], todoCard = cards[1];
-  const rm = rpeMap();
-  data.workouts.filter(w => w.date === today && w.actual != null && w.actualEffort == null && rm[w.id] == null).forEach(w => {
-    const btn = trainCard && trainCard.querySelector(`.cmd-sess[data-id="${w.id}"]`); if (!btn || btn.nextElementSibling?.classList.contains('rpe')) return;
-    btn.insertAdjacentHTML('afterend', `<div class="rpe" role="group" aria-label="How hard was ${esc(short(w.title))}"><span>How hard? (RPE)</span>${Array.from({ length: 10 }, (_, i) => `<button type="button" data-sx="rpe" data-id="${w.id}" data-v="${i + 1}">${i + 1}</button>`).join('')}</div>`);
-  });
-  if (todoCard && !document.querySelector('.cmd-habits') && data.habits.length) {
-    const done = data.habits.filter(h => h.days.includes(today)).length;
-    todoCard.insertAdjacentHTML('afterend', `<section class="cmd-card cmd-habits"><div class="cmd-h"><h2>Habits · ${done}/${data.habits.length}</h2><button data-act="nav" data-page="habits">Week</button></div><div class="hb-row">${data.habits.map(h => { const on = h.days.includes(today); return `<button class="hb${on ? ' on' : ''}" data-act="habit-tick" data-id="${h.id}" data-date="${today}" aria-pressed="${on}"><i>${on ? '✓' : ''}</i>${esc(h.title)}</button>`; }).join('')}</div></section>`);
-  }
-  const learning = phrases().filter(p => p.passes.length < 5 && p.en), due = learning.filter(p => !p.passes.includes(today)).length;
-  document.querySelectorAll('.cmd-split small').forEach(sm => { if (/learning$/.test(sm.textContent)) sm.textContent = due ? `${due} due today · ${learning.length} learning` : `All reviewed today · ${learning.length} learning`; });
-  const waits = data.tasks.filter(t => !t.done && isWait(t)).length;
-  const h = todoCard && todoCard.querySelector('.cmd-h h2');
-  if (h && waits && !h.querySelector('.vc')) h.insertAdjacentHTML('beforeend', ` <button class="vc vc-link" data-sx="view" data-v="waiting">${waits} waiting</button>`);
 }
 
 // Swipe a to-do: right = done, left = tomorrow (or the day after its date), hold = waiting on / off
@@ -1859,14 +1626,7 @@ try { if (dedupeEvents()) save(); } catch (e) {}
 
 // Wire it into every render + the new buttons
 const _render10 = render;
-render = function () { _render10(); try { decorateTasks(); homeExtras(); } catch (e) { console.warn(e); } };
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-sx]'); if (!b) return;
-  e.preventDefault(); e.stopPropagation();
-  if (b.dataset.sx === 'view') { taskFilter = b.dataset.v; go('todo'); return; }
-  const w = data.workouts.find(x => x.id === b.dataset.id); if (!w) return;
-  setRPE(w, Number(b.dataset.v)); save(); render(); notify(`Logged RPE ${b.dataset.v} for ${short(w.title)}.`);
-}, true);
+render = function () { _render10(); try { decorateTasks(); } catch (e) { console.warn(e); } };
 
 /* ---------- Training grid: every week as a dated 7×2 grid, one continuous scroll ---------- */
 // Matched sessions: a planned session done on another day/slot. Pref 'wlink' = { planId: garminActivityId }.
@@ -2037,14 +1797,6 @@ workoutLog = function (id) {
 };
 
 /* ==================== Screenshot → to-dos (read by Claude through your sync script) ==================== */
-const _qaSheetS = qaSheet;
-qaSheet = function () {
-  _qaSheetS();
-  const d = document.querySelector('.qa-dial'); if (!d || d.querySelector('[data-imp]')) return;
-  d.querySelector('.a5')?.remove(); d.querySelector('.a3')?.remove();   // Event and Check in are retired
-  d.classList.add('three');
-  d.insertAdjacentHTML('beforeend', `<button class="qa-act a3" role="menuitem" data-imp="open"><span>${svgI('<path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 19h16"/>')}</span><b>Import</b></button>`);
-};
 function shotShrink(file) {
   return new Promise((res, rej) => {
     const img = new Image(), url = URL.createObjectURL(file);
@@ -2097,24 +1849,14 @@ document.addEventListener('submit', e => {
 
 /* ==================== Simple shell: Notes · Train. One list; any note can be a to-do. ==================== */
 // To-dos stay in data.tasks (Siri, screenshots, swipes, repeats keep working); thoughts are notes. A note can also carry todo/due/done itself.
-TABS.length = 0; TABS.push(['notes', 'Notes', 'notes'], ['workouts', 'Train', 'train']);
-let ntFilter = ls.get('2b-ntf', 'all'), ntOld = false, ntDone = false, ntTodo = false;
+let ntOld = false, ntDone = false;
 const ntDueTxt = d => { const n = Math.round((date(d) - date(today)) / 864e5); return n < -1 ? `${-n} days late` : n === -1 ? 'Yesterday' : n === 0 ? 'Today' : n === 1 ? 'Tomorrow' : n < 7 ? fmt(d, { weekday: 'long' }) : fmt(d, { month: 'short', day: 'numeric' }); };
-const ntShort = d => { const n = Math.round((date(d) - date(today)) / 864e5); return n < 0 ? `${-n}d late` : n === 0 ? 'Today' : n === 1 ? 'Tmrw' : n < 7 ? fmt(d, { weekday: 'short' }) : fmt(d, { month: 'short', day: 'numeric' }); };
 const ntBody = n => plain(String(n.body || '').replace(/<(div|p|br|li)\b/gi, '\n<$1')).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 let ntAll = false;
 function ntTodos() {
   const tasks = data.tasks.map(t => ({ k: 't', id: t.id, title: t.title, sub: String(t.notes || '').replace(/^Bail rule:.*$/m, '').trim(), cat: t.category === 'Work' ? 'Work' : 'Personal', due: t.date || '', time: t.time || '', done: !!t.done, at: t.doneAt || 0, pr: prio(t), wait: isWait(t) }));
   const notes = data.notes.filter(n => n.todo && !isPhrase(n)).map(n => ({ k: 'n', id: n.id, title: n.title || 'Untitled', sub: ntBody(n), cat: n.tab === 'Work' ? 'Work' : 'Personal', due: n.due || '', time: '', done: !!n.done, at: Date.parse(n.updated || '') || 0, pr: 0, wait: false }));
   return tasks.concat(notes);
-}
-function ntTodoTile(x) {
-  const late = !x.done && x.due && x.due < today;
-  return `<li class="nt-tile nt-todo c-${x.cat === 'Work' ? 'w' : 'p'}${late ? ' late' : ''}${x.done ? ' done' : ''}${x.due === today && !x.done ? ' now' : ''}"${x.k === 't' && !x.done ? ` data-task-id="${x.id}" draggable="true"` : ''}>
-    <button class="nt-body" data-act="${x.k === 't' ? 'task-edit' : 'note-edit'}" data-id="${x.id}"><b>${x.pr ? `<em>${x.pr === 1 ? '!! ' : '! '}</em>` : ''}${esc(x.title)}</b></button>
-    <button class="nt-c${x.done ? ' on' : ''}" data-nt="check" data-k="${x.k}" data-id="${x.id}" aria-label="${x.done ? 'Reopen' : 'Complete'} ${esc(x.title)}"><svg viewBox="0 0 24 24"><path d="M6 12.5l4 4 8-9"/></svg></button>
-    <div class="nt-bot"><button class="nt-cat" data-nt="cat" data-k="${x.k}" data-id="${x.id}" aria-label="Switch between Work and Personal">${x.cat}</button>
-      <label class="nt-due${x.due ? '' : ' none'}">${x.due ? ntShort(x.due) + (x.time && x.due === today ? ' ' + hm12(x.time).replace(':00', '').replace(' ', '').toLowerCase().replace('m', '') : '') : '+ date'}<input type="date" value="${x.due}" data-nt="due" data-k="${x.k}" data-id="${x.id}" aria-label="Due date for ${esc(x.title)}"></label></div></li>`;
 }
 function ntTodoRow(x) {
   const late = !x.done && x.due && x.due < today, now = !x.done && x.due === today;
@@ -2156,14 +1898,17 @@ function ntList() {
     ${ntDone && done.length ? `<button class="nt-clear" data-nt="clear">Clear ${done.length} completed</button>` : ''}
     ${ntDone ? `<ul class="an-card an-todos">${done.slice(0, 30).map(ntTodoRow).join('')}</ul>` : ''}</div>`;
 }
+const _notesViewS = notesView;
+notesView = function () { return ntOld ? _notesViewS() : ntList(); };   // the page is built once, not built then replaced
 const _renderS = render;
 render = function () {
   if (page === 'home' || page === 'habits' || page === 'todo') page = 'notes';
+  if (page !== 'notes') ntOld = false;
+  const y = scrollY;
   _renderS();
-  if (page !== 'notes') { ntOld = false; return; }
-  const pc = document.getElementById('page-content'); if (!pc) return;
-  if (ntOld) { if (!pc.querySelector('.nt-backold')) pc.insertAdjacentHTML('afterbegin', '<button class="nt-backold" data-nt="new">‹ All notes</button>'); return; }
-  const y = scrollY; pc.innerHTML = ntList(); scrollTo(0, y);
+  if (page !== 'notes') return;
+  if (ntOld) document.getElementById('page-content')?.insertAdjacentHTML('afterbegin', '<button class="nt-backold" data-nt="new">‹ All notes</button>');
+  else scrollTo(0, y);
 };
 const _cmdHeaderS = cmdHeader;
 cmdHeader = function () { _cmdHeaderS(); const h = document.querySelector('.app-header'); if (h) { h.dataset.page = 'notes'; h.title = 'Notes'; } };
@@ -2172,8 +1917,6 @@ const ntTouch = n => { n.updated = new Date().toISOString(); };
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-nt]'); if (!b || b.tagName === 'INPUT') return; e.preventDefault(); e.stopPropagation();
   const k = b.dataset.nt, id = b.dataset.id;
-  if (k === 'filter') { ntFilter = b.dataset.v; ls.set('2b-ntf', ntFilter); render(); return; }
-  if (k === 'mode') { ntTodo = !ntTodo; const v = document.querySelector('#nt-add textarea').value; render(); const t = document.querySelector('#nt-add textarea'); t.value = v; t.focus(); return; }
   if (k === 'done') { ntDone = !ntDone; render(); return; }
   if (k === 'all') { ntAll = !ntAll; render(); return; }
   if (k === 'ncat') { const n = ntNote(id); if (!n) return; n.tab = n.tab === 'Work' ? 'Personal' : 'Work'; save(); render(); return; }
@@ -2184,8 +1927,6 @@ document.addEventListener('click', e => {
   if (k === 'old') { ntOld = true; render(); scrollTo(0, 0); return; }
   if (k === 'new') { ntOld = false; render(); scrollTo(0, 0); return; }
   if (k === 'check') { if (b.dataset.k === 't') return toggleTask(id); const n = ntNote(id); if (!n) return; n.done = !n.done; ntTouch(n); save(); render(); if (n.done) undoToast('Done.', () => { n.done = false; save(); render(); }); return; }
-  if (k === 'make') { const n = ntNote(id); if (!n) return; n.todo = true; n.done = false; ntTouch(n); save(); render(); return; }
-  if (k === 'unmake') { const n = ntNote(id); if (!n) return; n.todo = false; n.done = false; n.due = ''; ntTouch(n); save(); render(); return; }
 }, true);
 document.addEventListener('change', e => {
   const i = e.target; if (!i.dataset || i.dataset.nt !== 'due') return;
@@ -2193,16 +1934,6 @@ document.addEventListener('change', e => {
   else { const n = ntNote(i.dataset.id); if (n) { n.due = i.value; ntTouch(n); } }
   save(); render();
 }, true);
-function ntSave(raw) {
-  let s = String(raw || '').trim(); if (!s) return;
-  let todo = ntTodo; const m = s.match(/^(to[\s-]?do|todo|task)\b[\s:,-]*/i); if (m) { todo = true; s = s.slice(m[0].length).trim(); if (!s) return; }
-  if (todo) { const v = tdParse(s), dated = /\s(today|tonight|tomorrow|tmrw|weekend|next week|(sun|mon|tue|wed|thu|fri|sat)[a-z]*)$/i.test(s); const t = { id: uid(), title: v.title, category: v.category, date: dated ? v.date : '', time: '', done: false, repeat: 'none', notes: '' }; if (v.someday) t.someday = true; data.tasks.push(t); }
-  else { const lines = s.split(/\n/), now = new Date().toISOString(); data.notes.push({ id: uid(), title: lines[0].slice(0, 160), tab: 'Personal', folder: 'General', body: lines.slice(1).map(l => `<div>${esc(l)}</div>`).join(''), entered: now, updated: now }); }
-  save(); render(); document.querySelector('#nt-add textarea')?.focus();
-}
-document.addEventListener('submit', e => { if (e.target.id !== 'nt-add') return; e.preventDefault(); e.stopPropagation(); ntSave(e.target.querySelector('textarea').value); }, true);
-document.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target.closest && e.target.closest('#nt-add')) { e.preventDefault(); ntSave(e.target.value); } }, true);
-document.addEventListener('input', e => { const t = e.target; if (t.closest && t.closest('#nt-add') && t.tagName === 'TEXTAREA') { t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; } }, true);
 
 /* ==================== Import: a pasted list, a .md/.txt file or a screenshot becomes notes and to-dos ==================== */
 function impTodo(text, cat, done) {
@@ -2312,7 +2043,7 @@ noteEditor = function (id) {
     const sc = document.createElement('div'); sc.className = 'an-scroll';
     [...form.children].forEach(el => { if (el !== tb) sc.appendChild(el); });
     form.appendChild(sc); form.appendChild(fmt); form.appendChild(tb);
-    if (!id) { title.focus(); setTimeout(() => { if (document.activeElement !== title) title.focus(); }, 40); }   // moving the fields drops the cursor
+    if (!id) { title.focus(); setTimeout(() => { if (document.activeElement === document.body) title.focus(); }, 40); }   // moving the fields drops the cursor
     sc.addEventListener('click', e => { if (e.target === sc) { body.focus(); const r = document.createRange(); r.selectNodeContents(body); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } });
     [fmt, tb].forEach(el => el.addEventListener('mousedown', e => { if (e.target.closest('button')) e.preventDefault(); }));   // keep the cursor (and keyboard) where it is
   }
@@ -2414,7 +2145,7 @@ taskEditor = function (id, d) {
   [...form.children].forEach(el => { if (!el.classList.contains('form-actions')) sc.appendChild(el); });
   form.insertBefore(sc, form.firstChild);
   sc.addEventListener('click', e => { if (e.target === sc) notes.focus(); });
-  if (!id) { title.focus(); setTimeout(() => { if (document.activeElement !== title) title.focus(); }, 40); }
+  if (!id) { title.focus(); setTimeout(() => { if (document.activeElement === document.body) title.focus(); }, 40); }
   const pInp = form.querySelector('[name="p"]'), wInp = form.querySelector('[name="wait"]');
   const tools = document.createElement('div'); tools.className = 'toolbar an-tools at-tools';
   tools.innerHTML = `<button type="button" data-tt="date" aria-label="Due date">${svgI('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}</button>`
@@ -2447,6 +2178,7 @@ document.addEventListener('click', e => {
 }, true);
 
 try { render(); } catch (e) { console.error(e); }
+if (cfg.url) { if (navType === 'reload') fullRefresh(true); else sync(); }
 window.__2b = { addPhrase, startQuiz, phrases, runCommand, splitDate, parseDay, eventKind, localSummary, sync, loadPlan, cfg: () => cfg };
 })();
 
