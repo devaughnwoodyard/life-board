@@ -2321,7 +2321,7 @@ document.addEventListener('click', e => {
   if (k === 'aa') { const f = form.querySelector('.an-fmt'); f.hidden = !f.hidden; b.setAttribute('aria-expanded', String(!f.hidden)); return; }
 }, true);
 
-/* ==================== Swipe a note or to-do: right = delete, left = copy. Both ask first. ==================== */
+/* ==================== Swipe a note or to-do: left = delete, right = copy. Both ask first. ==================== */
 function anItem(k, id) { return k === 't' ? data.tasks.find(t => t.id === id) : data.notes.find(n => n.id === id); }
 function anConfirm(kind, k, id) {
   const it = anItem(k, id); if (!it) return;
@@ -2356,7 +2356,7 @@ document.addEventListener('click', e => {
     if (!s.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { s = null; return; } if (Math.abs(dx) < 12) return; s.on = true; s.row.classList.add('sw-on'); }
     s.dx = Math.max(-140, Math.min(140, dx));
     s.sw.style.transform = `translateX(${s.dx}px)`;
-    s.row.classList.toggle('sw-del', s.dx > 0); s.row.classList.toggle('sw-copy', s.dx < 0);
+    s.row.classList.toggle('sw-del', s.dx < 0); s.row.classList.toggle('sw-copy', s.dx > 0);
     s.row.classList.toggle('sw-go', Math.abs(s.dx) >= W);
     if (e.cancelable) e.preventDefault();
   }, { passive: false });
@@ -2365,7 +2365,7 @@ document.addEventListener('click', e => {
     eat = true; setTimeout(() => { eat = false; }, 400);
     sw.style.transition = 'transform .18s ease'; sw.style.transform = '';
     setTimeout(() => { sw.style.transition = ''; row.classList.remove('sw-on', 'sw-del', 'sw-copy', 'sw-go'); }, 200);
-    if (Math.abs(dx) >= W) anConfirm(dx > 0 ? 'del' : 'copy', row.dataset.sw, row.dataset.id);
+    if (Math.abs(dx) >= W) anConfirm(dx < 0 ? 'del' : 'copy', row.dataset.sw, row.dataset.id);
   };
   document.addEventListener('touchend', end, { passive: true });
   document.addEventListener('touchcancel', end, { passive: true });

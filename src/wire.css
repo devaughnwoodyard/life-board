@@ -999,9 +999,9 @@ body.kb-open .an-fmt{bottom:68px}
 .an-row.sw-on::before{content:"";position:absolute;inset:0;z-index:0}
 .an-row.sw-on::after{position:absolute;top:50%;transform:translateY(-50%);z-index:0;font-size:13px;font-weight:700;color:#fff}
 .an-row.sw-del::before{background:#B9B9BE}.an-row.sw-del.sw-go::before{background:#FF3B30}
-.an-row.sw-del::after{content:"Delete";left:14px}
+.an-row.sw-del::after{content:"Delete";right:16px}
 .an-row.sw-copy::before{background:#B9B9BE}.an-row.sw-copy.sw-go::before{background:#0A84FF}
-.an-row.sw-copy::after{content:"Copy";right:16px}
+.an-row.sw-copy::after{content:"Copy";left:16px}
 .an-card{padding-left:0!important}
 .an-card .an-sw{padding-left:16px}
 .an-todos .an-sw{padding-left:14px}
