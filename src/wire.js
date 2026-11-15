@@ -1796,56 +1796,66 @@ workoutLog = function (id) {
   if (w && w.linked && f) f.insertAdjacentHTML('afterbegin', `<p class="wl-note">Planned ${esc(fmtDay(w.date))} ${w.slot} · done ${esc(fmtDay(w.linked.date))} ${w.linked.slot} (${esc(w.linked.title)})</p><button type="button" class="secondary wl-unlink" data-2b="wl-unlink" data-id="${w.id}">Unmatch</button>`);
 };
 
-/* ==================== Screenshot → to-dos (read by Claude through your sync script) ==================== */
-function shotShrink(file) {
+/* ==================== Photo → notes / to-dos. The text is read on the phone itself: no account, no key, nothing uploaded. ==================== */
+const OCR = 'ocr/';
+let ocrLib = null;
+function ocrLoad() {
+  return ocrLib || (ocrLib = new Promise((res, rej) => { const s = document.createElement('script'); s.src = OCR + 'tesseract.min.js';
+    s.onload = () => window.Tesseract ? res(window.Tesseract) : rej(new Error('The text reader did not load.'));
+    s.onerror = () => { ocrLib = null; s.remove(); rej(new Error('offline')); }; document.head.appendChild(s); }));
+}
+// Photos are drawn to a canvas first: fixes rotation, and small screenshots read better enlarged
+function shotCanvas(file) {
   return new Promise((res, rej) => {
     const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => { const k = Math.min(1, 1568 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', .85).split(',')[1]); };
+    img.onload = () => { const big = Math.max(img.width, img.height), k = big > 2400 ? 2400 / big : big < 1400 ? Math.min(2, 1400 / big) : 1, c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c); };
     img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Could not open that image.')); };
     img.src = url;
   });
 }
 function shotMsg(title, text) { modal(title, `<p class="mr-help" style="font-size:15px">${text}</p><div class="form-actions"><button class="primary" type="button" data-act="close">OK</button></div>`, { kind: 'shot', form: false }); }
+// First date mentioned in the text ("Nov 20", "11/20", "Tuesday", "tomorrow"), as YYYY-MM-DD
+function shotDate(text) {
+  const p2 = n => String(n).padStart(2, '0'), yr = Number(today.slice(0, 4)), roll = (y, m, d, given) => { if (m < 1 || m > 12 || d < 1 || d > 31) return ''; let v = `${y}-${p2(m)}-${p2(d)}`; if (!given && v < today) v = `${y + 1}${v.slice(4)}`; return v; };
+  let m;
+  if ((m = text.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/))) return roll(+m[1], +m[2], +m[3], true);
+  if ((m = text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?:,?\s*(20\d{2}))?/i))) return roll(m[3] ? +m[3] : yr, 'janfebmaraprmayjunjulaugsepoctnovdec'.indexOf(m[1].toLowerCase()) / 3 + 1, +m[2], !!m[3]);
+  if ((m = text.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/))) { const y = m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : yr, v = roll(y, +m[1], +m[2], !!m[3]); if (v) return v; }
+  if ((m = text.match(/\b(today|tonight|tomorrow|(?:sun|mon|tues?|wed(?:nes)?|thu(?:rs)?|fri|sat(?:ur)?)(?:day)?)\b/i))) return tdParse('x ' + m[1]).date || '';
+  return '';
+}
+function shotItems(text) {
+  const lines = String(text || '').split(/\r?\n/).map(l => l.replace(/\s+/g, ' ').trim()).filter(l => l.replace(/[^A-Za-z0-9]/g, '').length > 1)
+    .map(l => l.replace(/^[-*•]?\s*\[\s*[1lI|\]]\s+(?=\S)/, '- [ ] '));   // a tick box is often misread as "[ 1"
+  if (!lines.length) return [];
+  const items = impParse(lines.join('\n'));
+  if (items.length !== 1 || items[0].type !== 'note') return items.filter(x => x.type !== 'note' || x.body);   // a bare heading over a list is not a note
+  // One block of text (a message, a reminder): skip screen labels like "Text Message", title it by its opening words,
+  // and if it names a date offer it as a to-do on that date
+  while (lines.length > 1 && lines[0].split(' ').length < 3) lines.shift();
+  const all = lines.join(' '), cut = all.length > 70 ? all.slice(0, 70).replace(/\s+\S*$/, '') + '…' : all, due = shotDate(all);
+  return [{ type: due ? 'todo' : 'note', title: cut, due, cat: 'Personal', done: false, body: all.length > 70 ? lines.join('\n') : '' }];
+}
 async function shotRead(file) {
-  if (!cfg.url) { shotMsg('Screenshot not read', 'The app is not connected to Google sync on this device, so there is nothing to read it with. Tap the dot in the top bar to connect.'); return; }
-  modal('Reading your screenshot…', '<p class="mr-help" style="font-size:15px">This takes a few seconds. Keep the app open.</p>', { kind: 'shot', form: false });
+  modal('Reading your photo…', '<p class="mr-help" id="shot-prog" style="font-size:15px">Getting the reader ready. The first time takes a little longer.</p>', { kind: 'shot', form: false });
+  const say = t => { const el = document.getElementById('shot-prog'); if (el) el.textContent = t; };
+  let w = null;
   try {
-    const b64 = await shotShrink(file);
-    const r = await api({ action: 'image', b64, mime: 'image/jpeg', today, weekday: fmt(today, { weekday: 'long' }) });
+    const T = await ocrLoad(), base = new URL(OCR, location.href).href, c = await shotCanvas(file);
+    w = await T.createWorker('eng', 1, { workerPath: base + 'worker.min.js', corePath: base, langPath: base,
+      logger: m => { if (m.status === 'recognizing text') say(`Reading… ${Math.round((m.progress || 0) * 100)}%`); } });
+    const r = await w.recognize(c); await w.terminate(); w = null;
+    const items = shotItems(r.data.text);
     forceClose();
-    if (!r.todos || !r.todos.length) { shotMsg('Nothing found', 'Claude read the screenshot but did not find anything to do in it. Nothing was added.'); return; }
-    shotReview(r.todos);
+    if (!items.length) { shotMsg('No text found', 'There was no readable text in that photo, so nothing was added. It works best on screenshots and printed text.'); return; }
+    impReview(items);
   } catch (e) {
+    if (w) { try { w.terminate(); } catch (x) {} }
     forceClose();
-    shotMsg('Screenshot not read', /no key/.test(e.message) ? 'Your Google sync script has no Claude API key yet, so the screenshot could not be read. Nothing was added and the image was not saved. Add a script property named ANTHROPIC_KEY, then try again.'
-      : /unknown action/.test(e.message) ? 'This phone is connected to an older copy of the sync script that cannot read screenshots. Nothing was added.'
-      : 'Something went wrong, so nothing was added: ' + esc(e.message));
+    shotMsg('Photo not read', e.message === 'offline' || !navigator.onLine ? 'The text reader has to download once, and this phone is offline. Nothing was added. Try again when you have a connection.' : 'Something went wrong, so nothing was added: ' + esc(e.message || String(e)));
   }
 }
-function shotReview(list) {
-  modal('From your screenshot', `<form id="shot-form" autocomplete="off">${list.map((t, i) => `<div class="shot-it"><label class="shot-on"><input type="checkbox" name="on${i}" checked aria-label="Add this to-do"></label><div class="shot-f">
-      <textarea name="title${i}" rows="2" aria-label="To-do">${esc(t.title || '')}</textarea>
-      <div class="shot-r"><input type="date" name="date${i}" value="${/^\d{4}-\d{2}-\d{2}$/.test(t.date || '') ? t.date : ''}" aria-label="Date"><input type="time" name="time${i}" value="${/^\d{2}:\d{2}$/.test(t.time || '') ? t.time : ''}" aria-label="Time"><select name="cat${i}" aria-label="Category"><option${t.category === 'Work' ? '' : ' selected'}>Personal</option><option${t.category === 'Work' ? ' selected' : ''}>Work</option></select></div>
-      <input name="notes${i}" value="${esc(t.notes || '')}" placeholder="Notes" aria-label="Notes"></div></div>`).join('')}
-    <input type="hidden" name="n" value="${list.length}"><div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button class="primary" type="submit">Add to-do${list.length > 1 ? 's' : ''}</button></div></form>`, { kind: 'shot', form: false });
-}
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-shot]'); if (!b) return; e.preventDefault(); e.stopPropagation(); qaClose();
-  let inp = document.getElementById('shot-file');
-  if (!inp) { inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.id = 'shot-file'; inp.hidden = true; document.body.appendChild(inp);
-    inp.addEventListener('change', () => { const f = inp.files && inp.files[0]; inp.value = ''; if (f) shotRead(f); }); }
-  inp.click();
-}, true);
-document.addEventListener('submit', e => {
-  if (e.target.id !== 'shot-form') return; e.preventDefault(); e.stopPropagation();
-  const v = Object.fromEntries(new FormData(e.target)), added = [];
-  for (let i = 0; i < Number(v.n); i++) { if (!v['on' + i] || !String(v['title' + i]).trim()) continue;
-    const t = { id: uid(), title: String(v['title' + i]).trim(), category: v['cat' + i], date: v['date' + i] || '', time: v['time' + i] || '', done: false, repeat: 'none', notes: v['notes' + i] || '' }; data.tasks.push(t); added.push(t); }
-  if (!added.length) { forceClose(); return; }
-  save(); forceClose(); render();
-  undoToast(`Added ${added.length} to-do${added.length > 1 ? 's' : ''}.`, () => { data.tasks = data.tasks.filter(t => !added.includes(t)); save(); render(); });
-}, true);
 
 /* ==================== Simple shell: Notes · Train. One list; any note can be a to-do. ==================== */
 // To-dos stay in data.tasks (Siri, screenshots, swipes, repeats keep working); thoughts are notes. A note can also carry todo/due/done itself.
@@ -1975,9 +1985,9 @@ function impParse(text) {
   flush(); return items.filter(x => x.title).slice(0, 60);
 }
 function impSheet() {
-  modal('Import', `<form id="imp-form"><p class="mr-help">Paste a list or markdown, or pick a file (.md, .txt or a screenshot). You get to review everything before it is added.</p>
+  modal('Import', `<form id="imp-form"><p class="mr-help">Paste a list or markdown, or pick a file or photo. Photos are read on this phone. You review everything before it is added.</p>
     <textarea name="text" rows="9" placeholder="todo: Book bike fit fri&#10;- [ ] Send Arvind the spike (work) due 11/20&#10;note: Gift ideas&#10;Steph: engraving stand&#10;&#10;# Asia honeymoon&#10;Seoul first, then Hanoi" aria-label="Text to import"></textarea>
-    <div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button class="secondary" type="button" data-imp="file">Choose file</button><button class="primary" type="submit">Read it</button></div></form>`, { kind: 'imp', form: false });
+    <div class="form-actions"><button class="secondary" type="button" data-act="close">Cancel</button><button class="secondary" type="button" data-imp="file">File or photo</button><button class="primary" type="submit">Read it</button></div></form>`, { kind: 'imp', form: false });
 }
 function impReview(items) {
   modal(`Review ${items.length} item${items.length === 1 ? '' : 's'}`, `<form id="imp-review" autocomplete="off">${items.map((x, i) => `<div class="shot-it"><label class="shot-on"><input type="checkbox" name="on${i}" checked aria-label="Add this item"></label><div class="shot-f">
